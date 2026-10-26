@@ -5,7 +5,7 @@ Termos de tela: [glossário](../glossario.md). Achados que originaram as regras:
 
 ## Fundamentos (tokens)
 
-| O quê | Onde (em `frontend/src/app/`) |
+| O quê | Onde (em `src/app/`) |
 |---|---|
 | Valores de cor: paleta da CAIXA, neutros, paleta dos gráficos, ajustes do PrimeNG | `tema/tema.ts`, o **único lugar de valores de cor** |
 | Nomes de uso: espaçamento (`--espaco-*`), fonte (`--fonte-*`), raio, sombra, movimento e cores (`--cor-*`) nos dois temas | `tema/fundamentos.scss` |
@@ -124,14 +124,14 @@ Cor nova ou ordem nova: rode o validador de novo nos dois temas e atualize esta 
 
 ## Logo
 
-A logo é **vetorial** (SVG), em duas versões, em `frontend/src/assets/marca/`:
+A logo é **vetorial** (SVG), em duas versões, em `src/assets/marca/`:
 - `caixa-logo.svg`, a **positiva**, para fundo claro: CAIXA em Azul CAIXA e o X em azul e laranja;
 - `caixa-logo-negativa.svg`, a **negativa**, para fundo escuro: a palavra em branco e a parte laranja do X mantida.
 
 Para uso oficial, a logo ainda deve ser **confirmada com a área de marca da CAIXA** (manual de marca: área de proteção e tamanho
 mínimo).
 
-- **Onde trocar:** substitua os arquivos (mesmos nomes) ou mude `LOGO_CAIXA` em `frontend/src/app/tema/marca.ts` (caminhos e as
+- **Onde trocar:** substitua os arquivos (mesmos nomes) ou mude `LOGO_CAIXA` em `src/app/tema/marca.ts` (caminhos e as
   dimensões do `viewBox`).
 - **Uso:**
   - direto sobre o fundo, **sem selo**: a versão segue o tema na hora, inclusive em "seguir o sistema";

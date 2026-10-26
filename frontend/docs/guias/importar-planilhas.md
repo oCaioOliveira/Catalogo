@@ -7,7 +7,7 @@ desfeita.
 
 > Quem pode importar é quem pode **criar** itens naquele tipo de item. Nos cadastros de apoio (Ambiente, Status...), só o
 > administrador. As imagens deste guia vêm de uma equipe de teste ("E2E-…"); na sua tela aparecem os seus nomes.
-> Regras completas: RN97 a RN104 em [regras-de-negocio.md](../regras-de-negocio.md#rn97--importação-de-planilhas-fluxo-e-permissão).
+> Regras completas: RN97 a RN104 em `docs/regras-de-negocio.md`, no repositório do back-end.
 
 ## Um tipo de item por vez
 

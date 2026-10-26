@@ -1,6 +1,6 @@
 # 0007. Repositório organizado em pastas por aplicação
 
-- Status: Aceito
+- Status: Substituído por 0051
 - Data: 2026-10-21
 
 ## Contexto

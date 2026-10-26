@@ -1,9 +1,12 @@
 # Front-end: telas montadas pelos metadados
 
-O front (`frontend/`, Angular 20 + PrimeNG, [ADR 0033](adr/0033-angular-20-com-primeng.md)) não tem tela escrita à mão por tipo
+O front (Angular 20 + PrimeNG, [ADR 0033](adr/0033-angular-20-com-primeng.md)) não tem tela escrita à mão por tipo
 de item: **listagem, filtros, formulário e detalhe são genéricos** e se montam a partir de
 `GET /api/v1/grupos/{grupo}/entidades` ([ADR 0034](adr/0034-front-dirigido-por-metadados.md)). Como rodar e testar:
-[`frontend/README.md`](../frontend/README.md); regras para quem mexe no código: [`frontend/AGENTS.md`](../frontend/AGENTS.md).
+[`README.md`](../README.md); regras para quem mexe no código: [`AGENTS.md`](../AGENTS.md).
+
+Caminhos marcados com **(back-end)** ficam no repositório do back-end (regras de negócio, guia da API e os ADRs que não estão em
+[`adr/`](adr/README.md)).
 
 ## Fluxo
 
@@ -63,7 +66,7 @@ opções: ele exige a equipe do registro (RN21) para o administrador e para quem
 - **Nomes**: o **plural** (`nomePlural` da entidade; sem ele, o `nome`) no título da listagem, no menu, nas seções de filhos e nas
   trilhas; o **singular** em "Novo: …", "Editar: …", "Adicionar …" e nas mensagens sobre um item (`regras-metadados.ts` → `nomePlural`).
 - **Menu e tela inicial** seguem a `ordem` dos metadados (principais por equipe, depois os cadastros de apoio globais). Não há grupo
-  nem entidade fixos no front: ver "Várias listagens" abaixo ([ADR 0043](adr/0043-navegacao-entre-listagens-e-tela-inicial-pelos-metadados.md)).
+  nem entidade fixos no front: ver "Várias listagens" abaixo (ADR 0043, back-end).
 - **Valores** (tabela e detalhe, `shared/exibicao/valor-campo.component.ts`): URL é **link** para uma nova aba (`target="_blank"`,
   `rel="noopener noreferrer"`), truncada na tabela com a URL inteira na dica; referência para entidade **por equipe** (Projeto, RTC,
   Relatório) é link para o item; para **cadastro de apoio global** (Ambiente, Status, Sigla, Comunidade) é texto
@@ -83,7 +86,7 @@ opções: ele exige a equipe do registro (RN21) para o administrador e para quem
 ## Várias listagens
 
 A listagem atual vem da **rota** (`/:grupo/...` e `/painel/:grupo`; `listagemAtualGuard` → `ListagemAtualService`), e o menu mostra
-as entidades dela ([ADR 0043](adr/0043-navegacao-entre-listagens-e-tela-inicial-pelos-metadados.md)). Regras puras em
+as entidades dela (ADR 0043, back-end). Regras puras em
 `core/metadados/listagens.ts` e `regras-metadados.ts`:
 
 | Situação | O que abre |
@@ -101,7 +104,7 @@ metadados, remonta os campos com o que já foi digitado (`preservarValores`) e p
 
 ## Itens relacionados (e entidades filhas)
 
-O detalhe de um item mostra **todos os itens que apontam para ele** (RN94, [ADR 0047](adr/0047-itens-relacionados-descobertos-pelos-metadados.md)),
+O detalhe de um item mostra **todos os itens que apontam para ele** (RN94, ADR 0047, back-end),
 descobertos pelos metadados: nada é configurado por tipo de item, e uma referência criada na administração já gera a seção. O detalhe
 chama `GET .../registros/{id}/relacionados` **uma vez** e monta uma seção por entrada (regras puras em
 `features/registros/detalhe/relacionados.ts`, com teste):
@@ -159,8 +162,8 @@ tratados.
 
 ## Importação de planilhas
 
-Cadastro de muitos itens de uma vez, **genérico para qualquer tipo de item** (RN97 a RN104, [ADR 0048](adr/0048-importacao-pelo-mesmo-caminho-do-cadastro.md),
-API em [`api/importacao.md`](api/importacao.md), guia do usuário em [`guias/importar-planilhas.md`](guias/importar-planilhas.md)).
+Cadastro de muitos itens de uma vez, **genérico para qualquer tipo de item** (RN97 a RN104, ADR 0048,
+API em `docs/api/importacao.md` (back-end), guia do usuário em [`guias/importar-planilhas.md`](guias/importar-planilhas.md)).
 
 - **Onde**: na listagem, o botão dividido **Importar** (ao lado de **Exportar**) abre o assistente (`/:grupo/:entidade/importar`) e a
   seta dele leva a **Importações anteriores** (`/:grupo/:entidade/importacoes`). Aparece para quem pode **criar** ali
@@ -192,7 +195,7 @@ API em [`api/importacao.md`](api/importacao.md), guia do usuário em [`guias/imp
 Rotas `/painel/:grupo` (visão geral e indicadores pré-configurados) e `/painel/:grupo/analise` (análise personalizada), só para
 **GESTOR** e **ADMINISTRADOR** (RN78): a regra está em `PermissoesService.podeVerPainel`, o `painelGuard` manda os demais para a
 página "sem permissão", e o item "Painel gerencial" aparece no topo do menu só para eles. Os 403 da API continuam tratados. API:
-[`docs/api/painel.md`](api/painel.md). Código: `src/app/features/painel/`.
+`docs/api/painel.md` (back-end). Código: `src/app/features/painel/`.
 
 ```mermaid
 flowchart LR
@@ -281,7 +284,7 @@ mesmo `WidgetComponent`. Ações: exportar CSV/XLSX e "Copiar configuração". E
 
 Rotas `/admin/listagens`, `/admin/listagens/:grupo` e `/admin/listagens/:grupo/entidades/:entidade`, só para o **ADMINISTRADOR**
 (`administracaoGuard`, RN50), com o item "Listagens" na seção "Administração" do menu. API:
-[`docs/api/administracao-de-metadados.md`](api/administracao-de-metadados.md). Passo a passo para quem administra:
+`docs/api/administracao-de-metadados.md` (back-end). Passo a passo para quem administra:
 [`docs/guias/criar-uma-listagem.md`](guias/criar-uma-listagem.md). Código: `src/app/features/administracao/listagens/` (regras puras em
 `modelo/`, com teste) e o acesso à API em `core/administracao/metadados-admin.service.ts`.
 
@@ -340,7 +343,7 @@ flowchart LR
 Rotas `/admin/usuarios` (e `/novo`, `/:id`, `/:id/editar`) e `/admin/equipes` (idem), só para o **ADMINISTRADOR** (RN26): a regra
 está em `PermissoesService.podeAdministrar`, o `administracaoGuard` manda os demais para a página "sem permissão" (a mesma do
 painel), e a seção "Administração" aparece no fim do menu só para ele. Código: `src/app/features/administracao/`; acesso à API:
-`core/administracao/AdministracaoService`. API: [`docs/api/README.md` → "Usuários e equipes"](api/README.md#usuários-e-equipes-administração).
+`core/administracao/AdministracaoService`. API: `docs/api/README.md` → "Usuários e equipes" (back-end).
 
 ### Usuários
 
@@ -386,7 +389,7 @@ equipes do usuário logado, e **"Trocar senha"**, que reaproveita a tela de troc
 
 ## Aprovação e avaliação
 
-Os elementos **só aparecem onde o recurso está ativo para o tipo de item e a equipe** ([ADR 0045](adr/0045-telas-condicionais-por-recurso-ativo.md)).
+Os elementos **só aparecem onde o recurso está ativo para o tipo de item e a equipe** (ADR 0045, back-end).
 A lista de entidades traz `equipesComAprovacao` e `criteriosAvaliacao` (as das equipes que o usuário vê); o formulário de avaliação de
 um item vem de `GET .../entidades?equipeId=` (`modeloAvaliacao`). As regras de tela são funções puras com teste:
 `core/permissoes/permissoes.ts`, `core/aprovacao/regras-aprovacao.ts`, `core/avaliacao/regras-avaliacao.ts` e

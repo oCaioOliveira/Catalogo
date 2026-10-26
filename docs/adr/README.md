@@ -4,6 +4,10 @@ Cada ADR registra **uma** decisão: o contexto, o que foi decidido e as consequ�
 ADR aceito não é editado. Se a decisão mudar, crie um ADR novo que **substitui** o antigo e
 marque o antigo como "Substituído por NNNN".
 
+**A numeração é uma só para o back-end e o front-end** ([ADR 0051](0051-repositorios-separados-back-e-front.md)). Os ADRs só do
+front ficam no repositório do front-end (`docs/adr/`) e aparecem aqui sem link. Antes de criar um ADR, veja o último número nos dois
+repositórios e use o próximo. Decisão que mexe nos dois lados fica aqui.
+
 | Nº | Decisão | Status |
 |---|---|---|
 | [0001](0001-modelo-generico-eav-json.md) | Modelo genérico EAV com JSON e referências em tabela própria | Aceito |
@@ -12,7 +16,7 @@ marque o antigo como "Substituído por NNNN".
 | [0004](0004-sem-mediatr-automapper-fluentassertions.md) | Sem MediatR, AutoMapper e FluentAssertions 8+ | Aceito |
 | [0005](0005-unicidade-por-hash.md) | Unicidade por hash em RegistroChaveUnica | Aceito |
 | [0006](0006-dotnet-8.md) | .NET 8, com migração pendente para o .NET 10 | Aceito |
-| [0007](0007-repositorio-por-aplicacao.md) | Repositório organizado em pastas por aplicação | Aceito |
+| [0007](0007-repositorio-por-aplicacao.md) | Repositório organizado em pastas por aplicação | Substituído por 0051 |
 | [0008](0008-atualizacao-via-put.md) | Atualização via PUT com o registro inteiro | Aceito |
 | [0009](0009-concorrencia-pela-versao-no-corpo.md) | Concorrência otimista pela `versao` no corpo do PUT | Aceito |
 | [0010](0010-exclusao-fisica-com-plano.md) | Exclusão física com plano de exclusão | Aceito |
@@ -38,24 +42,25 @@ marque o antigo como "Substituído por NNNN".
 | [0030](0030-indicadores-genericos-pelos-metadados.md) | Indicadores genéricos, montados pelos metadados | Aceito (o limite de um nível de referência foi substituído pelo 0038) |
 | [0031](0031-agregacao-no-banco-em-linq.md) | Agregação no banco, em LINQ, por LEFT JOIN com os valores tipados | Aceito |
 | [0032](0032-painel-so-para-gestor-e-administrador.md) | Painel só para GESTOR e ADMINISTRADOR, com a visibilidade da listagem | Aceito |
-| [0033](0033-angular-20-com-primeng.md) | Front-end em Angular 20 com PrimeNG | Aceito |
-| [0034](0034-front-dirigido-por-metadados.md) | Front-end dirigido por metadados | Aceito |
-| [0035](0035-token-em-sessionstorage.md) | Token de acesso em sessionStorage | Aceito |
-| [0036](0036-cliente-gerado-do-openapi.md) | Cliente da API gerado a partir do OpenAPI | Aceito |
-| [0037](0037-estado-da-listagem-na-url.md) | Estado da listagem na URL | Aceito |
+| 0033 | Front-end em Angular 20 com PrimeNG (repositório do front-end) | Aceito |
+| 0034 | Front-end dirigido por metadados (repositório do front-end) | Aceito |
+| 0035 | Token de acesso em sessionStorage (repositório do front-end) | Aceito |
+| 0036 | Cliente da API gerado a partir do OpenAPI (repositório do front-end) | Aceito (a origem do contrato foi alterada pelo 0051) |
+| 0037 | Estado da listagem na URL (repositório do front-end) | Aceito |
 | [0038](0038-caminhos-por-referencia.md) | Caminhos por referência em filtros, dimensões e métricas | Aceito |
-| [0039](0039-widgets-por-configuracao-em-arquivo.md) | Widgets do painel definidos por configuração em arquivo | Aceito |
-| [0040](0040-graficos-com-primeng-chartjs.md) | Gráficos com o p-chart do PrimeNG (Chart.js) | Aceito |
-| [0041](0041-senha-provisoria-exibida-uma-vez-sem-armazenamento.md) | Senha provisória exibida uma vez, sem armazenamento no front | Aceito |
+| 0039 | Widgets do painel definidos por configuração em arquivo (repositório do front-end) | Aceito |
+| 0040 | Gráficos com o p-chart do PrimeNG (Chart.js) (repositório do front-end) | Aceito |
+| 0041 | Senha provisória exibida uma vez, sem armazenamento no front (repositório do front-end) | Aceito |
 | [0042](0042-tipo-de-dado-url.md) | Tipo de dado URL e a conversão dos campos de endereço existentes | Aceito |
 | [0043](0043-navegacao-entre-listagens-e-tela-inicial-pelos-metadados.md) | Navegação entre várias listagens, com a tela inicial calculada pelos metadados | Aceito |
-| [0044](0044-simulacao-obrigatoria-antes-de-gravar-estrutura.md) | Simulação obrigatória antes de gravar alterações de estrutura (na interface) | Aceito |
+| 0044 | Simulação obrigatória antes de gravar alterações de estrutura (na interface) (repositório do front-end) | Aceito |
 | [0045](0045-telas-condicionais-por-recurso-ativo.md) | Telas de aprovação e avaliação condicionais ao recurso ativo, com contador por intervalo | Aceito |
 | [0046](0046-listagens-habilitadas-por-equipe.md) | Listagens habilitadas por equipe, geridas pelo ADMINISTRADOR, com itens ocultos (não apagados) ao tirar uma equipe | Aceito |
 | [0047](0047-itens-relacionados-descobertos-pelos-metadados.md) | Itens relacionados descobertos pelos metadados, com a contagem num único endpoint e os itens pela listagem filtrada | Aceito |
 | [0048](0048-importacao-pelo-mesmo-caminho-do-cadastro.md) | Importação de planilhas pelo mesmo caminho de gravação do cadastro manual, com prévia por simulação e arquivo no banco | Aceito |
 | [0049](0049-schema-catalogo-e-pacotes-de-entrega.md) | Schema próprio `catalogo` em todos os ambientes e pacotes de entrega consolidados para os DBAs | Aceito (em parte substituído pelo 0050) |
 | [0050](0050-instalacao-inicial-so-estrutura-e-administrador.md) | Instalação inicial só com a estrutura e o administrador inicial, criado por script com o hash da senha | Aceito |
+| [0051](0051-repositorios-separados-back-e-front.md) | Repositórios separados para o back-end e o front-end, com cópia do contrato no front | Aceito |
 
 Modelo para um ADR novo (`NNNN-titulo-curto.md`):
 

@@ -1,18 +1,69 @@
-# AGENTS.md — frontend
+# AGENTS.md — Catalogo (front-end)
 
-Complementa o [`AGENTS.md` da raiz](../AGENTS.md). Aplicação web em **Angular 20 + PrimeNG 20** ([ADR 0033](../docs/adr/0033-angular-20-com-primeng.md)).
-Como a tela é montada: [`docs/frontend.md`](../docs/frontend.md). Contrato da API: [`backend/openapi/v1.json`](../backend/openapi/v1.json)
-e [`docs/api/README.md`](../docs/api/README.md). **Comandos e caminhos daqui são relativos a `frontend/`.**
+Instruções para agentes de IA e para pessoas que trabalham neste repositório. Este é o `AGENTS.md` da **raiz do repositório do
+front-end**: comandos e caminhos daqui são relativos a esta pasta. O conhecimento do front (o "porquê") fica em [`docs/`](docs/), e
+este arquivo aponta para lá em vez de copiar.
 
-**Telas novas seguem o [guia de interface](../docs/design/guia-de-interface.md)** (tokens, componentes padrão, cores, logo), e na
-interface vale sempre a coluna "Na tela" do [glossário](../docs/glossario.md): "Área de gestão" (no código, grupo), "Tipo de item"
-(entidade), "Item" (registro). O nome do sistema na tela é "Catálogo", com acento (títulos, cabeçalho, login); no código,
-`Catalogo`.
+## O que é o Catalogo
+
+Sistema genérico de cadastro: qualquer tipo de item pode ser cadastrado a partir de **metadados** guardados no banco (Grupo →
+Entidade → Campo; na tela, área de gestão → tipo de item → campo). Um motor genérico, na API, valida, grava, lista e exclui os
+registros; este repositório é a **aplicação web** em **Angular 20 + PrimeNG 20** ([ADR 0033](docs/adr/0033-angular-20-com-primeng.md)),
+com as telas **montadas pelos metadados**. O primeiro uso é a área de gestão Testes de Desempenho. O deploy é manual, on premise.
+
+## Mapa do repositório
+
+| Pasta | O que tem | Leia antes de mexer |
+|---|---|---|
+| `src/` | a aplicação (detalhes em "Pastas", abaixo) | este arquivo e [`docs/frontend.md`](docs/frontend.md) |
+| `e2e/` | testes Playwright, que rodam sobre o build (`npm run e2e`) | "Limpeza dos E2E" e "Comandos", abaixo |
+| [`docs/`](docs/) | como a tela se monta ([`frontend.md`](docs/frontend.md)), [guia de interface](docs/design/guia-de-interface.md) e revisão de usabilidade (`design/`), guias do usuário com capturas de tela (`guias/`), [ADRs do front](docs/adr/README.md) e uma cópia do [glossário](docs/glossario.md) | [`docs/frontend.md`](docs/frontend.md) |
+| `openapi/` | `v1.json`: **cópia** do contrato da API, de onde sai o cliente gerado | "Cliente da API (gerado)", abaixo |
+| `scripts/`, `tools/` | gerador do cliente e dados de exemplo pela API | "Pastas", abaixo |
+
+## O repositório do back-end
+
+A API (.NET 8), o banco (scripts do schema no schema `catalogo`) e o conhecimento que vale para os dois lados ficam no
+**repositório do back-end** (SDCAT-BACKEND), e não são copiados para cá (ADR 0051, [no back-end](docs/adr/README.md#no-repositório-do-back-end-citados-pelo-front)):
+
+- **Regras de negócio** (`RNxx`): `docs/regras-de-negocio.md`. O front cita o mesmo id que o back-end.
+- **Guia da API** para quem consome: `docs/api/README.md`, `docs/api/codigos-de-erro.md`, `docs/api/painel.md`,
+  `docs/api/importacao.md` e `docs/api/administracao-de-metadados.md`.
+- **Modelo de dados e arquitetura do back-end**: `docs/modelo-de-dados.md`, `docs/arquitetura.md`, `docs/seguranca.md`.
+- **Fonte do glossário**: `docs/glossario.md` (a de [`docs/glossario.md`](docs/glossario.md) daqui é cópia).
+- **ADRs que mexem na API** ([lista](docs/adr/README.md#no-repositório-do-back-end-citados-pelo-front)).
+
+Quando o código ou um doc daqui citar `docs/api/...`, `docs/regras-de-negocio.md`, `docs/modelo-de-dados.md` ou um ADR que não está
+em [`docs/adr/`](docs/adr/README.md), o caminho é do repositório do back-end. Precisou de algo que a API não dá? A mudança é feita lá
+primeiro (com testes e o `openapi/v1.json` revisado) e depois chega aqui pela cópia do contrato.
+
+## Regras que valem para o repositório todo
+
+1. **Regras de negócio têm id** (`RNxx`), definidas no back-end. O front cita o mesmo id; regra nova ou mudada é atualizada lá, no
+   mesmo ciclo da mudança de tela.
+2. **Decisões de arquitetura viram ADR** em [`docs/adr/`](docs/adr/README.md), com a **numeração única** compartilhada com o
+   back-end. ADR aceito não é editado: é substituído por um novo.
+3. **Áreas de gestão (metadados) são criadas e alteradas pela interface** (Configurações → Áreas de gestão,
+   [`docs/guias/criar-uma-listagem.md`](docs/guias/criar-uma-listagem.md)) ou pela API, pelo administrador; nunca por código do
+   front. Uma área de gestão nova só aparece para as equipes que o administrador habilitar nela (RN90 a RN93, ADR 0046).
+4. **Nunca coloque segredos em arquivos versionados**: senhas vêm de variáveis de ambiente (`CATALOGO_ADMIN_SENHA`,
+   `CATALOGO_SENHA_DEV`).
+5. **Domínio em português**: nomes, mensagens, documentação e testes.
+6. **Na interface, sempre os termos da coluna "Na tela"** do [glossário](docs/glossario.md): "Área de gestão" (no código, grupo),
+   "Tipo de item" (entidade), "Item" (registro). O código, o banco e a API mantêm os nomes antigos. O nome do sistema na tela é
+   "Catálogo", com acento (títulos, cabeçalho, login); no código, `Catalogo`.
+7. **Um caminho só para gravar itens**: a importação de planilhas (RN97 a RN104) grava, na API, pelo **mesmo** serviço do cadastro
+   manual; o front não valida nem grava itens "em lote" por conta própria (ADR 0048, guia em
+   [`docs/guias/importar-planilhas.md`](docs/guias/importar-planilhas.md)).
+8. **Contexto para agentes de IA fica só em `AGENTS.md`** (padrão aberto agents.md). Não crie arquivos de contexto específicos de
+   uma ferramenta.
+9. **Telas novas seguem o [guia de interface](docs/design/guia-de-interface.md)** (tokens, componentes padrão, cores, logo). A logo
+   da CAIXA (SVG, positiva e negativa) fica em `src/assets/marca/`, com os caminhos em `src/app/tema/marca.ts`.
 
 ## A regra principal: telas dirigidas por metadados
 
 **Nenhuma tela é escrita à mão para um tipo de item.** Listagem, filtros, formulário e detalhe são genéricos e se montam a partir
-de `GET /api/v1/grupos/{grupo}/entidades` ([ADR 0034](../docs/adr/0034-front-dirigido-por-metadados.md)). Nunca escreva
+de `GET /api/v1/grupos/{grupo}/entidades` ([ADR 0034](docs/adr/0034-front-dirigido-por-metadados.md)). Nunca escreva
 `if (entidade === 'relatorio_teste')`: se a tela precisa de uma informação que os metadados não trazem, ela entra no back-end
 (mudança aditiva na v1) e o front a lê do `MetadadosService`.
 
@@ -23,12 +74,12 @@ conveniência; a API decide e valida de novo.
 
 | Pasta | O que tem |
 |---|---|
-| `src/app/api/` | **GERADO** a partir do `openapi/v1.json` (`npm run gerar-api`). **Nunca edite à mão** ([ADR 0036](../docs/adr/0036-cliente-gerado-do-openapi.md)) |
+| `src/app/api/` | **GERADO** a partir do `openapi/v1.json` (`npm run gerar-api`). **Nunca edite à mão** ([ADR 0036](docs/adr/0036-cliente-gerado-do-openapi.md)) |
 | `src/app/core/` | importação de planilhas (`importacao/`: serviço e tipos), autenticação (`auth/`: serviço, interceptor, guards), erros (`erros/`: interceptor e o mapa `codigo → mensagem`), metadados (`metadados/`: serviço, tipos e regras puras), permissões (e os guards `painelGuard` e `administracaoGuard`), `RegistrosService` (acesso aos registros), `PainelService` (`painel/`), `AdministracaoService` (`administracao/`), aprovação (`aprovacao/`: serviço, contador de pendentes e regras) e avaliação (`avaliacao/`: serviço, modelo e regras) e o layout |
 | `src/app/shared/` | o que é usado por várias telas: um componente de campo **por tipo** (`campos/`), o formulário genérico (`formulario/`), a exibição de um valor em leitura, igual na tabela e no detalhe (`exibicao/`), a trilha sobre o `p-breadcrumb` (`navegacao/`), a densidade das tabelas (`tabelas/`), o histórico genérico (`historico/`), formatação pt-BR e datas, acessibilidade |
 | `src/app/features/` | as telas, carregadas sob demanda: `auth/` (login, troca de senha), `registros/` (listagem, filtros, detalhe, páginas do formulário), `painel/` (painel gerencial e análise personalizada), `administracao/` (áreas de gestão, usuários e equipes), `configuracoes-equipe/` (aprovação e modelos de avaliação por equipe), `aprovacao/` (a fila), `conta/` (Minha conta), `nao-encontrado/`, `sem-permissao/`, `inicio/` (página Início da área), `sem-listagens/` (nenhuma área de gestão para as equipes do usuário), `importacao/` (assistente de importação de planilhas e importações anteriores) |
 | `src/app/tema/` | `tema.ts` (paleta da CAIXA, neutros, `PALETA_GRAFICOS`: **único lugar de valores de cor**), `fundamentos.scss` (tokens `--cor-*`, `--espaco-*`...), `marca.ts` (**caminho da logo**, num lugar só), `logo-marca.component.ts`, `botao-tema.component.ts`, `tema.service.ts` e as traduções do PrimeNG |
-| `src/assets/marca/` | a logo da CAIXA em SVG: `caixa-logo.svg` (positiva, tema claro) e `caixa-logo-negativa.svg` (negativa, tema escuro). Ver [guia → Logo](../docs/design/guia-de-interface.md#logo) |
+| `src/assets/marca/` | a logo da CAIXA em SVG: `caixa-logo.svg` (positiva, tema claro) e `caixa-logo-negativa.svg` (negativa, tema escuro). Ver [guia → Logo](docs/design/guia-de-interface.md#logo) |
 | `src/environments/environment.ts` | configurações num lugar só (`grupoPadrao`, tamanhos de página). A tela inicial é a primeira entidade do menu, pela `ordem` dos metadados (`telaInicialGuard`) |
 | `scripts/` | `gerar-api.mjs` |
 | `tools/dados-dev/` | script que popula dados de exemplo **pela API** |
@@ -45,7 +96,7 @@ conveniência; a API decide e valida de novo.
 - Regra que dá para testar sem Angular vira **função pura** num `.ts` com `.spec.ts` ao lado (ex.: `regras-metadados.ts`,
   `filtros-url.ts`, `montador-formulario.ts`, `permissoes.ts`).
 - Erros da API: decida pelo `codigo` (`core/erros/problema.ts` → `lerProblema`), nunca pelo texto. Mensagens só em
-  `core/erros/mensagens-erro.ts`, alinhadas com [`docs/api/codigos-de-erro.md`](../docs/api/codigos-de-erro.md). Para tratar um
+  `core/erros/mensagens-erro.ts`, alinhadas com `docs/api/codigos-de-erro.md` (back-end). Para tratar um
   status no próprio componente (ex.: 400 no formulário), passe `tratarNoComponente(400)` como contexto da chamada; os demais viram
   toast no interceptor.
 - Acessibilidade: **todo controle de formulário tem nome acessível, verificado em teste**. `<input>`: `<label for>`; `p-select` e
@@ -60,12 +111,12 @@ conveniência; a API decide e valida de novo.
 
 ## Painel gerencial
 
-Como funciona: [`docs/frontend.md` → "Painel gerencial"](../docs/frontend.md#painel-gerencial). Em resumo:
+Como funciona: [`docs/frontend.md` → "Painel gerencial"](docs/frontend.md#painel-gerencial). Em resumo:
 
-- **Widgets são configuração, não componentes novos** ([ADR 0039](../docs/adr/0039-widgets-por-configuracao-em-arquivo.md)). Um widget
+- **Widgets são configuração, não componentes novos** ([ADR 0039](docs/adr/0039-widgets-por-configuracao-em-arquivo.md)). Um widget
   novo é um objeto em `features/painel/configuracao/<grupo>.painel.ts`, de preferência copiado da análise personalizada ("Copiar
   configuração"). Não crie componente por gráfico, e nada de `if (entidade === ...)` no painel: o que é de uma área de gestão fica no arquivo.
-- **Gráficos só com `p-chart`, cores do tema** ([ADR 0040](../docs/adr/0040-graficos-com-primeng-chartjs.md)). Cor nova ou ordem nova
+- **Gráficos só com `p-chart`, cores do tema** ([ADR 0040](docs/adr/0040-graficos-com-primeng-chartjs.md)). Cor nova ou ordem nova
   da paleta só em `src/app/tema/tema.ts` (`PALETA_GRAFICOS`), e conferida com um validador de paletas (daltonismo, claro e escuro).
 - A transformação dos dados (`graficos/transformar-dados.ts`) e as opções do Chart.js (`graficos/opcoes-grafico.ts`) são **funções
   puras** com teste. Regra visual nova entra lá, não no template.
@@ -75,11 +126,11 @@ Como funciona: [`docs/frontend.md` → "Painel gerencial"](../docs/frontend.md#p
 
 ## Administração de áreas de gestão (metadados)
 
-Como funciona: [`docs/frontend.md` → "Administração de listagens"](../docs/frontend.md#administração-de-listagens). **Áreas de gestão
+Como funciona: [`docs/frontend.md` → "Administração de listagens"](docs/frontend.md#administração-de-listagens). **Áreas de gestão
 novas são criadas pela interface** (Configurações → Áreas de gestão), não por script nem por código: nada de tela, rota ou `if` por área.
 
 - **Toda gravação de estrutura passa pelo `AlteracaoEstruturaService`** (`features/administracao/listagens/comum/`): ele simula
-  (`?simular=true`) e decide — grava, confirma, pede o valor padrão ou mostra o relatório de bloqueio ([ADR 0044](../docs/adr/0044-simulacao-obrigatoria-antes-de-gravar-estrutura.md)).
+  (`?simular=true`) e decide — grava, confirma, pede o valor padrão ou mostra o relatório de bloqueio ([ADR 0044](docs/adr/0044-simulacao-obrigatoria-antes-de-gravar-estrutura.md)).
   Tela nova da administração: monte um `Alteracao` (`grupo`, `entidade`, `titulo`, `chamar(simular, valorPadrao)`) e trate o
   `Desfecho` (`gravado` → estrutura nova; `conflito` → recarregar; `invalido` → erros nos controles). Nunca chame a API direto.
 - O acesso à API é o `MetadadosAdminService` (`core/administracao/`), que descarta os metadados em memória depois de cada gravação.
@@ -91,10 +142,10 @@ novas são criadas pela interface** (Configurações → Áreas de gestão), nã
 
 ## Aprovação e avaliação
 
-Como funciona: [`docs/frontend.md` → "Aprovação e avaliação"](../docs/frontend.md#aprovação-e-avaliação).
+Como funciona: [`docs/frontend.md` → "Aprovação e avaliação"](docs/frontend.md#aprovação-e-avaliação).
 
 - **Os elementos de aprovação e avaliação só aparecem quando o recurso está ativo para o tipo de item e a equipe**
-  ([ADR 0045](../docs/adr/0045-telas-condicionais-por-recurso-ativo.md)). A informação vem dos metadados (`equipesComAprovacao`,
+  (ADR 0045, back-end). A informação vem dos metadados (`equipesComAprovacao`,
   `criteriosAvaliacao`; o formulário de avaliação, de `?equipeId=`): nada de chamada por equipe, nada de `if` por tipo de item.
   Onde nada está ligado, a tela tem de ficar igual a antes (o cenário 12 do E2E confere nas equipes de desenvolvimento).
 - Regras de tela em funções puras com teste: `core/permissoes/permissoes.ts` (quem cria, edita, decide, avalia),
@@ -107,7 +158,7 @@ Como funciona: [`docs/frontend.md` → "Aprovação e avaliação"](../docs/fron
 
 ## Navegação e padrões de tela
 
-Como funciona: [guia de interface](../docs/design/guia-de-interface.md). Regras que valem para toda tela:
+Como funciona: [guia de interface](docs/design/guia-de-interface.md). Regras que valem para toda tela:
 
 - **Moldura** (`core/layout/`): no cabeçalho, a logo (leva ao Início da área atual), o seletor de área de gestão, Aprovações,
   Configurações, o botão de tema e o menu do usuário. Ao lado, o **menu da área** (Início, Painel, tipos de item, Cadastros de apoio)
@@ -133,14 +184,14 @@ Como funciona: [guia de interface](../docs/design/guia-de-interface.md). Regras 
   - alerta é âmbar, não laranja.
   O contraste dos dois temas é conferido no E2E `marca.spec.ts` (axe).
 - Nada de grupo ou entidade fixos: a área atual vem da rota (`listagemAtualGuard`), a tela inicial é calculada
-  (`telaInicialGuard`, `telaInicialDaListagemGuard`, [ADR 0043](../docs/adr/0043-navegacao-entre-listagens-e-tela-inicial-pelos-metadados.md)).
+  (`telaInicialGuard`, `telaInicialDaListagemGuard`, ADR 0043, back-end).
 - Em guard assíncrono, todo `inject()` vai **antes** do primeiro `await` (depois dele o guard sai do contexto de injeção: tela em branco).
 - E2E que cria área de gestão: prefixo único, chave com `_e2e_` (ex.: `inventario_e2e_...`), habilitar as equipes que o teste usa (a
   área nasce sem equipes, RN93) e desativar no fim (a preparação global e o helper de limpeza desativam sobras).
 
 ## Áreas de gestão habilitadas por equipe (RN90 a RN93)
 
-Como funciona: [`docs/frontend.md` → "Equipe"](../docs/frontend.md#equipe) e [ADR 0046](../docs/adr/0046-listagens-habilitadas-por-equipe.md).
+Como funciona: [`docs/frontend.md` → "Equipe"](docs/frontend.md#equipe) e ADR 0046 (back-end).
 
 - O que é de equipe **dentro de uma área de gestão** usa `Listagem.minhasEquipes` (as equipes do usuário nesta área, de `GET /grupos`,
   via `MetadadosService.listagem(grupo)` / `equipesDaListagem(grupo)`), **nunca** `usuario.equipes` direto: select do formulário,
@@ -152,8 +203,8 @@ Como funciona: [`docs/frontend.md` → "Equipe"](../docs/frontend.md#equipe) e [
 
 ## Itens relacionados no detalhe (RN94)
 
-Como funciona: [`docs/frontend.md` → "Itens relacionados"](../docs/frontend.md#itens-relacionados-e-entidades-filhas) e
-[ADR 0047](../docs/adr/0047-itens-relacionados-descobertos-pelos-metadados.md).
+Como funciona: [`docs/frontend.md` → "Itens relacionados"](docs/frontend.md#itens-relacionados-e-entidades-filhas) e
+ADR 0047 (back-end).
 
 - As seções vêm de **uma** chamada (`RegistrosService.relacionados`) e das regras puras de `features/registros/detalhe/relacionados.ts`
   (seções, títulos, colunas, links "Ver todos" e "Novo …", estado aberto/fechado). Nada de `if` por tipo de item nem lista fixa de
@@ -165,8 +216,8 @@ Como funciona: [`docs/frontend.md` → "Itens relacionados"](../docs/frontend.md
 
 ## Importação de planilhas (RN97 a RN104)
 
-Como funciona: [`docs/frontend.md` → "Importação de planilhas"](../docs/frontend.md#importação-de-planilhas) e
-[ADR 0048](../docs/adr/0048-importacao-pelo-mesmo-caminho-do-cadastro.md).
+Como funciona: [`docs/frontend.md` → "Importação de planilhas"](docs/frontend.md#importação-de-planilhas) e
+ADR 0048 (back-end).
 
 - **A importação não tem regra de negócio no front**: o assistente envia o arquivo, o mapeamento e as opções, e mostra o que a API
   devolveu. No back-end, cada linha passa pelo **mesmo** `GravadorRegistro` do cadastro manual, sem atalhos: nada de validar ou gravar
@@ -196,9 +247,9 @@ usuários desativados, equipe desativada e tirada das áreas. Nunca toca nas equ
 
 ## Administração e Minha conta
 
-Como funciona: [`docs/frontend.md` → "Administração de usuários e equipes"](../docs/frontend.md#administração-de-usuários-e-equipes).
+Como funciona: [`docs/frontend.md` → "Administração de usuários e equipes"](docs/frontend.md#administração-de-usuários-e-equipes).
 
-- **A senha provisória nunca sai do diálogo** (`SenhaProvisoriaDialogComponent`, [ADR 0041](../docs/adr/0041-senha-provisoria-exibida-uma-vez-sem-armazenamento.md)):
+- **A senha provisória nunca sai do diálogo** (`SenhaProvisoriaDialogComponent`, [ADR 0041](docs/adr/0041-senha-provisoria-exibida-uma-vez-sem-armazenamento.md)):
   da resposta da API direto para ele; nada de guardar em serviço, signal de página, storage, URL, log ou toast. Fechar = descartar.
 - Quem administra: `PermissoesService.podeAdministrar` (só ADMINISTRADOR, RN26) e o `administracaoGuard`. "Minha conta" é para todos.
 - Regras puras com teste em `features/administracao/modelo/` (equipes por perfil, situação, filtros na URL, aviso ao editar o próprio
@@ -207,7 +258,8 @@ Como funciona: [`docs/frontend.md` → "Administração de usuários e equipes"]
 
 ## Como adicionar um tipo de dado novo
 
-1. Back-end primeiro (ver `backend/src/Catalogo.Domain/AGENTS.md`): o tipo aparece em `tipoDado` nos metadados.
+1. Back-end primeiro (no repositório do back-end, `backend/src/Catalogo.Domain/AGENTS.md`): o tipo aparece em `tipoDado` nos
+   metadados; depois, a cópia do contrato e `npm run gerar-api` (abaixo).
 2. `core/metadados/modelo.ts`: inclua o tipo em `TipoDado`.
 3. `shared/campos/`: crie `campo-<tipo>.component.ts` (inputs `campo`, `controle`, `inputId`, `descricaoId`, `invalido`) e um `@case`
    em `campo-formulario.component.ts`.
@@ -219,7 +271,10 @@ Como funciona: [`docs/frontend.md` → "Administração de usuários e equipes"]
 
 ## Cliente da API (gerado)
 
-- Mudou o `backend/openapi/v1.json`? Rode `npm run gerar-api`, compile (`npm run build`) e corrija o que o compilador apontar.
+- O contrato fica no back-end (`backend/openapi/v1.json`, conferido por teste lá). Aqui, `openapi/v1.json` é uma **cópia fiel**:
+  nunca edite à mão nem formate; ela só muda copiando o arquivo do back-end (na versão da API que vai junto com esta versão do front).
+- Mudou o contrato? Copie o `v1.json` novo para `openapi/`, rode `npm run gerar-api`, compile (`npm run build`) e corrija o que o
+  compilador apontar, tudo no mesmo commit.
 - `src/app/api/` é apagado e recriado pelo gerador: qualquer edição manual se perde. O lint e o Prettier ignoram a pasta.
 
 ## Comandos
@@ -228,7 +283,7 @@ Como funciona: [`docs/frontend.md` → "Administração de usuários e equipes"]
 npm install                 # dependências
 npx playwright install chromium   # navegador dos testes (unitários e E2E), uma vez
 npm start                   # http://localhost:4200, com proxy de /api para a API local (proxy.conf.json)
-npm run gerar-api           # regenera src/app/api a partir de ../backend/openapi/v1.json
+npm run gerar-api           # regenera src/app/api a partir de openapi/v1.json (cópia do contrato do back-end)
 npm run lint                # ESLint (angular-eslint)
 npm run format              # Prettier
 npm test                    # testes unitários (Karma + Jasmine, Chromium headless)
@@ -250,4 +305,7 @@ alterações e serve código antigo. Ao depurar com o `npm start`, se a tela nã
 - [ ] Nenhuma tela ou `if` específico de um tipo de item.
 - [ ] Todo controle novo tem nome acessível (rótulo associado; `ariaLabelledBy` em `p-select`/`p-multiselect`).
 - [ ] Mudou como a tela se monta a partir dos metadados? `docs/frontend.md` atualizado. Decisão de arquitetura? ADR em `docs/adr/`.
-- [ ] Precisou de algo novo da API? Mudança no back-end (com testes e `openapi/v1.json` revisado) e `npm run gerar-api`.
+- [ ] Precisou de algo novo da API? Mudança no repositório do back-end (com testes e `openapi/v1.json` revisado), cópia do
+      contrato para `openapi/v1.json` e `npm run gerar-api`.
+- [ ] Regra de negócio nova ou mudada? `RNxx` atualizada em `docs/regras-de-negocio.md` do back-end. Termo de tela novo? Glossário
+      do back-end e a cópia em `docs/glossario.md`.

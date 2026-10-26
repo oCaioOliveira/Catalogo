@@ -3,6 +3,9 @@
 **Na interface, sempre os termos da coluna "Na tela".** O código, o banco e a API mantêm os nomes históricos (coluna "No código").
 Mensagens, títulos, rótulos e textos de ajuda usam só os da tela.
 
+> **Este arquivo é a fonte.** O repositório do front-end tem uma cópia em `docs/glossario.md`: termo novo ou mudado, copie para lá
+> no mesmo ciclo.
+
 | Na tela | No código | Definição |
 |---|---|---|
 | Área de gestão | `Grupo` (rota `/:grupo`, API `/grupos/{grupo}`) | O agrupamento de tipos de item de um assunto (ex.: Testes de Desempenho), habilitado por equipe (RN90). |

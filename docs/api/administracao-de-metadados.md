@@ -1,7 +1,7 @@
 # Administração de metadados: criar e alterar listagens pela API
 
 Listagens novas (grupos, entidades, campos, restrições únicas, dependências e campo de exibição) são criadas **pela interface**
-(Administração → Listagens, [guia](../guias/criar-uma-listagem.md)) ou **pela API**, sem script SQL ([ADR 0025](../adr/0025-administracao-de-metadados-so-pelo-administrador.md)). Scripts `V00x` ficam só para mudanças de schema.
+(Administração → Listagens, guia `docs/guias/criar-uma-listagem.md` no repositório do front-end) ou **pela API**, sem script SQL ([ADR 0025](../adr/0025-administracao-de-metadados-so-pelo-administrador.md)). Scripts `V00x` ficam só para mudanças de schema.
 As regras estão em [regras-de-negocio.md](../regras-de-negocio.md) (RN50 a RN77; equipes habilitadas, RN90 a RN93).
 
 - Tudo fica sob **`/api/v1/admin/metadados`** e é **só do ADMINISTRADOR** (403 para os demais).

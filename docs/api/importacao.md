@@ -4,7 +4,7 @@ Cadastra muitos itens de **um tipo de item** de uma vez, a partir de um XLSX ou 
 tipos, obrigatórios, opções, referências, dependências, unicidade, equipes, permissões e aprovação. Cada linha passa pelo mesmo
 `GravadorRegistro` do `POST`/`PUT` de registros: não há caminho paralelo de gravação. Regras: RN97 a RN104 em
 [`regras-de-negocio.md`](../regras-de-negocio.md#rn97--importação-de-planilhas-fluxo-e-permissão). Guia para quem usa a tela:
-[`guias/importar-planilhas.md`](../guias/importar-planilhas.md).
+`docs/guias/importar-planilhas.md`, no repositório do front-end.
 
 Todas as rotas ficam sob `/api/v1/grupos/{grupo}/entidades/{entidade}`:
 

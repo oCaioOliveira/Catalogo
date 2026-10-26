@@ -2,15 +2,17 @@
 
 ## Organização do repositório
 
-O repositório tem uma pasta por aplicação e, na raiz, o que é compartilhado entre elas
-([ADR 0007](adr/0007-repositorio-por-aplicacao.md)):
+O repositório do back-end tem uma pasta por aplicação e, na raiz, o que vale para a API e para o front
+([ADR 0007](adr/0007-repositorio-por-aplicacao.md), substituído pelo [ADR 0051](adr/0051-repositorios-separados-back-e-front.md)):
 
 | Pasta | O que tem |
 |---|---|
 | `backend/` | API .NET 8 (os quatro projetos abaixo) e os seus testes |
-| `frontend/` | aplicação web (**futura**) |
 | `database/` | scripts versionados do schema e SQL Server local em Docker. O banco é externo às aplicações |
-| `docs/` | este documento, modelo de dados, regras de negócio (RNxx), listagens e ADRs: valem para back e front |
+| `docs/` | este documento, modelo de dados, regras de negócio (RNxx), guia da API, listagens e ADRs: valem para back e front |
+
+A aplicação web (Angular 20 + PrimeNG) fica no **repositório do front-end**, com os seus docs (como a tela se monta, guia de
+interface, guias do usuário e ADRs só do front).
 
 ## Back-end: Clean Architecture enxuta
 
@@ -323,7 +325,8 @@ chaves são imutáveis ([ADR 0027](adr/0027-chaves-de-metadados-imutaveis.md)); 
 
 - Rotas sob `/api/v1` ([ADR 0022](adr/0022-versionamento-por-prefixo-de-rota.md)); na v1 o contrato só cresce.
 - O OpenAPI gerado fica em `backend/openapi/v1.json` e um teste falha se ele mudar sem querer
-  ([ADR 0024](adr/0024-contrato-openapi-versionado-e-verificado.md)).
+  ([ADR 0024](adr/0024-contrato-openapi-versionado-e-verificado.md)). O front-end, em outro repositório, gera o cliente a partir
+  de uma **cópia** desse arquivo ([ADR 0051](adr/0051-repositorios-separados-back-e-front.md)): contrato mudou, o front atualiza a cópia.
 - CORS por configuração, sem cookies ([seguranca.md](seguranca.md#cors)).
 - Guia de uso: [`api/README.md`](api/README.md).
 

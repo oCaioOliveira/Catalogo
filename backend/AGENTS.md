@@ -94,5 +94,6 @@ dotnet run --project src/Catalogo.Api --launch-profile Development
 - [ ] Se uma regra mudou: `docs/regras-de-negocio.md` (ou o doc de `docs/` correspondente) atualizado no mesmo PR.
 - [ ] Se uma decisão de arquitetura mudou: ADR novo em `docs/adr/`.
 - [ ] Se o schema mudou: script `V00x` novo em `database/scripts/` **e** mapeamento do EF atualizado.
-- [ ] Se o contrato da API mudou: `openapi/v1.json` regenerado e revisado (só acréscimos na v1), e `docs/api/` atualizado.
+- [ ] Se o contrato da API mudou: `openapi/v1.json` regenerado e revisado (só acréscimos na v1), e `docs/api/` atualizado. O
+      front-end (outro repositório) precisa copiar o `v1.json` novo e rodar `npm run gerar-api` ([ADR 0051](../docs/adr/0051-repositorios-separados-back-e-front.md)).
 - [ ] Erro novo: código em `CodigosErro` e linha em `docs/api/codigos-de-erro.md`.

@@ -1,16 +1,28 @@
 # Catalogo — front-end
 
 Aplicação web do Catalogo em **Angular 20 + PrimeNG 20**. As telas são montadas a partir dos metadados da API
-([`docs/frontend.md`](../docs/frontend.md)). Regras para quem mexe no código: [`AGENTS.md`](AGENTS.md).
+([`docs/frontend.md`](docs/frontend.md)). Regras para quem mexe no código: [`AGENTS.md`](AGENTS.md).
+
+A API, o banco, as regras de negócio (`RNxx`) e o guia da API ficam no **repositório do back-end** (SDCAT-BACKEND). Os comandos
+abaixo supõem um clone dele ao lado deste, em `../SDCAT-BACKEND`.
+
+## Documentação
+
+- [Como a tela se monta pelos metadados](docs/frontend.md)
+- [Guia de interface](docs/design/guia-de-interface.md) e [revisão de usabilidade](docs/design/revisao-de-usabilidade.md)
+- Guias do usuário: [criar uma área de gestão](docs/guias/criar-uma-listagem.md),
+  [aprovação e avaliação](docs/guias/aprovacao-e-avaliacao.md), [importar planilhas](docs/guias/importar-planilhas.md)
+- [Decisões de arquitetura do front (ADRs)](docs/adr/README.md)
+- [Glossário](docs/glossario.md) (cópia; a fonte fica no back-end)
 
 ## Pré-requisitos
 
 - **Node** `^20.19`, `^22.12` ou `^24` (exigência do Angular 20): `node --version`.
-- **Banco e API do back-end no ar** ([`backend/README.md`](../backend/README.md)):
+- **Banco e API do back-end no ar** (`backend/README.md` do repositório do back-end):
 
   ```bash
-  (cd ../database/docker && docker compose --env-file ../.env up -d)
-  (cd ../backend && dotnet run --project src/Catalogo.Api --launch-profile Development)
+  (cd ../SDCAT-BACKEND/database/docker && docker compose --env-file ../.env up -d)
+  (cd ../SDCAT-BACKEND/backend && dotnet run --project src/Catalogo.Api --launch-profile Development)
   ```
 
   A API sobe em `http://localhost:5080` (porta do perfil `Development` em `backend/src/Catalogo.Api/Properties/launchSettings.json`).
@@ -18,7 +30,7 @@ Aplicação web do Catalogo em **Angular 20 + PrimeNG 20**. As telas são montad
   ambiente e nunca fica em arquivo versionado):
 
   ```bash
-  cd ../backend
+  cd ../SDCAT-BACKEND/backend
   CATALOGO_ADMIN_SENHA='<senha com 10+ caracteres, letras e números>' \
     dotnet run --project src/Catalogo.Api --launch-profile Development -- criar-admin --matricula admin --nome "Administrador"
   ```
@@ -36,17 +48,20 @@ O front sempre chama caminhos relativos (`/api/v1/...`); se a API mudar de porta
 
 Configurações do front (tamanhos de página) ficam em `src/environments/environment.ts`. Não há listagem nem tela inicial fixas:
 ao entrar, abre a última listagem usada (ou a primeira ativa), e a tela inicial dela vem dos metadados. **Listagens novas são criadas
-pela interface** (Administração → Listagens; guia em [`docs/guias/criar-uma-listagem.md`](../docs/guias/criar-uma-listagem.md)).
+pela interface** (Administração → Listagens; guia em [`docs/guias/criar-uma-listagem.md`](docs/guias/criar-uma-listagem.md)).
 
 ## Cliente da API
 
-`src/app/api/` é **gerado** a partir de `../backend/openapi/v1.json` com o ng-openapi-gen. Depois de mudar o contrato no back-end:
+`src/app/api/` é **gerado** com o ng-openapi-gen a partir de `openapi/v1.json`, uma **cópia** do contrato do back-end
+(`backend/openapi/v1.json` no repositório do back-end). Quando o contrato mudar, copie o arquivo e gere de novo:
 
 ```bash
+cp ../SDCAT-BACKEND/backend/openapi/v1.json openapi/v1.json
 npm run gerar-api
+npm run build
 ```
 
-Nunca edite `src/app/api/` à mão.
+Nunca edite `src/app/api/` nem `openapi/v1.json` à mão.
 
 ## Dados de exemplo
 
