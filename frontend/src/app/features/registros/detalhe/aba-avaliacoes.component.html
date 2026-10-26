@@ -1,0 +1,153 @@
+@if (erro()) {
+  <p-message severity="error">Não foi possível carregar as avaliações.</p-message>
+} @else if (dados()) {
+  <section class="resumo-avaliacao" aria-labelledby="resumo-avaliacao-titulo">
+    <h2 id="resumo-avaliacao-titulo">Resumo</h2>
+    @if (resumo(); as r) {
+      <p class="texto-secundario">
+        {{
+          r.avaliadores === 0
+            ? 'Ainda sem avaliações.'
+            : r.avaliadores === 1
+              ? '1 avaliador'
+              : r.avaliadores + ' avaliadores'
+        }}
+        · {{ r.modelo }}
+      </p>
+      <div class="grade-resumo-criterios">
+        @for (c of r.criterios; track c.chave) {
+          <div class="cartao-criterio-resumo" [attr.aria-label]="'Resumo de ' + c.nome">
+            <h3>{{ c.nome }}</h3>
+            <div class="media-criterio">
+              <app-media-estrelas [media]="c.media" />
+              <span class="texto-secundario">({{ c.quantidade === 1 ? '1 nota' : c.quantidade + ' notas' }})</span>
+            </div>
+            <ul class="distribuicao" [attr.aria-label]="'Distribuição das notas de ' + c.nome">
+              @for (b of c.distribuicao; track b.estrelas) {
+                <li>
+                  <span class="rotulo-barra">{{ b.estrelas }} <i class="pi pi-star-fill" aria-hidden="true"></i></span>
+                  <span class="barra" aria-hidden="true"
+                    ><span class="barra-preenchida" [style.width.%]="b.percentual"></span
+                  ></span>
+                  <span class="valor-barra">{{ b.quantidade }}</span>
+                  <span class="sr-only">{{ rotuloEstrelas(b.estrelas) }}: {{ b.quantidade }}</span>
+                </li>
+              }
+            </ul>
+          </div>
+        } @empty {
+          <p class="texto-secundario">Este modelo não tem critérios de estrelas.</p>
+        }
+      </div>
+    }
+    @for (a of anteriores(); track a.modelo) {
+      <details class="resumo-anterior">
+        <summary>
+          Modelo anterior: {{ a.modelo }} ({{ a.avaliadores }} {{ a.avaliadores === 1 ? 'avaliador' : 'avaliadores' }})
+        </summary>
+        <ul>
+          @for (c of a.criterios; track c.chave) {
+            <li>{{ c.nome }}: {{ c.mediaTexto }} ({{ c.quantidade }})</li>
+          }
+        </ul>
+      </details>
+    }
+  </section>
+
+  @if (permissoes.podeAvaliar()) {
+    <section class="minha-avaliacao" aria-labelledby="minha-avaliacao-titulo">
+      <h2 id="minha-avaliacao-titulo">Minha avaliação</h2>
+      @if (!aprovado()) {
+        <p-message severity="info">Este item só pode ser avaliado depois de aprovado.</p-message>
+      } @else {
+        @if (erroGeral()) {
+          <p-message severity="error" styleClass="mb-3">{{ erroGeral() }}</p-message>
+        }
+        @if (minha(); as m) {
+          <p class="texto-secundario">
+            Você avaliou em {{ formatarDataHoraSistema(m.atualizadoEm ?? m.criadoEm) }}. Pode editar a qualquer momento.
+          </p>
+        }
+        <form class="formulario" (submit)="$event.preventDefault(); salvar()" novalidate>
+          <app-formulario-avaliacao
+            prefixoId="minha"
+            [criterios]="criterios()"
+            [valores]="valores()"
+            [erros]="errosResposta()"
+            (valoresChange)="valores.set($event)"
+          />
+          <div class="acoes-formulario">
+            @if (minha()) {
+              <p-button
+                type="button"
+                label="Remover minha avaliação"
+                icon="pi pi-trash"
+                severity="danger"
+                [text]="true"
+                [disabled]="salvando()"
+                (onClick)="remover()"
+              />
+            }
+            <p-button
+              type="submit"
+              icon="pi pi-check"
+              [label]="minha() ? 'Salvar alterações' : 'Salvar avaliação'"
+              [loading]="salvando()"
+            />
+          </div>
+        </form>
+      }
+    </section>
+  }
+
+  @if (permissoes.podeVerAvaliacoesIndividuais() && individuais(); as pagina) {
+    <section class="avaliacoes-individuais" aria-labelledby="individuais-titulo">
+      <h2 id="individuais-titulo">Avaliações individuais</h2>
+      @for (a of pagina.itens ?? []; track a.id) {
+        <article class="avaliacao-individual">
+          <header>
+            <strong>{{ a.usuario?.nome ?? '—' }}</strong>
+            <span class="texto-secundario"> · {{ formatarDataHoraSistema(a.atualizadoEm ?? a.criadoEm) }}</span>
+          </header>
+          <dl>
+            @for (r of respostasDe(a); track r.nome) {
+              <dt>{{ r.nome }}</dt>
+              <dd>
+                @if (r.estrelas !== null) {
+                  <span class="estrelas-texto" [attr.aria-label]="rotuloEstrelas(r.estrelas)">
+                    @for (i of [1, 2, 3, 4, 5]; track i) {
+                      <i
+                        class="pi"
+                        [class.pi-star-fill]="i <= r.estrelas"
+                        [class.pi-star]="i > r.estrelas"
+                        aria-hidden="true"
+                      ></i>
+                    }
+                  </span>
+                }
+                @if (r.comentario) {
+                  <p class="texto-longo">{{ r.comentario }}</p>
+                }
+                @if (r.texto) {
+                  <p class="texto-longo">{{ r.texto }}</p>
+                }
+              </dd>
+            }
+          </dl>
+        </article>
+      } @empty {
+        <p class="texto-secundario">Nenhuma avaliação ainda.</p>
+      }
+      @if ((pagina.total ?? 0) > tamanho) {
+        <p-paginator
+          [rows]="tamanho"
+          [totalRecords]="pagina.total ?? 0"
+          [first]="(pagina.pagina ?? 1) * tamanho - tamanho"
+          (onPageChange)="aoMudarPagina($event)"
+        />
+      }
+    </section>
+  }
+} @else {
+  <div aria-busy="true" aria-label="Carregando"><p-skeleton height="12rem" /></div>
+}

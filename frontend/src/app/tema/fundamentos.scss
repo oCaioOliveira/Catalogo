@@ -1,0 +1,135 @@
+// Fundamentos visuais do Catalogo: o ÚNICO lugar de espaçamentos, tipografia, raios, sombras, movimento e cores semânticas.
+// Componentes e estilos globais usam só estas variáveis (--espaco-*, --fonte-*, --raio-*, --cor-*), nunca valores soltos.
+// As cores semânticas apontam para as variáveis do tema do PrimeNG (--p-*, tema.ts: o único lugar de valores de cor, com a
+// paleta da CAIXA) e mudam no tema escuro (.catalogo-escuro). Laranja da marca só pelos --cor-marca-destaque* (no máximo 4 usos).
+// Guia para quem cria telas: docs/design/guia-de-interface.md. Contraste conferido (WCAG 2.2 AA) nos dois temas.
+
+@use '@fontsource/inter/latin-400.css';
+@use '@fontsource/inter/latin-500.css';
+@use '@fontsource/inter/latin-600.css';
+@use '@fontsource/inter/latin-700.css';
+
+:root {
+  // ---- Espaçamento: múltiplos de 4 px ----
+  --espaco-1: 4px;
+  --espaco-2: 8px;
+  --espaco-3: 12px;
+  --espaco-4: 16px;
+  --espaco-5: 20px;
+  --espaco-6: 24px;
+  --espaco-8: 32px;
+  --espaco-10: 40px;
+  --espaco-12: 48px;
+
+  // ---- Tipografia: Inter empacotada (@fontsource/inter, OFL), sem servidor externo ----
+  --fonte-familia: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  // A raiz (html) tem 14 px: o PrimeNG mede tudo em rem, então a escala inteira (inclusive campos e botões) segue daqui.
+  --fonte-raiz: 14px;
+  --fonte-titulo-pagina: 1.7143rem; // 24 px: o <h1> de cada tela
+  --fonte-titulo-secao: 1.2857rem; // 18 px: <h2> das seções e títulos de cartão
+  --fonte-subtitulo: 1.1429rem; // 16 px: <h3>, destaques
+  --fonte-texto: 1rem; // 14 px: texto, tabelas, formulários
+  --fonte-legenda: 0.8571rem; // 12 px: legendas, rótulos de grupo, dicas
+  --peso-normal: 400;
+  --peso-medio: 500;
+  --peso-forte: 600;
+  --peso-titulo: 700;
+  --altura-linha: 1.5;
+  --altura-linha-titulo: 1.25;
+
+  // ---- Raios e sombras ----
+  --raio-pequeno: 4px;
+  --raio-medio: 6px;
+  --raio-grande: 12px;
+  --raio-total: 999px;
+  --sombra-1: 0 1px 2px rgb(15 23 42 / 6%), 0 1px 3px rgb(15 23 42 / 10%);
+  --sombra-2: 0 4px 16px rgb(15 23 42 / 12%);
+
+  // ---- Movimento (desligado com prefers-reduced-motion, abaixo) ----
+  --duracao-rapida: 120ms;
+  --duracao-media: 200ms;
+  --curva-padrao: cubic-bezier(0.2, 0, 0, 1);
+
+  // ---- Medidas da moldura ----
+  --altura-cabecalho: 56px;
+  --largura-menu: 248px;
+  --largura-menu-recolhido: 60px;
+
+  // ---- Cores semânticas: tema claro ----
+  --cor-fundo: var(--p-surface-50); // fundo da página
+  --cor-superficie: var(--p-content-background); // cartões, tabelas, formulários
+  --cor-superficie-alternativa: var(--p-surface-100); // cabeçalho de tabela, blocos de destaque
+  --cor-superficie-hover: var(--p-content-hover-background);
+  --cor-trilho: var(--p-surface-200); // fundo de barras de progresso
+  --cor-borda: var(--p-content-border-color);
+  --cor-texto: var(--p-text-color);
+  --cor-texto-secundario: var(--p-text-muted-color);
+  // Títulos das colunas das tabelas (texto pequeno sobre --cor-superficie-alternativa): 4,5:1 no mínimo (achado A1).
+  --cor-texto-cabecalho-tabela: var(--p-surface-600);
+  --cor-primaria: var(--p-primary-color);
+  --cor-primaria-suave: var(--p-highlight-background);
+  --cor-primaria-suave-texto: var(--p-highlight-color);
+  --cor-link: var(--p-primary-500); // Azul CAIXA (5,9:1 sobre branco)
+  --cor-foco: var(--p-primary-500);
+  --cor-sucesso: var(--p-green-700);
+  --cor-sucesso-destaque: var(--p-green-600);
+  // Alerta é amarelo/âmbar, nunca o laranja da marca (o usuário não pode confundir destaque de marca com aviso).
+  --cor-alerta: var(--p-yellow-800);
+  --cor-alerta-destaque: var(--p-yellow-500);
+  --cor-perigo: var(--p-red-700);
+  --cor-perigo-destaque: var(--p-red-600);
+  // Fundo de uma célula com erro (prévia da importação): o texto normal continua legível por cima.
+  --cor-perigo-suave: var(--p-red-50);
+  --cor-info-destaque: var(--p-primary-400);
+  --cor-estrela: var(--p-yellow-600);
+  --cor-estrela-barra: var(--p-yellow-500);
+  --cor-sombra-rolagem: rgb(15 23 42 / 28%);
+  --cor-cabecalho: var(--p-content-background);
+  --cor-menu: var(--p-content-background);
+  --cor-avatar: var(--p-primary-700);
+  --cor-avatar-texto: var(--p-primary-contrast-color);
+  // Marca: o laranja CAIXA é destaque pontual (filete de marca, contador de aprovações, indicador principal do painel),
+  // nunca texto sobre fundo claro (2,3:1) nem fundo de área grande; sobre ele, texto escuro (8:1).
+  --cor-marca-destaque: var(--p-destaque-laranja);
+  --cor-marca-destaque-texto: var(--p-destaque-texto);
+  --espessura-filete-marca: 3px;
+
+  color-scheme: light;
+}
+
+// ---- Tema escuro (classe aplicada pelo TemaService no <html>) ----
+:root.catalogo-escuro {
+  --cor-fundo: var(--p-surface-950);
+  --cor-superficie: var(--p-content-background);
+  --cor-superficie-alternativa: var(--p-surface-800);
+  --cor-trilho: var(--p-surface-700);
+  --cor-link: var(--p-primary-300);
+  --cor-texto-cabecalho-tabela: var(--p-text-muted-color);
+  --cor-foco: var(--p-primary-300);
+  --cor-sucesso: var(--p-green-400);
+  --cor-sucesso-destaque: var(--p-green-500);
+  --cor-alerta: var(--p-yellow-300);
+  --cor-alerta-destaque: var(--p-yellow-400);
+  --cor-perigo: var(--p-red-400);
+  --cor-perigo-destaque: var(--p-red-400);
+  --cor-perigo-suave: color-mix(in srgb, var(--p-red-400) 16%, var(--p-content-background));
+  --cor-info-destaque: var(--p-primary-300);
+  --cor-estrela: var(--p-yellow-400);
+  --cor-estrela-barra: var(--p-yellow-400);
+  --cor-sombra-rolagem: rgb(0 0 0 / 55%);
+  --cor-cabecalho: var(--p-surface-900);
+  --cor-menu: var(--p-surface-900);
+  --cor-avatar: var(--p-primary-300);
+  --cor-avatar-texto: var(--p-surface-950);
+  --sombra-1: 0 1px 2px rgb(0 0 0 / 40%);
+  --sombra-2: 0 4px 16px rgb(0 0 0 / 50%);
+
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --duracao-rapida: 0ms;
+    --duracao-media: 0ms;
+  }
+}

@@ -1,0 +1,505 @@
+// Moldura das telas logadas (core/layout): cabeçalho, menu lateral (da área ou das configurações) e o conteúdo.
+// Global (e não do componente) porque os menus são componentes filhos. Valores só pelos fundamentos (tema/fundamentos.scss).
+
+app-layout {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+// ---- Cabeçalho ----
+
+.cabecalho-app {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+  height: var(--altura-cabecalho);
+  padding: 0 var(--espaco-3);
+  background: var(--cor-cabecalho);
+  border-bottom: 1px solid var(--cor-borda);
+  // O filete de marca: uma linha fina laranja CAIXA no topo (um dos poucos usos do laranja).
+  box-shadow: inset 0 var(--espessura-filete-marca) 0 var(--cor-marca-destaque);
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.cabecalho-esquerda,
+.cabecalho-direita {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  min-width: 0;
+}
+
+.identidade-cabecalho {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-3);
+  min-width: 0;
+}
+
+// O link da logo (Início da área atual): o respiro só serve ao contorno de foco.
+.marca {
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--raio-medio);
+  padding: var(--espaco-1);
+  flex-shrink: 0;
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+// A logo da CAIXA direto sobre o fundo (tema/logo-marca.component.ts): positiva no claro, negativa no escuro.
+.logo-marca {
+  display: block;
+  height: auto;
+  max-width: none;
+}
+
+.marca-nome {
+  flex-shrink: 0;
+  font-weight: var(--peso-titulo);
+  font-size: var(--fonte-subtitulo);
+  line-height: var(--altura-linha-titulo);
+  color: var(--cor-texto);
+  white-space: nowrap;
+}
+
+// As barrinhas: iguais e sem margem; o espaço dos dois lados é só o gap da .identidade-cabecalho.
+.separador-cabecalho {
+  flex-shrink: 0;
+  width: 1px;
+  height: 20px;
+  background: var(--cor-borda);
+}
+
+// O seletor de área: só o nome da área, com a seta, sem cara de campo de formulário.
+.p-select.seletor-area {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  max-width: 22rem;
+
+  .p-select-label {
+    font-weight: var(--peso-forte);
+    padding-left: var(--espaco-2);
+  }
+
+  &:hover,
+  &.p-focus {
+    background: var(--cor-superficie-hover);
+  }
+}
+
+.area-unica {
+  font-weight: var(--peso-forte);
+  padding: 0 var(--espaco-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 22rem;
+}
+
+.botao-cabecalho,
+.botao-avatar {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: var(--raio-total);
+  background: transparent;
+  color: var(--cor-texto-secundario);
+  cursor: pointer;
+  text-decoration: none;
+  padding: 0;
+
+  .pi {
+    font-size: 1.15rem;
+  }
+
+  &:hover,
+  &.ativo {
+    background: var(--cor-superficie-hover);
+    color: var(--cor-texto);
+  }
+}
+
+.contador-cabecalho {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  font-size: 0.7rem;
+  line-height: 1.15rem;
+  padding: 0 var(--espaco-1);
+  // Contador de pendentes: laranja CAIXA com texto escuro (8:1), um dos poucos usos do laranja.
+  background: var(--cor-marca-destaque);
+  color: var(--cor-marca-destaque-texto);
+}
+
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--raio-total);
+  background: var(--cor-avatar);
+  color: var(--cor-avatar-texto);
+  font-size: var(--fonte-legenda);
+  font-weight: var(--peso-forte);
+  letter-spacing: 0.02em;
+
+  &.avatar-grande {
+    width: 40px;
+    height: 40px;
+    font-size: var(--fonte-texto);
+  }
+}
+
+// ---- Menu do usuário (popover) ----
+
+.popover-usuario .p-popover-content {
+  padding: var(--espaco-2);
+}
+
+.menu-usuario {
+  width: 16rem;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+}
+
+.menu-usuario-identidade {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-3);
+  padding: var(--espaco-2);
+  border-bottom: 1px solid var(--cor-borda);
+  margin-bottom: var(--espaco-1);
+
+  div {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  small {
+    color: var(--cor-texto-secundario);
+  }
+}
+
+.menu-usuario-acoes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.menu-usuario-acoes a,
+.menu-usuario-acoes button,
+.botao-sair {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  width: 100%;
+  min-height: 36px;
+  padding: var(--espaco-2);
+  border: none;
+  border-radius: var(--raio-medio);
+  background: transparent;
+  color: var(--cor-texto);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  text-align: left;
+
+  &:hover {
+    background: var(--cor-superficie-hover);
+  }
+
+  .pi {
+    color: var(--cor-texto-secundario);
+    width: 1rem;
+  }
+}
+
+.botao-sair {
+  border-top: 1px solid var(--cor-borda);
+  border-radius: 0 0 var(--raio-medio) var(--raio-medio);
+  margin-top: var(--espaco-1);
+}
+
+.escolha-tema {
+  border: none;
+  border-top: 1px solid var(--cor-borda);
+  margin: var(--espaco-1) 0 0;
+  padding: var(--espaco-2) 0 0;
+
+  legend {
+    font-size: var(--fonte-legenda);
+    font-weight: var(--peso-forte);
+    color: var(--cor-texto-secundario);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 0 var(--espaco-2);
+  }
+}
+
+.opcao-tema {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  min-height: 36px;
+  padding: 0 var(--espaco-2);
+  border-radius: var(--raio-medio);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cor-superficie-hover);
+  }
+
+  &.escolhida {
+    font-weight: var(--peso-forte);
+  }
+
+  input {
+    accent-color: var(--cor-primaria);
+    margin: 0;
+  }
+
+  .pi {
+    color: var(--cor-texto-secundario);
+  }
+}
+
+// ---- Corpo: menu lateral + conteúdo ----
+
+.corpo-app {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+}
+
+.menu-lateral {
+  width: var(--largura-menu);
+  flex-shrink: 0;
+  padding: var(--espaco-3) var(--espaco-2);
+  background: var(--cor-menu);
+  border-right: 1px solid var(--cor-borda);
+  overflow-y: auto;
+  position: sticky;
+  top: var(--altura-cabecalho);
+  height: calc(100vh - var(--altura-cabecalho));
+  box-sizing: border-box;
+  transition: width var(--duracao-media) var(--curva-padrao);
+}
+
+.lista-menu {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lista-tipos,
+.grupo-menu {
+  margin-top: var(--espaco-3);
+  padding-top: var(--espaco-3);
+  border-top: 1px solid var(--cor-borda);
+}
+
+.lista-apoio {
+  margin-top: 2px;
+}
+
+.item-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-3);
+  width: 100%;
+  min-height: 36px;
+  box-sizing: border-box;
+  padding: var(--espaco-2) var(--espaco-3);
+  border: none;
+  border-radius: var(--raio-medio);
+  background: transparent;
+  color: var(--cor-texto);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  text-align: left;
+  position: relative;
+
+  > .pi:first-child {
+    color: var(--cor-texto-secundario);
+    width: 1.1rem;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  .rotulo-item {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &:hover {
+    background: var(--cor-superficie-hover);
+  }
+
+  // Item ativo: fundo, texto e uma barra à esquerda (não depende só da cor).
+  &.ativo {
+    background: var(--cor-primaria-suave);
+    color: var(--cor-primaria-suave-texto);
+    font-weight: var(--peso-forte);
+
+    > .pi:first-child {
+      color: inherit;
+    }
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: -8px;
+      top: 6px;
+      bottom: 6px;
+      width: 3px;
+      border-radius: var(--raio-total);
+      background: var(--cor-primaria);
+    }
+  }
+}
+
+.alternar-grupo-menu {
+  color: var(--cor-texto-secundario);
+
+  .seta-grupo {
+    font-size: var(--fonte-legenda);
+  }
+}
+
+.voltar-menu {
+  color: var(--cor-link);
+  margin-bottom: var(--espaco-2);
+}
+
+.titulo-menu {
+  font-size: var(--fonte-legenda);
+  font-weight: var(--peso-forte);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cor-texto-secundario);
+  margin: var(--espaco-3) var(--espaco-3) var(--espaco-2);
+}
+
+.busca-menu {
+  position: relative;
+  margin-bottom: var(--espaco-3);
+
+  .pi {
+    position: absolute;
+    left: var(--espaco-3);
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--cor-texto-secundario);
+    font-size: var(--fonte-legenda);
+  }
+
+  input {
+    width: 100%;
+    box-sizing: border-box;
+    height: 34px;
+    padding: 0 var(--espaco-3) 0 var(--espaco-8);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-medio);
+    background: var(--cor-fundo);
+    color: var(--cor-texto);
+    font: inherit;
+  }
+}
+
+.menu-sem-resultado,
+.menu-erro {
+  padding: var(--espaco-2) var(--espaco-3);
+  color: var(--cor-texto-secundario);
+}
+
+// Recolhido: só os ícones, os nomes na dica (e no nome acessível, pela classe sr-only).
+.so-icones .menu-lateral {
+  width: var(--largura-menu-recolhido);
+  padding-left: var(--espaco-2);
+  padding-right: var(--espaco-2);
+
+  .item-menu {
+    justify-content: center;
+    padding: var(--espaco-2);
+    gap: 0;
+  }
+
+  .rotulo-item,
+  .seta-grupo {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+  }
+}
+
+.conteudo {
+  flex: 1;
+  min-width: 0;
+  padding: var(--espaco-6) var(--espaco-8) var(--espaco-12);
+  outline: none;
+}
+
+// Telas estreitas (abaixo de 1024 px): o menu vira uma gaveta por cima do conteúdo.
+.com-gaveta {
+  .menu-lateral {
+    position: fixed;
+    top: var(--altura-cabecalho);
+    bottom: 0;
+    left: 0;
+    height: auto;
+    z-index: 25;
+    box-shadow: var(--sombra-2);
+  }
+
+  .conteudo {
+    padding: var(--espaco-4);
+  }
+}
+
+.fundo-gaveta {
+  position: fixed;
+  inset: var(--altura-cabecalho) 0 0 0;
+  background: rgb(15 23 42 / 35%);
+  z-index: 20;
+}
+
+// Abaixo de 1024 px a logo continua; o nome "Catálogo" e uma das barrinhas saem.
+@media (max-width: 1023.98px) {
+  .marca-nome,
+  .separador-apos-nome {
+    display: none;
+  }
+}
+
+@media (max-width: 599.98px) {
+  .p-select.seletor-area,
+  .area-unica {
+    max-width: 10rem;
+  }
+}

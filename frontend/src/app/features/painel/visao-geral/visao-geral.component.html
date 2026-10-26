@@ -1,0 +1,78 @@
+<section class="secao-painel" aria-labelledby="visao-geral-titulo">
+  <h2 id="visao-geral-titulo">Visão geral</h2>
+  @if (erro()) {
+    <p-message severity="error">
+      <div class="mensagem-com-acao">
+        <span>Não foi possível carregar a visão geral.</span>
+        <p-button label="Tentar de novo" icon="pi pi-refresh" size="small" (onClick)="tentarDeNovo()" />
+      </div>
+    </p-message>
+  } @else if (carregando() && visao() === null) {
+    <div class="faixa-kpis" aria-busy="true" aria-label="Carregando">
+      @for (i of [1, 2, 3, 4]; track i) {
+        <p-skeleton height="5rem" />
+      }
+    </div>
+  } @else {
+    <ul class="faixa-kpis" aria-label="Números do grupo" [attr.aria-busy]="carregando()">
+      @for (cartao of kpis(); track cartao.chave) {
+        <li class="cartao-kpi" [attr.data-kpi]="cartao.chave">
+          <span class="kpi-rotulo">{{ cartao.rotulo }}</span>
+          <strong class="kpi-valor">{{ formatarNumero(cartao.valor) }}</strong>
+        </li>
+      }
+    </ul>
+    <div class="grade-painel">
+      <app-cartao-grafico
+        id="visao-criados-por-mes"
+        titulo="Itens criados por mês"
+        descricao="Quantidade de itens de todos os tipos criados em cada mês do período."
+        [indicadores]="criadosPorMes()"
+      />
+      <app-cartao-grafico
+        id="visao-itens-por-equipe"
+        titulo="Itens por equipe"
+        descricao="Quantidade atual de itens de cada equipe (tipos de item por equipe)."
+        visualizacao="barras-horizontais"
+        [indicadores]="porEquipe()"
+      />
+      <div class="cartao-painel largura-total">
+        <h3 id="visao-atividade-titulo">Usuários mais ativos no período</h3>
+        @if (atividade().length === 0) {
+          <p class="estado-cartao">Sem dados no período.</p>
+        } @else {
+          <div class="tabela-rolagem">
+            <table class="tabela-dados" aria-labelledby="visao-atividade-titulo">
+              <thead>
+                <tr>
+                  <th scope="col">Matrícula</th>
+                  <th scope="col">Nome</th>
+                  <th scope="col" class="coluna-numero">Criações</th>
+                  <th scope="col" class="coluna-numero">Alterações</th>
+                  <th scope="col" class="coluna-numero">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (linha of atividade(); track linha.matricula) {
+                  <tr>
+                    <td>{{ linha.matricula }}</td>
+                    <td>{{ linha.nome }}</td>
+                    <td class="coluna-numero">{{ formatarNumero(linha.criacoes) }}</td>
+                    <td class="coluna-numero">{{ formatarNumero(linha.alteracoes) }}</td>
+                    <td class="coluna-numero">{{ formatarNumero(linha.total) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+    @if (aprovacao(); as resumo) {
+      <app-bloco-aprovacao [resumo]="resumo" />
+    }
+    @if (avaliacao(); as resumo) {
+      <app-bloco-avaliacao [criterios]="resumo.criterios" [minimo]="resumo.minimo" />
+    }
+  }
+</section>

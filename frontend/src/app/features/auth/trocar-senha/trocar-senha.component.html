@@ -1,0 +1,92 @@
+<main class="pagina-acesso">
+  <section class="cartao-acesso" aria-labelledby="titulo-troca">
+    <h1 id="titulo-troca">Trocar senha</h1>
+    @if (auth.usuario()?.deveTrocarSenha) {
+      <p-message severity="info" styleClass="mb-3"
+        >Antes de continuar, troque a senha provisória por uma sua.</p-message
+      >
+    }
+    <p class="texto-secundario" id="politica-senha">
+      A nova senha precisa ter pelo menos 10 caracteres, com letras e números, e ser diferente da atual.
+    </p>
+
+    @if (erros().length > 0) {
+      <p-message severity="error" styleClass="mb-3" role="alert">
+        <ul class="lista-erros-gerais">
+          @for (erro of erros(); track erro) {
+            <li>{{ erro }}</li>
+          }
+        </ul>
+      </p-message>
+    }
+
+    <form [formGroup]="formulario" (ngSubmit)="trocar()" novalidate>
+      <div class="campo">
+        <label for="senha-atual" class="campo-rotulo">Senha atual</label>
+        <p-password
+          appFocoInicial
+          inputId="senha-atual"
+          formControlName="senhaAtual"
+          autocomplete="current-password"
+          [feedback]="false"
+          [toggleMask]="true"
+          [fluid]="true"
+          [invalid]="mostrar('senhaAtual')"
+        />
+        @if (mostrar('senhaAtual')) {
+          <ul class="campo-erros">
+            <li>Informe a senha atual.</li>
+          </ul>
+        }
+      </div>
+      <div class="campo">
+        <label for="nova-senha" class="campo-rotulo">Nova senha</label>
+        <p-password
+          inputId="nova-senha"
+          formControlName="novaSenha"
+          autocomplete="new-password"
+          [feedback]="false"
+          [toggleMask]="true"
+          [fluid]="true"
+          [invalid]="mostrar('novaSenha')"
+        />
+        @if (mostrar('novaSenha')) {
+          <ul class="campo-erros" id="nova-senha-erros">
+            @if (formulario.controls.novaSenha.hasError('required')) {
+              <li>Informe a nova senha.</li>
+            }
+            @for (problema of problemasPolitica(); track problema) {
+              <li>A senha precisa {{ problema }}.</li>
+            }
+          </ul>
+        }
+      </div>
+      <div class="campo">
+        <label for="confirmacao" class="campo-rotulo">Confirme a nova senha</label>
+        <p-password
+          inputId="confirmacao"
+          formControlName="confirmacao"
+          autocomplete="new-password"
+          [feedback]="false"
+          [toggleMask]="true"
+          [fluid]="true"
+          [invalid]="mostrar('confirmacao')"
+        />
+        @if (mostrar('confirmacao')) {
+          <ul class="campo-erros">
+            <li>A confirmação precisa ser igual à nova senha.</li>
+          </ul>
+        }
+      </div>
+      <div class="acoes-formulario">
+        @if (!auth.usuario()?.deveTrocarSenha) {
+          <p-button type="button" label="Cancelar" severity="secondary" [text]="true" (onClick)="voltar()" />
+        }
+        <p-button type="submit" label="Trocar senha" icon="pi pi-key" [loading]="salvando()" />
+      </div>
+    </form>
+    <p class="texto-secundario">
+      <button type="button" class="link-botao" (click)="auth.sair()">Sair</button>
+    </p>
+  </section>
+</main>

@@ -1,0 +1,128 @@
+@if (erro()) {
+  <div class="menu-erro">
+    <p class="texto-secundario">Não foi possível carregar o menu.</p>
+    <p-button
+      label="Tentar de novo"
+      icon="pi pi-refresh"
+      size="small"
+      [outlined]="true"
+      (onClick)="tentarDeNovo.emit()"
+    />
+  </div>
+} @else if (entidades() === null || !grupo()) {
+  <div class="menu-carregando" aria-busy="true" aria-label="Carregando o menu">
+    <p-skeleton height="2rem" styleClass="mb-2" />
+    <p-skeleton height="2rem" styleClass="mb-2" />
+    <p-skeleton height="2rem" />
+  </div>
+} @else {
+  @if (comBusca()) {
+    <div class="busca-menu">
+      <label for="busca-menu" class="sr-only">Buscar no menu</label>
+      <i class="pi pi-search" aria-hidden="true"></i>
+      <input
+        id="busca-menu"
+        type="search"
+        placeholder="Buscar no menu"
+        autocomplete="off"
+        [value]="busca()"
+        (input)="busca.set($any($event.target).value)"
+      />
+    </div>
+  }
+  <ul class="lista-menu">
+    <li>
+      <a
+        class="item-menu"
+        [routerLink]="['/', grupo()]"
+        routerLinkActive="ativo"
+        [routerLinkActiveOptions]="{ exact: true }"
+        ariaCurrentWhenActive="page"
+        [pTooltip]="recolhido() ? 'Início' : undefined"
+        tooltipPosition="right"
+        (click)="navegou.emit()"
+        ><i class="pi pi-home" aria-hidden="true"></i><span class="rotulo-item">Início</span></a
+      >
+    </li>
+    @if (permissoes.podeVerPainel()) {
+      <li>
+        <a
+          class="item-menu"
+          [routerLink]="['/painel', grupo()]"
+          routerLinkActive="ativo"
+          ariaCurrentWhenActive="page"
+          [pTooltip]="recolhido() ? 'Painel' : undefined"
+          tooltipPosition="right"
+          (click)="navegou.emit()"
+          ><i class="pi pi-chart-bar" aria-hidden="true"></i><span class="rotulo-item">Painel</span></a
+        >
+      </li>
+    }
+  </ul>
+
+  @if (principais().length > 0) {
+    <ul class="lista-menu lista-tipos" aria-label="Tipos de item">
+      @for (item of principais(); track item.entidade.chave) {
+        <li>
+          <a
+            class="item-menu"
+            [routerLink]="['/', grupo(), item.entidade.chave]"
+            routerLinkActive="ativo"
+            ariaCurrentWhenActive="page"
+            [pTooltip]="recolhido() ? item.nome : undefined"
+            tooltipPosition="right"
+            (click)="navegou.emit()"
+            ><i [class]="classeIcone(item.entidade)" aria-hidden="true"></i
+            ><span class="rotulo-item">{{ item.nome }}</span></a
+          >
+        </li>
+      }
+    </ul>
+  }
+
+  @if (apoio().length > 0) {
+    <div class="grupo-menu">
+      <button
+        type="button"
+        class="item-menu alternar-grupo-menu"
+        aria-controls="menu-apoio"
+        [attr.aria-expanded]="apoioVisivel()"
+        [pTooltip]="recolhido() ? 'Cadastros de apoio' : undefined"
+        tooltipPosition="right"
+        (click)="alternarApoio()"
+      >
+        <i class="pi pi-database" aria-hidden="true"></i>
+        <span class="rotulo-item">Cadastros de apoio</span>
+        <i
+          class="pi seta-grupo"
+          [class.pi-chevron-down]="apoioVisivel()"
+          [class.pi-chevron-right]="!apoioVisivel()"
+          aria-hidden="true"
+        ></i>
+      </button>
+      @if (apoioVisivel()) {
+        <ul id="menu-apoio" class="lista-menu lista-apoio">
+          @for (item of apoio(); track item.entidade.chave) {
+            <li>
+              <a
+                class="item-menu"
+                [routerLink]="['/', grupo(), item.entidade.chave]"
+                routerLinkActive="ativo"
+                ariaCurrentWhenActive="page"
+                [pTooltip]="recolhido() ? item.nome : undefined"
+                tooltipPosition="right"
+                (click)="navegou.emit()"
+                ><i [class]="classeIcone(item.entidade)" aria-hidden="true"></i
+                ><span class="rotulo-item">{{ item.nome }}</span></a
+              >
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+
+  @if (busca() && principais().length === 0 && apoio().length === 0) {
+    <p class="menu-sem-resultado">Nada encontrado para "{{ busca() }}".</p>
+  }
+}

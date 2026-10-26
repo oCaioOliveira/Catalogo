@@ -1,0 +1,13 @@
+# Segredos locais do banco (ver database/README.md)
+database/.env
+
+# Saídas de build e teste do .NET
+bin/
+obj/
+TestResults/
+*.user
+.vs/
+.idea/
+
+# Estado local de tarefas longas (progresso, retomadas)
+database/.estado/

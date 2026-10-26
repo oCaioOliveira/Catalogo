@@ -1,0 +1,241 @@
+@if (meta(); as meta) {
+  <app-cabecalho-pagina [trilha]="trilha()" [titulo]="titulo()" [icone]="icone()" [subtitulo]="meta.descricao">
+    @if (permissoes.podeCriar(meta, minhasEquipes())) {
+      <p-button acoes label="Novo" icon="pi pi-plus" [ariaLabel]="'Novo: ' + meta.nome" [routerLink]="['novo']" />
+    }
+  </app-cabecalho-pagina>
+  @if (semEquipes()) {
+    <p-message severity="warn" styleClass="faixa-sem-equipes mb-3">
+      <div class="faixa-com-acao">
+        <span><strong>Nenhuma equipe habilitada</strong>: só administradores veem esta área de gestão.</span>
+        <a [routerLink]="['/configuracoes/areas', grupo()]" [queryParams]="{ aba: 'equipes' }">Habilitar equipes</a>
+      </div>
+    </p-message>
+  }
+
+  <div class="barra-tabela">
+    <div class="barra-tabela-inicio">
+      @if (temFiltrosDisponiveis()) {
+        <p-button
+          label="Filtros"
+          icon="pi pi-filter"
+          severity="secondary"
+          [outlined]="true"
+          [badge]="quantidadeFiltros() > 0 ? '' + quantidadeFiltros() : undefined"
+          [attr.aria-expanded]="mostrarFiltros()"
+          ariaControls="painel-filtros"
+          (onClick)="mostrarFiltros.set(!mostrarFiltros())"
+        />
+      }
+      @if (quantidadeFiltros() > 0) {
+        <p-button
+          label="Limpar filtros"
+          icon="pi pi-filter-slash"
+          severity="secondary"
+          [text]="true"
+          (onClick)="limparFiltros()"
+        />
+      }
+      @if (resultado(); as r) {
+        <span class="total-tabela" aria-live="polite">{{ r.total === 1 ? '1 item' : r.total + ' itens' }}</span>
+      }
+    </div>
+    <div class="barra-tabela-fim">
+      <app-seletor-colunas
+        [colunas]="todasColunas()"
+        [escolhidas]="colunasEscolhidas()"
+        (mudou)="alterarColunas($event)"
+        (restaurar)="restaurarColunas()"
+      />
+      <app-alternar-densidade />
+      @if (permissoes.podeCriar(meta, minhasEquipes())) {
+        <p-splitbutton
+          label="Importar"
+          icon="pi pi-upload"
+          severity="secondary"
+          [outlined]="true"
+          appendTo="body"
+          [model]="itensImportar()"
+          [menuButtonProps]="{ ariaLabel: 'Mais opções de importação' }"
+          (onClick)="importar()"
+        />
+      }
+      @if (permissoes.podeExportar()) {
+        <p-button
+          label="Exportar"
+          icon="pi pi-download"
+          severity="secondary"
+          [outlined]="true"
+          [loading]="exportando()"
+          aria-haspopup="menu"
+          (onClick)="menuExportar.toggle($event)"
+        />
+        <p-menu #menuExportar [popup]="true" [model]="itensExportar" appendTo="body" />
+      }
+    </div>
+  </div>
+
+  @if (mostrarFiltros() && temFiltrosDisponiveis()) {
+    <section id="painel-filtros" aria-label="Filtros">
+      <app-filtros-registros
+        [grupo]="grupo()"
+        [entidade]="meta"
+        [filtrosDisponiveis]="filtros()"
+        [valores]="valoresFiltros()"
+        (aplicar)="aplicarFiltros($event)"
+      />
+    </section>
+  }
+
+  @if (erro()) {
+    <app-estado-erro mensagem="Não foi possível carregar a lista." (tentarDeNovo)="tentarDeNovo()" />
+  } @else {
+    <p-table
+      appSombraRolagem
+      dataKey="id"
+      styleClass="tabela-registros tabela-larga"
+      [size]="densidade.tamanhoTabela()"
+      [value]="resultado()?.itens ?? []"
+      [lazy]="true"
+      [lazyLoadOnInit]="false"
+      [paginator]="(resultado()?.total ?? 0) > 0"
+      [rows]="estado().tamanho"
+      [first]="(estado().pagina - 1) * estado().tamanho"
+      [totalRecords]="resultado()?.total ?? 0"
+      [rowsPerPageOptions]="opcoesTamanho"
+      [showCurrentPageReport]="true"
+      currentPageReportTemplate="{first} a {last} de {totalRecords}"
+      [sortField]="ordenacao().campo"
+      [sortOrder]="ordenacao().descendente ? -1 : 1"
+      [scrollable]="true"
+      (onLazyLoad)="aoMudarTabela($event)"
+    >
+      <ng-template #header>
+        <tr>
+          @for (coluna of colunas(); track coluna.chave) {
+            @if (ordenaveis().has(coluna.chave)) {
+              <th
+                [pSortableColumn]="coluna.chave"
+                [class.coluna-numero]="coluna.numero"
+                pFrozenColumn
+                [frozen]="!!coluna.fixa"
+                [style.width.px]="larguraDe(coluna)"
+                [appColunaRedimensionavel]="coluna.nome"
+                (redimensionada)="redimensionar(coluna, $event)"
+              >
+                <span class="titulo-coluna" [attr.title]="coluna.nome">{{ coluna.nome }}</span>
+                <p-sortIcon [field]="coluna.chave" />
+              </th>
+            } @else {
+              <th
+                [class.coluna-numero]="coluna.numero"
+                pFrozenColumn
+                [frozen]="!!coluna.fixa"
+                [style.width.px]="larguraDe(coluna)"
+                [appColunaRedimensionavel]="coluna.nome"
+                (redimensionada)="redimensionar(coluna, $event)"
+              >
+                <span class="titulo-coluna" [attr.title]="coluna.nome">{{ coluna.nome }}</span>
+              </th>
+            }
+          }
+          <th class="coluna-acoes" pFrozenColumn alignFrozen="right"><span class="sr-only">Ações</span></th>
+        </tr>
+      </ng-template>
+
+      <ng-template #body let-registro>
+        <tr class="linha-clicavel" (click)="abrirLinha(registro, $event)">
+          @for (coluna of colunas(); track coluna.chave) {
+            <td
+              [class.coluna-numero]="coluna.numero"
+              [class.coluna-url]="coluna.campo?.tipo === 'URL'"
+              [class.coluna-principal]="coluna.fixa"
+              [class.celula-equipe]="coluna.chave === CHAVE_EQUIPE"
+              [class.celula-aprovacao]="coluna.chave === CHAVE_SITUACAO"
+              [class.celula-avaliacao]="!!coluna.criterio"
+              pFrozenColumn
+              [frozen]="!!coluna.fixa"
+            >
+              @if (coluna.fixa) {
+                <a class="link-linha" [routerLink]="[registro.id]" [attr.title]="rotulo(registro)">{{
+                  rotulo(registro)
+                }}</a>
+              } @else if (coluna.campo; as campo) {
+                <app-valor-campo
+                  [campo]="campo"
+                  [valor]="registro.dados[campo.chave]"
+                  [grupo]="grupo()"
+                  [comoLink]="links().has(campo.chave)"
+                />
+              } @else if (coluna.criterio) {
+                <app-media-estrelas [media]="mediaDe(registro, coluna.criterio)" />
+              } @else if (coluna.chave === CHAVE_EQUIPE) {
+                <span class="valor-tabela">{{ nomeEquipe(registro) }}</span>
+              } @else if (coluna.chave === CHAVE_SITUACAO) {
+                @if (mostraSituacao(meta, registro)) {
+                  <p-tag [value]="situacao(registro).rotulo" [severity]="situacao(registro).severidade" />
+                }
+              } @else if (coluna.chave === CHAVE_CRIADO_EM) {
+                {{ formatarDataHoraSistema(registro.criadoEm) }}
+              }
+            </td>
+          }
+          <td class="coluna-acoes" pFrozenColumn alignFrozen="right">
+            <app-menu-acoes-linha [acoes]="acoesPorLinha().get(registro.id) ?? []" [rotulo]="rotulo(registro)" />
+          </td>
+        </tr>
+      </ng-template>
+
+      <ng-template #emptymessage>
+        @if (carregando()) {
+          @for (linha of linhasEsqueleto; track linha) {
+            <tr>
+              <td [attr.colspan]="totalColunas()"><p-skeleton height="1.5rem" /></td>
+            </tr>
+          }
+        } @else {
+          <tr>
+            <td [attr.colspan]="totalColunas()" class="celula-vazia">
+              @if (quantidadeFiltros() > 0) {
+                <app-estado-vazio
+                  icone="pi-filter-slash"
+                  titulo="Nenhum item encontrado com estes filtros"
+                  texto="Mude ou limpe os filtros para ver mais itens."
+                  [compacto]="true"
+                >
+                  <p-button
+                    label="Limpar filtros"
+                    icon="pi pi-filter-slash"
+                    severity="secondary"
+                    (onClick)="limparFiltros()"
+                  />
+                </app-estado-vazio>
+              } @else {
+                <app-estado-vazio
+                  [icone]="meta.icone || 'pi-inbox'"
+                  [titulo]="'Nenhum item em “' + titulo() + '” ainda'"
+                  [texto]="
+                    permissoes.podeCriar(meta, minhasEquipes())
+                      ? 'Cadastre o primeiro para começar.'
+                      : 'Quando alguém da sua equipe cadastrar, ele aparece aqui.'
+                  "
+                  [compacto]="true"
+                >
+                  @if (permissoes.podeCriar(meta, minhasEquipes())) {
+                    <p-button label="Cadastrar o primeiro" icon="pi pi-plus" [routerLink]="['novo']" />
+                  }
+                </app-estado-vazio>
+              }
+            </td>
+          </tr>
+        }
+      </ng-template>
+    </p-table>
+  }
+} @else {
+  <div aria-busy="true" aria-label="Carregando">
+    <p-skeleton width="16rem" height="2rem" styleClass="mb-3" />
+    <p-skeleton height="2.5rem" styleClass="mb-3" />
+    <p-skeleton height="18rem" />
+  </div>
+}

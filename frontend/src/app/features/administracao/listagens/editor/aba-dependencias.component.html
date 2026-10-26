@@ -1,0 +1,143 @@
+<p class="texto-secundario">
+  Uma dependência filtra as opções de um campo de referência pelo que já foi escolhido no formulário. Ex.: as opções de
+  "Endpoint" mostram só os endpoints do mesmo projeto do relatório escolhido.
+</p>
+@if (dependentes().length === 0) {
+  <p>Este tipo de item não tem campos de referência: não há o que filtrar.</p>
+}
+@for (campo of dependentes(); track campo.chave) {
+  <section class="cartao-dependencia" [attr.aria-labelledby]="'dep-' + campo.chave">
+    <h3 [id]="'dep-' + campo.chave">{{ campo.nome }}</h3>
+    @if (editando() === campo.chave) {
+      <div class="construtor-dependencia">
+        <div class="frase-construtor">
+          <span
+            >As opções de <strong>{{ campo.nome }}</strong> mostram só os itens cujo</span
+          >
+          <span class="campo-inline">
+            <label class="sr-only" [id]="'dep-alvo-rotulo-' + campo.chave" [for]="'dep-alvo-' + campo.chave"
+              >Campo comparado</label
+            >
+            <p-select
+              [inputId]="'dep-alvo-' + campo.chave"
+              [ariaLabelledBy]="'dep-alvo-rotulo-' + campo.chave"
+              optionLabel="rotulo"
+              optionValue="valor"
+              placeholder="(campo)"
+              appendTo="body"
+              [options]="opcoesAlvo()"
+              [disabled]="opcoesAlvo().length === 0"
+              [ngModel]="alvo()"
+              (ngModelChange)="alvo.set($event)"
+            />
+          </span>
+          <span>é igual ao</span>
+          <span class="campo-inline">
+            <label class="sr-only" [id]="'dep-origem-rotulo-' + campo.chave" [for]="'dep-origem-' + campo.chave"
+              >Campo de origem</label
+            >
+            <p-select
+              [inputId]="'dep-origem-' + campo.chave"
+              [ariaLabelledBy]="'dep-origem-rotulo-' + campo.chave"
+              optionLabel="rotulo"
+              optionValue="valor"
+              placeholder="(campo)"
+              appendTo="body"
+              [options]="opcoesOrigem()"
+              [disabled]="opcoesOrigem().length === 0"
+              [ngModel]="origem()"
+              (ngModelChange)="escolherOrigem($event)"
+            />
+          </span>
+          <span class="campo-inline">
+            <label class="sr-only" [id]="'dep-via-rotulo-' + campo.chave" [for]="'dep-via-' + campo.chave"
+              >Onde ler a origem</label
+            >
+            <p-select
+              [inputId]="'dep-via-' + campo.chave"
+              [ariaLabelledBy]="'dep-via-rotulo-' + campo.chave"
+              optionLabel="rotulo"
+              optionValue="valor"
+              placeholder="(onde)"
+              appendTo="body"
+              [options]="opcoesVia()"
+              [ngModel]="via()"
+              (ngModelChange)="escolherVia($event)"
+            />
+          </span>
+        </div>
+        @if (opcoesVia().length === 0) {
+          <p-message severity="info">
+            Não há combinação possível: para filtrar "{{ campo.nome }}", outro campo de referência precisa apontar para
+            o mesmo tipo de item que algum campo do item apontado por ele.
+          </p-message>
+        }
+        @if (frase(); as frase) {
+          <p class="frase-dependencia" aria-live="polite">
+            @for (trecho of frase; track $index) {
+              @if (trecho.destaque) {
+                <strong>{{ trecho.texto }}</strong>
+              } @else {
+                {{ trecho.texto }}
+              }
+            }
+          </p>
+          <p class="exemplo-dependencia"><i class="pi pi-info-circle" aria-hidden="true"></i> {{ exemplo() }}</p>
+        }
+        @if (erros().length > 0) {
+          <p-message severity="error">
+            @for (m of erros(); track m) {
+              <div>{{ m }}</div>
+            }
+          </p-message>
+        }
+        <div class="acoes-formulario">
+          <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="cancelar()" />
+          <p-button label="Salvar regra" icon="pi pi-check" [disabled]="!escolha()" (onClick)="salvar()" />
+        </div>
+      </div>
+    } @else {
+      @if (fraseAtual(campo); as frase) {
+        <p class="frase-dependencia">
+          @for (trecho of frase; track $index) {
+            @if (trecho.destaque) {
+              <strong>{{ trecho.texto }}</strong>
+            } @else {
+              {{ trecho.texto }}
+            }
+          }
+        </p>
+        <div class="acoes-pagina">
+          <p-button
+            label="Alterar a regra"
+            icon="pi pi-pencil"
+            severity="secondary"
+            [outlined]="true"
+            size="small"
+            (onClick)="abrir(campo)"
+          />
+          <p-button
+            label="Remover a regra"
+            icon="pi pi-trash"
+            severity="danger"
+            [text]="true"
+            size="small"
+            (onClick)="remover(campo)"
+          />
+        </div>
+      } @else if (temCombinacoes(campo)) {
+        <p class="texto-secundario">Sem regra: as opções mostram todos os itens.</p>
+        <p-button
+          label="Criar uma regra"
+          icon="pi pi-plus"
+          severity="secondary"
+          [outlined]="true"
+          size="small"
+          (onClick)="abrir(campo)"
+        />
+      } @else {
+        <p class="texto-secundario">Sem regra possível com os campos atuais.</p>
+      }
+    }
+  </section>
+}

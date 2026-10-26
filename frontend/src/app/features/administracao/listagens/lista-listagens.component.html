@@ -1,0 +1,173 @@
+<app-cabecalho-pagina
+  [trilha]="[{ rotulo: 'Configurações' }, { rotulo: 'Áreas de gestão' }]"
+  titulo="Áreas de gestão"
+  icone="pi-sitemap"
+  subtitulo="Cada área de gestão reúne tipos de item (ex.: “Categoria” e “Equipamento”) com os seus campos, as equipes que a usam, a aprovação e a avaliação. Crie e mantenha a estrutura aqui, sem scripts."
+>
+  <p-button acoes label="Nova área de gestão" icon="pi pi-plus" (onClick)="nova()" />
+</app-cabecalho-pagina>
+
+<div class="barra-tabela">
+  <div class="barra-tabela-inicio">
+    @if (listagens(); as l) {
+      <span class="total-tabela" aria-live="polite">{{
+        l.length === 1 ? '1 área de gestão' : l.length + ' áreas de gestão'
+      }}</span>
+    }
+  </div>
+  <div class="barra-tabela-fim">
+    <app-alternar-densidade />
+  </div>
+</div>
+
+@if (erro()) {
+  <app-estado-erro mensagem="Não foi possível carregar as áreas de gestão." (tentarDeNovo)="carregar()" />
+} @else if (listagens(); as listagens) {
+  <p-table
+    appSombraRolagem
+    dataKey="chave"
+    styleClass="tabela-larga"
+    [scrollable]="true"
+    [size]="densidade.tamanhoTabela()"
+    [value]="listagens"
+  >
+    <ng-template #header>
+      <tr>
+        <th pFrozenColumn>Nome</th>
+        <th>Chave</th>
+        <th>Situação</th>
+        <th class="coluna-numero">Tipos de item</th>
+        <th class="coluna-numero">Itens cadastrados</th>
+        <th class="coluna-numero">Equipes</th>
+        <th class="coluna-acoes" pFrozenColumn alignFrozen="right"><span class="sr-only">Ações</span></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-listagem>
+      <tr class="linha-clicavel" (click)="abrirLinha(listagem, $event)">
+        <td pFrozenColumn class="coluna-principal">
+          <a class="link-linha" [routerLink]="[listagem.chave]">{{ listagem.nome }}</a>
+          @if (listagem.chave === areaAtual()) {
+            <span class="marca-area-atual">Área atual</span>
+          }
+        </td>
+        <td>
+          <code>{{ listagem.chave }}</code>
+        </td>
+        <td>
+          <p-tag [value]="listagem.ativo ? 'Ativa' : 'Inativa'" [severity]="listagem.ativo ? 'success' : 'secondary'" />
+        </td>
+        <td class="coluna-numero">{{ listagem.quantidadeEntidades }}</td>
+        <td class="coluna-numero">{{ listagem.quantidadeRegistros }}</td>
+        <td class="coluna-numero">
+          @if (listagem.quantidadeEquipes > 0) {
+            {{ listagem.quantidadeEquipes }}
+          } @else {
+            <span class="texto-secundario">Nenhuma (só administradores)</span>
+          }
+        </td>
+        <td class="coluna-acoes" pFrozenColumn alignFrozen="right">
+          <app-menu-acoes-linha [acoes]="acoesPorLinha().get(listagem.chave) ?? []" [rotulo]="listagem.nome" />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="7" class="celula-vazia">
+          <app-estado-vazio
+            icone="pi-sitemap"
+            titulo="Nenhuma área de gestão ainda"
+            texto="Crie a primeira e monte os tipos de item e os campos dela."
+            [compacto]="true"
+          >
+            <p-button label="Nova área de gestão" icon="pi pi-plus" (onClick)="nova()" />
+          </app-estado-vazio>
+        </td>
+      </tr>
+    </ng-template>
+  </p-table>
+} @else {
+  <div aria-busy="true" aria-label="Carregando"><p-skeleton height="12rem" /></div>
+}
+
+<p-dialog
+  [header]="editando() ? 'Editar área de gestão' : 'Nova área de gestão'"
+  [modal]="true"
+  [visible]="dialogoAberto()"
+  [draggable]="false"
+  [style]="{ width: 'min(36rem, 95vw)' }"
+  (visibleChange)="$event ? null : dialogoAberto.set(false)"
+>
+  <form class="formulario-admin" (submit)="$event.preventDefault(); salvar()" novalidate>
+    @if (errosGerais().length > 0) {
+      <p-message severity="error" styleClass="mb-3">
+        @for (mensagem of errosGerais(); track mensagem) {
+          <div>{{ mensagem }}</div>
+        }
+      </p-message>
+    }
+    <div class="campo">
+      <label for="listagem-nome" class="campo-rotulo">
+        Nome <span class="obrigatorio" aria-hidden="true">*</span><span class="sr-only">(obrigatório)</span>
+      </label>
+      <input
+        pInputText
+        id="listagem-nome"
+        [formControl]="nome"
+        [appDescritoPor]="errosDe(nome).length ? 'listagem-nome-erros' : null"
+        [invalido]="errosDe(nome).length > 0"
+      />
+      @if (errosDe(nome).length) {
+        <ul class="campo-erros" id="listagem-nome-erros">
+          @for (m of errosDe(nome); track m) {
+            <li>{{ m }}</li>
+          }
+        </ul>
+      }
+    </div>
+    <div class="campo">
+      <label for="listagem-chave" class="campo-rotulo">Chave</label>
+      <input
+        pInputText
+        id="listagem-chave"
+        [formControl]="chave"
+        appDescritoPor="listagem-chave-dica"
+        [invalido]="errosDe(chave).length > 0"
+      />
+      <small class="campo-dica" id="listagem-chave-dica">
+        @if (editando()) {
+          <i class="pi pi-lock" aria-hidden="true"></i> A chave não muda depois de criada: ela faz parte dos endereços
+          (URLs) e dos dados guardados.
+        } @else {
+          Gerada a partir do nome; pode ser ajustada agora. Depois de criada, não muda (faz parte dos endereços e dos
+          dados).
+        }
+      </small>
+      @if (errosDe(chave).length) {
+        <ul class="campo-erros">
+          @for (m of errosDe(chave); track m) {
+            <li>{{ m }}</li>
+          }
+        </ul>
+      }
+    </div>
+    <div class="campo">
+      <label for="listagem-descricao" class="campo-rotulo">Descrição</label>
+      <textarea pTextarea id="listagem-descricao" rows="3" [formControl]="descricao"></textarea>
+    </div>
+    <div class="acoes-formulario">
+      <p-button
+        type="button"
+        label="Cancelar"
+        severity="secondary"
+        [text]="true"
+        (onClick)="dialogoAberto.set(false)"
+      />
+      <p-button
+        type="submit"
+        icon="pi pi-check"
+        [label]="editando() ? 'Salvar alterações' : 'Criar área de gestão'"
+        [loading]="salvando()"
+      />
+    </div>
+  </form>
+</p-dialog>

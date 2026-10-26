@@ -1,0 +1,13 @@
+<Project>
+  <!-- Configurações comuns a TODOS os projetos da solução. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Warning é erro: o build só passa sem nenhum warning. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <!-- Avisa sobre pacotes com vulnerabilidade conhecida (e, com a linha acima, quebra o build). -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+  </PropertyGroup>
+</Project>

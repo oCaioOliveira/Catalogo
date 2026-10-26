@@ -1,0 +1,127 @@
+@if (naoEncontrado()) {
+  <p-message severity="warn"
+    >Este item não está disponível: ele pode ter sido excluído, ou você não tem acesso a ele.</p-message
+  >
+  <p><a [routerLink]="['/', grupo(), entidade()]">Voltar para a lista</a></p>
+} @else if (erro()) {
+  <app-estado-erro mensagem="Não foi possível carregar o item." (tentarDeNovo)="tentarDeNovo()" />
+} @else if (meta() && registro()) {
+  @let m = meta()!;
+  @let r = registro()!;
+  <app-cabecalho-pagina [trilha]="trilha()" [titulo]="titulo()" [icone]="icone()" [subtitulo]="subtitulo()">
+    @if (permissoes.podeEditar(m, r)) {
+      <p-button acoes label="Editar" icon="pi pi-pencil" [routerLink]="['editar']" />
+    }
+    @if (permissoes.podeExcluir(m, r)) {
+      <p-button acoes label="Excluir" icon="pi pi-trash" severity="danger" [outlined]="true" (onClick)="excluir()" />
+    }
+  </app-cabecalho-pagina>
+  <app-faixa-aprovacao [grupo]="grupo()" [entidade]="m" [registro]="r" (decidido)="aoDecidir($event)" />
+
+  <p-tabs value="dados">
+    <p-tablist>
+      <p-tab value="dados">Dados</p-tab>
+      @if (criteriosAvaliacao()) {
+        <p-tab value="avaliacoes">Avaliações</p-tab>
+      }
+      <p-tab value="historico">Histórico</p-tab>
+    </p-tablist>
+    <p-tabpanels>
+      <p-tabpanel value="dados">
+        @if (leitura().curtos.length > 0) {
+          <dl class="grade-leitura">
+            @for (campo of leitura().curtos; track campo.chave) {
+              <div class="item-leitura">
+                <dt>{{ campo.nome }}</dt>
+                <dd>
+                  <app-valor-campo
+                    modo="detalhe"
+                    [campo]="campo"
+                    [valor]="r.dados[campo.chave]"
+                    [grupo]="grupo()"
+                    [comoLink]="links().has(campo.chave)"
+                  />
+                </dd>
+              </div>
+            }
+          </dl>
+        }
+        @if (leitura().longos.length > 0) {
+          <dl class="textos-longos-leitura">
+            @for (campo of leitura().longos; track campo.chave) {
+              <div class="item-leitura">
+                <dt>{{ campo.nome }}</dt>
+                <dd><app-valor-campo modo="detalhe" [campo]="campo" [valor]="r.dados[campo.chave]" /></dd>
+              </div>
+            }
+          </dl>
+        }
+        @if (leitura().vazios.length > 0) {
+          <p class="campos-vazios"><span class="rotulo-vazios">Não preenchidos:</span> {{ naoPreenchidos() }}</p>
+        }
+        @if (nomeEquipe(); as equipe) {
+          <p class="info-equipe">
+            <i class="pi pi-users" aria-hidden="true"></i> Equipe: <strong>{{ equipe }}</strong>
+          </p>
+        }
+        <p class="auditoria">
+          Criado por {{ r.criadoPor?.nome ?? '—' }} <app-data-relativa [data]="r.criadoEm" />
+          @if (r.atualizadoEm) {
+            · Atualizado por {{ r.atualizadoPor?.nome ?? '—' }} <app-data-relativa [data]="r.atualizadoEm" />
+          }
+        </p>
+
+        @if (erroRelacionados()) {
+          <p-message severity="error" styleClass="mt-3">
+            Não foi possível carregar os itens relacionados.
+            <button type="button" class="link-botao" (click)="carregarRelacionados()">Tentar de novo</button>
+          </p-message>
+        }
+        @for (secao of secoes().filhas; track secao.id) {
+          <app-secao-filhos
+            [grupo]="grupo()"
+            [pai]="m"
+            [registroPai]="r"
+            [filha]="secao.entidade"
+            [campoPai]="secao.campo"
+            [todas]="todas()"
+            [tituloComQuantidade]="secao.titulo"
+            [aberta]="aberta(secao)"
+            (alternar)="alternar(secao)"
+            (alterada)="carregarRelacionados()"
+          />
+        }
+        @for (secao of secoes().leitura; track secao.id) {
+          <app-secao-relacionados
+            [grupo]="grupo()"
+            [secao]="secao"
+            [item]="r"
+            [todas]="todas()"
+            [equipesNaListagem]="equipesNaListagem()"
+            [voltar]="enderecoDetalhe()"
+            [aberta]="aberta(secao)"
+            (alternar)="alternar(secao)"
+          />
+        }
+        @if (secoes().vazias.length > 0) {
+          <p class="sem-relacionados">
+            <span class="rotulo-vazios">Sem itens relacionados em:</span> {{ secoes().vazias.join(', ') }}
+          </p>
+        }
+      </p-tabpanel>
+      @if (criteriosAvaliacao(); as criterios) {
+        <p-tabpanel value="avaliacoes">
+          <app-aba-avaliacoes [grupo]="grupo()" [entidade]="m.chave" [registro]="r" [criterios]="criterios" />
+        </p-tabpanel>
+      }
+      <p-tabpanel value="historico">
+        <app-historico-registro [grupo]="grupo()" [entidade]="m" [id]="r.id" />
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+} @else {
+  <div aria-busy="true" aria-label="Carregando">
+    <p-skeleton width="20rem" height="2rem" styleClass="mb-3" />
+    <p-skeleton height="14rem" />
+  </div>
+}

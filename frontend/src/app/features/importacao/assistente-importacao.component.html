@@ -1,0 +1,488 @@
+@if (meta(); as meta) {
+  <app-cabecalho-pagina
+    [trilha]="trilha()"
+    [titulo]="titulo()"
+    [icone]="icone()"
+    subtitulo="Cadastre muitos itens de uma vez a partir de uma planilha. Nada é gravado antes da prévia."
+  >
+    <p-button
+      acoes
+      label="Importações anteriores"
+      icon="pi pi-history"
+      severity="secondary"
+      [text]="true"
+      [routerLink]="['/', grupo(), entidade(), 'importacoes']"
+    />
+  </app-cabecalho-pagina>
+
+  <p-stepper [value]="etapa()" [linear]="true" styleClass="etapas-importacao">
+    <p-step-list>
+      <p-step [value]="ETAPAS.arquivo">Arquivo</p-step>
+      <p-step [value]="ETAPAS.colunas">Colunas</p-step>
+      <p-step [value]="ETAPAS.opcoes">Opções</p-step>
+      <p-step [value]="ETAPAS.previa">Prévia</p-step>
+      <p-step [value]="ETAPAS.conclusao">Conclusão</p-step>
+    </p-step-list>
+  </p-stepper>
+
+  <section class="cartao-importacao" [attr.aria-label]="'Etapa ' + etapa() + ' de 5'">
+    @switch (etapa()) {
+      @case (ETAPAS.arquivo) {
+        <h2 class="titulo-etapa">1. Escolha a planilha</h2>
+        <div class="modelo-importacao">
+          <div>
+            <p class="texto-etapa">
+              Comece pelo <strong>modelo</strong>: ele já vem com as colunas de {{ meta.nome }}, as listas de opções e
+              uma aba "Instruções" explicando cada coluna.
+            </p>
+          </div>
+          <p-button
+            label="Baixar modelo"
+            icon="pi pi-file-excel"
+            [loading]="baixandoModelo()"
+            (onClick)="baixarModelo()"
+          />
+        </div>
+
+        @if (comReferencias()) {
+          <p-message severity="info" styleClass="mb-3" icon="pi pi-info-circle">
+            Referências são identificadas pelo nome. Se houver nomes repetidos, use a coluna (ID).
+          </p-message>
+        }
+
+        <div
+          class="area-soltar"
+          [class.arrastando]="arrastando()"
+          (dragover)="aoArrastar($event, true)"
+          (dragenter)="aoArrastar($event, true)"
+          (dragleave)="aoArrastar($event, false)"
+          (drop)="aoSoltar($event)"
+        >
+          <i class="pi pi-cloud-upload icone-soltar" aria-hidden="true"></i>
+          <p class="texto-soltar">Arraste a planilha para cá ou</p>
+          <label class="p-button p-component botao-escolher" for="arquivo-importacao">
+            <i class="pi pi-folder-open" aria-hidden="true"></i>
+            <span>Escolher arquivo</span>
+          </label>
+          <input
+            id="arquivo-importacao"
+            class="sr-only"
+            type="file"
+            accept=".xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv"
+            aria-describedby="limites-importacao"
+            [disabled]="enviando()"
+            (change)="aoEscolherArquivo($event)"
+          />
+          <small id="limites-importacao" class="campo-dica">
+            Planilha do Excel (.xlsx) ou CSV em UTF-8, separado por ; ou ,. Até 5 MB, 5.000 linhas e 100 colunas.
+          </small>
+          @if (enviando()) {
+            <p class="texto-soltar" role="status">
+              <i class="pi pi-spin pi-spinner" aria-hidden="true"></i> Lendo o arquivo…
+            </p>
+          }
+        </div>
+        @if (problemaArquivo(); as problema) {
+          <p-message severity="error" styleClass="mt-3" role="alert">{{ problema }}</p-message>
+        }
+        <div class="acoes-formulario acoes-fixas">
+          <p-button label="Cancelar" severity="secondary" [text]="true" [routerLink]="['/', grupo(), entidade()]" />
+        </div>
+      }
+
+      @case (ETAPAS.colunas) {
+        @if (enviada(); as enviada) {
+          <h2 class="titulo-etapa">2. Confira as colunas</h2>
+          <p class="texto-etapa">
+            <strong>{{ enviada.nomeArquivo }}</strong> tem {{ enviada.totalLinhas.toLocaleString('pt-BR') }}
+            {{ enviada.totalLinhas === 1 ? 'linha' : 'linhas' }}. Já ligamos as colunas aos campos pelo nome; confira e
+            ajuste.
+          </p>
+          @if (faltando().length > 0) {
+            <p-message severity="warn" styleClass="mb-3" role="status">
+              Campos obrigatórios sem coluna: {{ nomesFaltando() }}. As linhas vão ficar com erro.
+            </p-message>
+          }
+          <p-table
+            appSombraRolagem
+            [value]="enviada.colunas"
+            [size]="densidade.tamanhoTabela()"
+            styleClass="tabela-mapeamento"
+          >
+            <ng-template #header>
+              <tr>
+                <th scope="col">Coluna do arquivo</th>
+                <th scope="col">Primeiros valores</th>
+                <th scope="col">Campo</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-coluna>
+              <tr>
+                <td>
+                  <span [id]="'coluna-arquivo-' + coluna.indice" class="nome-coluna-arquivo">{{
+                    coluna.cabecalho || '(sem nome)'
+                  }}</span>
+                </td>
+                <td class="exemplos-coluna">
+                  @for (exemplo of coluna.exemplos; track $index) {
+                    <span class="exemplo-coluna">{{ exemplo }}</span>
+                  } @empty {
+                    <span class="texto-secundario">vazia</span>
+                  }
+                </td>
+                <td>
+                  <p-select
+                    [inputId]="'destino-' + coluna.indice"
+                    [ariaLabelledBy]="'coluna-arquivo-' + coluna.indice"
+                    optionLabel="rotulo"
+                    optionValue="valor"
+                    appendTo="body"
+                    [filter]="opcoesSelect().length > 12"
+                    styleClass="select-destino"
+                    [class.select-ignorado]="destinoDaColuna(coluna.indice) === 'IGNORAR'"
+                    [options]="opcoesSelect()"
+                    [ngModel]="destinoDaColuna(coluna.indice)"
+                    (ngModelChange)="escolher(coluna.indice, $event)"
+                  />
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+          <div class="acoes-formulario acoes-fixas">
+            <p-button
+              label="Voltar"
+              icon="pi pi-arrow-left"
+              severity="secondary"
+              [text]="true"
+              (onClick)="enviarOutroArquivo()"
+            />
+            <p-button label="Continuar" icon="pi pi-arrow-right" iconPos="right" (onClick)="etapa.set(ETAPAS.opcoes)" />
+          </div>
+        }
+      }
+
+      @case (ETAPAS.opcoes) {
+        <h2 class="titulo-etapa">3. Escolha as opções</h2>
+        <fieldset class="grupo-opcoes">
+          <legend class="campo-rotulo">Itens que já existem</legend>
+          <small class="campo-dica">
+            @if (restricoes().length > 0) {
+              Um item já existe quando tem o mesmo {{ restricoes().join(' ou ')
+              }}{{ meta.escopoEquipe ? ' na mesma equipe' : '' }}.
+            } @else {
+              {{ meta.nome }} não tem regra de unicidade: toda linha vira um item novo.
+            }
+          </small>
+          <div class="opcao-explicada">
+            <p-radiobutton
+              inputId="duplicados-pular"
+              name="duplicados"
+              value="PULAR"
+              [ngModel]="duplicados()"
+              (ngModelChange)="duplicados.set($event)"
+            />
+            <label for="duplicados-pular"><strong>Pular</strong>: o item que já existe fica como está.</label>
+          </div>
+          <div class="opcao-explicada">
+            <p-radiobutton
+              inputId="duplicados-atualizar"
+              name="duplicados"
+              value="ATUALIZAR"
+              [ngModel]="duplicados()"
+              (ngModelChange)="duplicados.set($event)"
+            />
+            <label for="duplicados-atualizar">
+              <strong>Atualizar o item existente</strong>: as colunas da planilha substituem os valores dele (célula
+              vazia apaga o valor). Precisa de permissão para alterar.
+            </label>
+          </div>
+        </fieldset>
+
+        <fieldset class="grupo-opcoes">
+          <legend class="campo-rotulo">Linhas com erro</legend>
+          <div class="opcao-explicada">
+            <p-radiobutton
+              inputId="erros-validas"
+              name="linhasComErro"
+              value="SO_VALIDAS"
+              [ngModel]="linhasComErro()"
+              (ngModelChange)="linhasComErro.set($event)"
+            />
+            <label for="erros-validas"
+              ><strong>Importar só as válidas</strong>: as linhas com erro ficam no relatório.</label
+            >
+          </div>
+          <div class="opcao-explicada">
+            <p-radiobutton
+              inputId="erros-tudo"
+              name="linhasComErro"
+              value="TUDO_OU_NADA"
+              [ngModel]="linhasComErro()"
+              (ngModelChange)="linhasComErro.set($event)"
+            />
+            <label for="erros-tudo"
+              ><strong>Tudo ou nada</strong>: nada é importado enquanto houver uma linha com erro.</label
+            >
+          </div>
+        </fieldset>
+
+        @if (meta.escopoEquipe) {
+          <div class="campo campo-equipe-padrao">
+            @if (equipes().length > 1) {
+              <label class="campo-rotulo" for="equipe-padrao" id="equipe-padrao-rotulo">
+                Equipe {{ equipeObrigatoria() ? 'dos itens' : 'padrão' }}{{ equipeObrigatoria() ? ' *' : '' }}
+              </label>
+              <p-select
+                inputId="equipe-padrao"
+                ariaLabelledBy="equipe-padrao-rotulo"
+                optionLabel="nome"
+                optionValue="id"
+                appendTo="body"
+                placeholder="Escolha a equipe"
+                [showClear]="!equipeObrigatoria()"
+                [options]="equipes()"
+                [ngModel]="equipePadrao()"
+                (ngModelChange)="equipePadrao.set($event ?? null)"
+              />
+              <small class="campo-dica bloco">
+                {{
+                  equipeObrigatoria()
+                    ? 'Todos os itens vão para esta equipe.'
+                    : 'Usada nas linhas em que a coluna Equipe está vazia.'
+                }}
+              </small>
+            } @else if (equipes().length === 1) {
+              <p class="texto-etapa">
+                Os itens serão da equipe <strong>{{ equipes()[0].nome }}</strong
+                >.
+              </p>
+            }
+          </div>
+        }
+        @if (erroOpcoes(); as erro) {
+          <p-message severity="error" styleClass="mt-3" role="alert">{{ erro }}</p-message>
+        }
+        <div class="acoes-formulario acoes-fixas">
+          <p-button
+            label="Voltar"
+            icon="pi pi-arrow-left"
+            severity="secondary"
+            [text]="true"
+            (onClick)="etapa.set(ETAPAS.colunas)"
+          />
+          <p-button label="Ver prévia" icon="pi pi-eye" [loading]="validando()" (onClick)="validar()" />
+        </div>
+      }
+
+      @case (ETAPAS.previa) {
+        @if (previa(); as previa) {
+          <h2 class="titulo-etapa">4. Confira a prévia</h2>
+          <p class="texto-etapa">Nada foi gravado ainda. Confira o que vai acontecer com cada linha e confirme.</p>
+          @if (avisoPrevia(); as aviso) {
+            <p-message severity="warn" styleClass="mb-3" role="alert">{{ aviso }}</p-message>
+          }
+          <div class="resumo-importacao" role="list" aria-label="Resumo da prévia">
+            <div class="cartao-resumo resumo-novos" role="listitem">
+              <span class="numero-resumo">{{ previa.totais.novos.toLocaleString('pt-BR') }}</span>
+              <span class="rotulo-resumo">novos</span>
+            </div>
+            <div class="cartao-resumo resumo-atualizacoes" role="listitem">
+              <span class="numero-resumo">{{ previa.totais.atualizacoes.toLocaleString('pt-BR') }}</span>
+              <span class="rotulo-resumo">atualizações</span>
+            </div>
+            <div class="cartao-resumo resumo-ignorados" role="listitem">
+              <span class="numero-resumo">{{ previa.totais.ignorados.toLocaleString('pt-BR') }}</span>
+              <span class="rotulo-resumo">ignorados (já existem)</span>
+            </div>
+            <div class="cartao-resumo resumo-erros" [class.com-erros]="previa.totais.comErro > 0" role="listitem">
+              <span class="numero-resumo">{{ previa.totais.comErro.toLocaleString('pt-BR') }}</span>
+              <span class="rotulo-resumo">com erro</span>
+            </div>
+          </div>
+
+          <div class="barra-tabela">
+            <div class="barra-tabela-inicio">
+              <p-toggleswitch
+                inputId="somente-erros"
+                [ngModel]="somenteComErro()"
+                [disabled]="previa.totais.comErro === 0"
+                (ngModelChange)="alternarSomenteComErro($event)"
+              />
+              <label for="somente-erros">Mostrar só linhas com erro</label>
+            </div>
+            <div class="barra-tabela-fim">
+              @if (previa.totais.comErro > 0) {
+                <p-button
+                  label="Baixar relatório de erros"
+                  icon="pi pi-download"
+                  severity="secondary"
+                  [outlined]="true"
+                  [loading]="baixandoRelatorio()"
+                  (onClick)="baixarRelatorio()"
+                />
+              }
+            </div>
+          </div>
+
+          <p-table
+            appSombraRolagem
+            styleClass="tabela-previa tabela-larga"
+            dataKey="numero"
+            [size]="densidade.tamanhoTabela()"
+            [value]="previa.linhas.itens"
+            [lazy]="true"
+            [lazyLoadOnInit]="false"
+            [loading]="carregandoPrevia()"
+            [paginator]="previa.linhas.total > previa.linhas.tamanho"
+            [rows]="previa.linhas.tamanho"
+            [first]="(previa.linhas.pagina - 1) * previa.linhas.tamanho"
+            [totalRecords]="previa.linhas.total"
+            [showCurrentPageReport]="true"
+            currentPageReportTemplate="{first} a {last} de {totalRecords}"
+            [scrollable]="true"
+            (onLazyLoad)="aoMudarPagina($event)"
+          >
+            <ng-template #header>
+              <tr>
+                <th scope="col" class="coluna-numero">Linha</th>
+                <th scope="col">Situação</th>
+                @for (coluna of colunasPrevia(); track coluna.indice) {
+                  <th scope="col" class="coluna-previa">{{ coluna.cabecalho }}</th>
+                }
+                <th scope="col">Observações</th>
+              </tr>
+            </ng-template>
+            <ng-template #body let-linha>
+              <tr [class.linha-com-erro]="linha.situacao === 'ERRO'">
+                <td class="coluna-numero">{{ linha.numero }}</td>
+                <td>
+                  <p-tag
+                    [value]="situacaoDaLinha(linha.situacao).rotulo"
+                    [severity]="situacaoDaLinha(linha.situacao).severidade"
+                  />
+                </td>
+                @for (coluna of colunasPrevia(); track coluna.indice) {
+                  @let erros = errosDaCelula(linha, coluna.indice);
+                  <td
+                    class="coluna-previa"
+                    [class.celula-erro]="erros.length > 0"
+                    [attr.data-coluna]="coluna.cabecalho"
+                    [pTooltip]="dicaDaCelula(linha, coluna.indice) ?? undefined"
+                    tooltipPosition="top"
+                    [tabindex]="erros.length > 0 ? 0 : -1"
+                  >
+                    @if (erros.length > 0) {
+                      <i class="pi pi-exclamation-circle" aria-hidden="true"></i>
+                    }
+                    <span class="valor-celula-previa">{{ linha.valores[coluna.indice] }}</span>
+                    @if (erros.length > 0) {
+                      <span class="sr-only mensagem-celula">Erro: {{ erros.join(' ') }}</span>
+                    }
+                  </td>
+                }
+                <td class="observacoes-linha">
+                  @for (mensagem of errosDaLinha(linha); track $index) {
+                    <span class="mensagem-linha">{{ mensagem }}</span>
+                  }
+                </td>
+              </tr>
+            </ng-template>
+            <ng-template #emptymessage>
+              <tr>
+                <td [attr.colspan]="colunasPrevia().length + 3" class="celula-vazia">
+                  {{ somenteComErro() ? 'Nenhuma linha com erro.' : 'O arquivo não tem linhas.' }}
+                </td>
+              </tr>
+            </ng-template>
+          </p-table>
+
+          @if (motivoNaoExecutavel(); as motivo) {
+            <p-message severity="warn" styleClass="mt-3" role="status">{{ motivo }}</p-message>
+          } @else if (previa.totais.comErro > 0) {
+            <p class="nota-secao">
+              Para corrigir as linhas com erro, ajuste a planilha e envie de novo: as colunas que você ligou continuam
+              ligadas.
+            </p>
+          }
+          <div class="acoes-formulario acoes-fixas">
+            <p-button
+              label="Voltar"
+              icon="pi pi-arrow-left"
+              severity="secondary"
+              [text]="true"
+              (onClick)="etapa.set(ETAPAS.opcoes)"
+            />
+            <p-button
+              label="Enviar outro arquivo"
+              icon="pi pi-upload"
+              severity="secondary"
+              [outlined]="true"
+              (onClick)="enviarOutroArquivo()"
+            />
+            <p-button
+              [label]="rotuloExecutar()"
+              icon="pi pi-check"
+              [disabled]="!previa.executavel"
+              [loading]="executando()"
+              (onClick)="executar()"
+            />
+          </div>
+        }
+      }
+
+      @case (ETAPAS.conclusao) {
+        @if (resultado(); as resultado) {
+          @if (resultado.situacao === 'DESFEITA') {
+            <h2 class="titulo-etapa">Importação desfeita</h2>
+            <p-message severity="info" role="status">Os itens criados por esta importação foram excluídos.</p-message>
+          } @else {
+            <h2 class="titulo-etapa">5. Importação concluída</h2>
+            <p-message severity="success" role="status" styleClass="mb-3">{{ textoConclusao() }}</p-message>
+            <p class="texto-etapa">
+              Os itens novos aparecem no começo da listagem (os mais recentes primeiro). Cada um tem no histórico a
+              origem "importação".
+            </p>
+          }
+          <div class="acoes-conclusao">
+            <p-button
+              label="Baixar relatório"
+              icon="pi pi-download"
+              severity="secondary"
+              [outlined]="true"
+              [loading]="baixandoRelatorio()"
+              (onClick)="baixarRelatorio()"
+            />
+            @if (resultado.podeDesfazer) {
+              <p-button
+                label="Desfazer importação"
+                icon="pi pi-undo"
+                severity="danger"
+                [outlined]="true"
+                [loading]="desfazendo()"
+                (onClick)="desfazer()"
+              />
+            }
+            <p-button
+              label="Importar outra planilha"
+              icon="pi pi-upload"
+              severity="secondary"
+              [text]="true"
+              (onClick)="novaImportacao()"
+            />
+          </div>
+          <div class="acoes-formulario acoes-fixas">
+            <p-button label="Ver na listagem" icon="pi pi-list" [routerLink]="['/', grupo(), entidade()]" />
+          </div>
+        }
+      }
+    }
+  </section>
+} @else if (erroCarregar()) {
+  <app-estado-erro mensagem="Não foi possível abrir a importação." (tentarDeNovo)="tentarDeNovo()" />
+} @else {
+  <div aria-busy="true" aria-label="Carregando">
+    <p-skeleton width="16rem" height="2rem" styleClass="mb-3" />
+    <p-skeleton height="3rem" styleClass="mb-3" />
+    <p-skeleton height="18rem" />
+  </div>
+}

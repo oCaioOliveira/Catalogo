@@ -1,0 +1,2556 @@
+// Estilos globais. Valores SÓ pelos fundamentos (src/app/tema/fundamentos.scss: --espaco-*, --fonte-*, --raio-*, --cor-*), que
+// apontam para as variáveis do tema do PrimeNG (src/app/tema/tema.ts). Guia: docs/design/guia-de-interface.md.
+@use './app/tema/fundamentos';
+@use './app/core/layout/moldura';
+
+html {
+  font-size: var(--fonte-raiz);
+}
+
+body {
+  margin: 0;
+  font-family: var(--fonte-familia);
+  font-size: var(--fonte-texto);
+  line-height: var(--altura-linha);
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+
+// Os componentes do PrimeNG herdam a fonte da interface.
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  line-height: var(--altura-linha-titulo);
+  color: var(--cor-texto);
+}
+
+h1 {
+  font-size: var(--fonte-titulo-pagina);
+  font-weight: var(--peso-titulo);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+h2 {
+  font-size: var(--fonte-titulo-secao);
+  font-weight: var(--peso-forte);
+  margin: 0;
+}
+
+h3 {
+  font-size: var(--fonte-subtitulo);
+  font-weight: var(--peso-forte);
+}
+
+a {
+  color: var(--cor-link);
+  text-underline-offset: 2px;
+}
+
+// Foco sempre visível (navegação por teclado, WCAG 2.4.7 e 2.4.11).
+:focus-visible {
+  outline: 2px solid var(--cor-foco);
+  outline-offset: 2px;
+}
+
+// Microinterações discretas; com prefers-reduced-motion, as durações viram 0 (fundamentos.scss).
+a,
+button,
+.p-button,
+.linha-clicavel {
+  transition:
+    background-color var(--duracao-rapida) var(--curva-padrao),
+    color var(--duracao-rapida) var(--curva-padrao),
+    box-shadow var(--duracao-rapida) var(--curva-padrao);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.pular-para-conteudo {
+  position: absolute;
+  left: -999px;
+  top: 0.5rem;
+  z-index: 100;
+  padding: var(--espaco-2) var(--espaco-4);
+  background: var(--cor-superficie);
+
+  &:focus {
+    left: 0.5rem;
+  }
+}
+
+.w-full {
+  width: 100%;
+}
+
+.mb-2 {
+  margin-bottom: var(--espaco-2);
+}
+
+.mb-3 {
+  margin-bottom: var(--espaco-4);
+}
+
+.mt-3 {
+  margin-top: var(--espaco-4);
+}
+
+/* Faixa de aviso com um botão de atalho à direita (ex.: listagem sem equipes, RN93). */
+.faixa-com-acao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+  width: 100%;
+}
+
+.texto-secundario {
+  color: var(--cor-texto-secundario);
+}
+
+.texto-sucesso {
+  color: var(--cor-sucesso);
+}
+
+.link-botao {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--cor-link);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+
+// ---- Páginas: cabeçalho padrão (shared/pagina/cabecalho-pagina.component.ts) ----
+
+.cabecalho-pagina {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espaco-4);
+  margin-bottom: var(--espaco-6);
+
+  h1 {
+    display: flex;
+    align-items: center;
+    gap: var(--espaco-3);
+  }
+
+  // Telas antigas que ainda têm a descrição solta.
+  .descricao {
+    margin: var(--espaco-1) 0 0;
+    color: var(--cor-texto-secundario);
+  }
+}
+
+.cabecalho-pagina-titulos {
+  min-width: 0;
+  flex: 1 1 24rem;
+}
+
+.icone-titulo {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--raio-medio);
+  background: var(--cor-primaria-suave);
+  color: var(--cor-primaria-suave-texto);
+
+  .pi {
+    font-size: 1.15rem;
+  }
+}
+
+.subtitulo-pagina {
+  margin: var(--espaco-2) 0 0;
+  color: var(--cor-texto-secundario);
+  max-width: 60rem;
+}
+
+.acoes-pagina {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+  align-items: center;
+}
+
+// ---- Estados padronizados (shared/estados): vazio e erro ----
+
+.estado-vazio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--espaco-2);
+  padding: var(--espaco-12) var(--espaco-4);
+  background: var(--cor-superficie);
+  border: 1px dashed var(--cor-borda);
+  border-radius: var(--raio-grande);
+
+  &.compacto {
+    padding: var(--espaco-6) var(--espaco-4);
+    border: none;
+    background: transparent;
+  }
+
+  .estado-icone {
+    display: inline-grid;
+    place-items: center;
+    width: 56px;
+    height: 56px;
+    border-radius: var(--raio-total);
+    background: var(--cor-superficie-alternativa);
+    color: var(--cor-texto-secundario);
+    margin-bottom: var(--espaco-2);
+
+    .pi {
+      font-size: 1.5rem;
+    }
+  }
+
+  .estado-titulo {
+    margin: 0;
+    font-weight: var(--peso-forte);
+    font-size: var(--fonte-subtitulo);
+  }
+
+  .estado-texto {
+    margin: 0;
+    color: var(--cor-texto-secundario);
+    max-width: 36rem;
+  }
+
+  .estado-acoes:not(:empty) {
+    margin-top: var(--espaco-3);
+    display: flex;
+    gap: var(--espaco-2);
+  }
+}
+
+.estado-erro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-4);
+  padding: var(--espaco-4) var(--espaco-5);
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-left: 4px solid var(--cor-perigo-destaque);
+  border-radius: var(--raio-medio);
+  margin-bottom: var(--espaco-4);
+
+  > .pi {
+    color: var(--cor-perigo);
+    font-size: 1.4rem;
+  }
+
+  .estado-erro-texto {
+    flex: 1 1 16rem;
+  }
+
+  .estado-titulo {
+    margin: 0;
+    font-weight: var(--peso-forte);
+  }
+
+  .estado-texto {
+    margin: var(--espaco-1) 0 0;
+    color: var(--cor-texto-secundario);
+  }
+}
+
+.data-relativa {
+  white-space: nowrap;
+}
+
+// ---- Página Início (features/inicio) ----
+
+.secao-inicio {
+  margin-bottom: var(--espaco-8);
+
+  > h2 {
+    margin-bottom: var(--espaco-3);
+  }
+}
+
+.grade-atalhos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: var(--espaco-4);
+}
+
+.cartao-atalho {
+  // Cards da mesma linha com a mesma altura (a grade estica o item) e conteúdo em coluna: topo, corpo e o RODAPÉ empurrado para
+  // baixo (margin-top: auto), com o "Novo" alinhado em todos (guia de interface → "Cards"). Nada de altura fixa.
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  padding: var(--espaco-4);
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-grande);
+  box-shadow: var(--sombra-1);
+  transition: border-color var(--duracao-rapida) var(--curva-padrao);
+
+  &:hover {
+    border-color: var(--cor-primaria);
+  }
+}
+
+// O link do título cobre o card inteiro (::after); o botão e a descrição (com a dica) ficam por cima dele.
+.cartao-atalho-link {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-3);
+  color: var(--cor-texto);
+  text-decoration: none;
+  border-radius: var(--raio-medio);
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--raio-grande);
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+.cartao-atalho:has(.cartao-atalho-link:focus-visible) {
+  outline: 2px solid var(--cor-foco);
+  outline-offset: 2px;
+}
+
+.cartao-atalho-icone {
+  flex-shrink: 0;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--raio-medio);
+  background: var(--cor-primaria-suave);
+  color: var(--cor-primaria-suave-texto);
+
+  .pi {
+    font-size: 1.25rem;
+  }
+}
+
+// Título e descrição longos não quebram o card: até 2 linhas, com reticências (o texto inteiro fica na dica).
+.cartao-atalho-nome,
+.cartao-atalho-descricao {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.cartao-atalho-nome {
+  font-weight: var(--peso-forte);
+  font-size: var(--fonte-subtitulo);
+  line-height: var(--altura-linha-titulo);
+}
+
+.cartao-atalho-corpo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+}
+
+.cartao-atalho-descricao {
+  position: relative;
+  z-index: 1;
+  margin: 0;
+  color: var(--cor-texto-secundario);
+  font-size: var(--fonte-legenda);
+  line-height: var(--altura-linha);
+}
+
+.cartao-atalho-quantidade {
+  color: var(--cor-texto-secundario);
+  font-size: var(--fonte-legenda);
+  font-variant-numeric: tabular-nums;
+}
+
+// Rodapé sempre presente, colado embaixo; a altura mínima é a do botão pequeno, para os cards sem "Novo" alinharem igual.
+.cartao-atalho-rodape {
+  position: relative;
+  z-index: 1;
+  margin-top: auto;
+  padding-top: var(--espaco-2);
+  min-height: 2rem;
+  display: flex;
+  align-items: flex-end;
+}
+
+.cartao-pendencias {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-4);
+  padding: var(--espaco-4) var(--espaco-5);
+  margin-bottom: var(--espaco-6);
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-left: 4px solid var(--cor-alerta-destaque);
+  border-radius: var(--raio-medio);
+  color: var(--cor-texto);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--cor-superficie-hover);
+  }
+
+  .cartao-pendencias-icone {
+    font-size: 1.4rem;
+    color: var(--cor-alerta);
+  }
+
+  .cartao-pendencias-texto {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    span {
+      color: var(--cor-texto-secundario);
+    }
+  }
+}
+
+.lista-recentes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-grande);
+  overflow: hidden;
+
+  li + li {
+    border-top: 1px solid var(--cor-borda);
+  }
+}
+
+.item-recente {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-3);
+  padding: var(--espaco-3) var(--espaco-4);
+  color: var(--cor-texto);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--cor-superficie-hover);
+
+    .item-recente-rotulo {
+      text-decoration: underline;
+    }
+  }
+
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+}
+
+.item-recente-icone {
+  color: var(--cor-texto-secundario);
+  width: 1.25rem;
+  text-align: center;
+}
+
+.item-recente-texto {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.item-recente-rotulo {
+  font-weight: var(--peso-medio);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item-recente-tipo,
+.item-recente-quando {
+  color: var(--cor-texto-secundario);
+  font-size: var(--fonte-legenda);
+}
+
+// Trilha (app-trilha → p-breadcrumb): as cores e o separador são do tema; aqui só tiramos o "cartão" em volta.
+.p-breadcrumb.trilha {
+  background: transparent;
+  padding: 0;
+  margin-bottom: var(--espaco-2);
+  font-size: 0.9rem;
+
+  .trilha-atual {
+    color: var(--cor-texto);
+  }
+}
+
+.mensagem-com-acao {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-4);
+}
+
+// ---- Tabelas (docs/design/guia-de-interface.md → "Tabelas") ----
+
+.tabela-registros,
+.secao-filhos {
+  background: var(--cor-superficie);
+}
+
+.coluna-numero {
+  text-align: right !important;
+}
+
+// Células numa linha só (a densidade compacta só rende assim); valores compridos terminam em reticências (valor-campo.component).
+.tabela-registros .p-datatable-tbody > tr > td,
+.secao-filhos .p-datatable-tbody > tr > td,
+.secao-relacionados .p-datatable-tbody > tr > td,
+.tabela-larga .p-datatable-tbody > tr > td {
+  white-space: nowrap;
+}
+
+.valor-tabela {
+  display: inline-block;
+  max-width: 20rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  vertical-align: bottom;
+
+  // O overflow cortaria o contorno de foco dos links: ele fica por dentro.
+  a:focus-visible {
+    outline-offset: -2px;
+  }
+
+  .link-url-truncado {
+    max-width: 100%;
+  }
+}
+
+// Tabela LARGA: cada coluna com a sua largura (padrão pelo tipo, redimensionável), layout fixo e reticências.
+.tabela-larga {
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+  overflow: hidden;
+
+  .p-datatable-table {
+    table-layout: fixed;
+    width: 100%;
+  }
+
+  .p-datatable-thead > tr > th {
+    position: relative;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: var(--cor-superficie-alternativa);
+    font-size: var(--fonte-legenda);
+    font-weight: var(--peso-forte);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--cor-texto-cabecalho-tabela);
+  }
+
+  .p-datatable-tbody > tr > td {
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    .valor-tabela {
+      max-width: 100%;
+    }
+  }
+
+  // Barra de rolagem horizontal sempre visível quando há o que rolar.
+  .p-datatable-table-container {
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+}
+
+.titulo-coluna {
+  vertical-align: middle;
+}
+
+// A coluna principal (campo de exibição): o link do item, presa à esquerda.
+.coluna-principal .link-linha {
+  font-weight: var(--peso-medio);
+  color: var(--cor-link);
+  text-decoration: none;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+
+  &:hover {
+    text-decoration: underline;
+  }
+
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+}
+
+.linha-clicavel {
+  cursor: pointer;
+
+  &:hover > td {
+    background: var(--cor-superficie-hover);
+  }
+}
+
+// Colunas presas: o fundo cobre o que passa por baixo ao rolar.
+.p-datatable-frozen-column {
+  background: inherit;
+}
+
+.tabela-larga .p-datatable-tbody > tr > td.p-datatable-frozen-column,
+.tabela-larga .p-datatable-thead > tr > th.p-datatable-frozen-column {
+  z-index: 1;
+}
+
+.tabela-larga .p-datatable-tbody > tr > td.p-datatable-frozen-column {
+  background: var(--cor-superficie);
+}
+
+.tabela-larga .linha-clicavel:hover > td.p-datatable-frozen-column {
+  background: var(--cor-superficie-hover);
+}
+
+// Indicação de rolagem horizontal (SombraRolagemDirective): sombra na borda das colunas presas, do lado em que há mais colunas.
+[data-rolagem-esquerda] .p-datatable-frozen-column-left {
+  box-shadow: 12px 0 12px -8px var(--cor-sombra-rolagem);
+  clip-path: inset(0 -20px 0 0);
+}
+
+[data-rolagem-direita] .p-datatable-frozen-column:not(.p-datatable-frozen-column-left) {
+  box-shadow: -12px 0 12px -8px var(--cor-sombra-rolagem);
+  clip-path: inset(0 0 0 -20px);
+}
+
+// Tabelas sem coluna presa: um degradê na borda do contêiner.
+[appSombraRolagem] {
+  position: relative;
+}
+
+.coluna-acoes {
+  width: 56px;
+  white-space: nowrap;
+  text-align: center !important;
+  padding-left: var(--espaco-1) !important;
+  padding-right: var(--espaco-1) !important;
+}
+
+// A alça de redimensionar (ColunaRedimensionavelDirective), no canto direito do título da coluna.
+.alca-redimensionar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 100%;
+  cursor: col-resize;
+  touch-action: none;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 25%;
+    bottom: 25%;
+    right: 3px;
+    width: 2px;
+    border-radius: var(--raio-total);
+    background: var(--cor-borda);
+  }
+
+  &:hover::after,
+  &:focus-visible::after {
+    background: var(--cor-primaria);
+    top: 0;
+    bottom: 0;
+  }
+
+  &:focus-visible {
+    outline-offset: -2px;
+  }
+}
+
+th.redimensionando {
+  user-select: none;
+}
+
+// Barra de ferramentas da tabela: filtros e total à esquerda; colunas, densidade e exportar à direita.
+.barra-tabela {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-3);
+  margin-bottom: var(--espaco-3);
+}
+
+.barra-tabela-inicio,
+.barra-tabela-fim {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-2);
+}
+
+.total-tabela {
+  color: var(--cor-texto-secundario);
+  font-variant-numeric: tabular-nums;
+  margin-left: var(--espaco-2);
+}
+
+.celula-vazia {
+  padding: 0 !important;
+}
+
+// Seletor de colunas (popover).
+.popover-colunas .p-popover-content {
+  padding: var(--espaco-3);
+}
+
+.seletor-colunas {
+  width: 18rem;
+
+  ul {
+    list-style: none;
+    margin: 0 0 var(--espaco-2);
+    padding: 0;
+    max-height: 22rem;
+    overflow-y: auto;
+  }
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espaco-2);
+    min-height: 36px;
+    border-radius: var(--raio-medio);
+    padding: 0 var(--espaco-1);
+
+    &:hover {
+      background: var(--cor-superficie-hover);
+    }
+
+    &.escondida label {
+      color: var(--cor-texto-secundario);
+    }
+  }
+
+  label {
+    display: flex;
+    align-items: center;
+    gap: var(--espaco-2);
+    cursor: pointer;
+    flex: 1;
+    min-width: 0;
+
+    input {
+      accent-color: var(--cor-primaria);
+      margin: 0;
+    }
+
+    small {
+      color: var(--cor-texto-secundario);
+    }
+  }
+}
+
+.seletor-colunas-titulo {
+  margin: 0 0 var(--espaco-2);
+  font-weight: var(--peso-forte);
+}
+
+.mover-coluna {
+  display: inline-flex;
+}
+
+// Ação destrutiva nos menus "⋯".
+.p-menu .acao-perigosa .p-menu-item-label,
+.p-menu .acao-perigosa .p-menu-item-icon {
+  color: var(--cor-perigo);
+}
+
+/* Detalhe da equipe: as listagens em que ela está habilitada (RN90). */
+.lista-listagens-equipe {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--espaco-6);
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2) var(--espaco-6);
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: var(--espaco-2);
+  }
+}
+
+.lista-vazia {
+  text-align: center;
+  padding: var(--espaco-8) !important;
+}
+
+// ---- Filtros ----
+
+.painel-filtros {
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+  padding: var(--espaco-4);
+  margin-bottom: var(--espaco-4);
+}
+
+.grade-filtros {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: 0 var(--espaco-4);
+}
+
+.acoes-filtros {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--espaco-2);
+}
+
+// ---- Formulário ----
+
+.formulario {
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+  padding: var(--espaco-5);
+}
+
+p-dialog .formulario,
+.p-dialog .formulario {
+  border: none;
+  padding: 0;
+}
+
+// Formulários longos na página: a barra de ações fica presa no rodapé, sempre visível.
+.pagina-formulario .acoes-formulario {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  margin: var(--espaco-4) calc(-1 * var(--espaco-5)) calc(-1 * var(--espaco-5));
+  padding: var(--espaco-3) var(--espaco-5);
+  background: var(--cor-superficie);
+  border-top: 1px solid var(--cor-borda);
+  border-radius: 0 0 var(--raio-medio) var(--raio-medio);
+  box-shadow: 0 -4px 12px -8px var(--cor-sombra-rolagem);
+}
+
+.dica-criar-relacionado {
+  margin: 0 0 var(--espaco-4);
+}
+
+.opcao-criar-novo {
+  font-weight: var(--peso-forte);
+  color: var(--cor-link);
+}
+
+.icone-secao {
+  color: var(--cor-texto-secundario);
+}
+
+.grade-campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: 0 var(--espaco-5);
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  margin-bottom: var(--espaco-4);
+}
+
+.campo-largo {
+  grid-column: 1 / -1;
+}
+
+// Altura inicial de 4 linhas mesmo quando o autoResize mede antes de a tela aparecer (ex.: numa aba ainda escondida).
+.texto-longo-auto {
+  min-height: 6.5rem;
+}
+
+// Textos longos: embaixo do grid, um por linha, na largura toda (montador-formulario.ts → layoutDoFormulario).
+.campos-longos {
+  display: flex;
+  flex-direction: column;
+}
+
+.campo-rotulo {
+  font-weight: 600;
+}
+
+.obrigatorio {
+  color: var(--cor-perigo);
+  margin-left: var(--espaco-1);
+}
+
+.contador,
+.campo-dica {
+  color: var(--cor-texto-secundario);
+}
+
+.contador {
+  align-self: flex-end;
+}
+
+.campo-erros {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--cor-perigo);
+  font-size: 0.9rem;
+}
+
+.lista-erros-gerais {
+  margin: 0;
+  padding-left: var(--espaco-5);
+}
+
+.texto-booleano {
+  margin-left: var(--espaco-2);
+}
+
+.info-equipe {
+  margin-top: 0;
+}
+
+.acoes-formulario {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--espaco-2);
+  margin-top: var(--espaco-2);
+}
+
+// ---- Detalhe ----
+
+.grade-leitura {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: var(--espaco-3) var(--espaco-6);
+  margin: 0 0 var(--espaco-4);
+
+  dt {
+    font-weight: 600;
+    color: var(--cor-texto-secundario);
+    font-size: 0.85rem;
+  }
+
+  dd {
+    margin: var(--espaco-1) 0 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+// Textos longos preenchidos: na largura toda, um embaixo do outro, com as quebras de linha.
+.textos-longos-leitura {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-3);
+  margin: 0 0 var(--espaco-4);
+  max-width: 60rem;
+
+  dt {
+    font-weight: 600;
+    color: var(--cor-texto-secundario);
+    font-size: 0.85rem;
+  }
+
+  dd {
+    margin: var(--espaco-1) 0 0;
+    line-height: 1.5;
+  }
+}
+
+.texto-longo {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+// Campos vazios no detalhe: não ocupam espaço, só uma linha discreta.
+.campos-vazios {
+  margin: 0 0 var(--espaco-4);
+  font-size: 0.85rem;
+  color: var(--cor-texto-secundario);
+
+  .rotulo-vazios {
+    font-weight: 600;
+  }
+}
+
+// URL (ADR 0042): link para uma nova aba, com o ícone de "externo". Na tabela, o texto é truncado e a dica mostra o endereço.
+.link-url {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--espaco-1);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+
+  .icone-link-externo {
+    font-size: 0.75em;
+    flex-shrink: 0;
+  }
+}
+
+.link-url-truncado {
+  max-width: 22rem;
+
+  .texto-url {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+.auditoria {
+  font-size: 0.85rem;
+  color: var(--cor-texto-secundario);
+  border-top: 1px solid var(--cor-borda);
+  padding-top: var(--espaco-3);
+}
+
+.secao-filhos,
+.secao-relacionados {
+  margin-top: var(--espaco-6);
+}
+
+.cabecalho-secao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+  margin-bottom: var(--espaco-2);
+
+  h2 {
+    margin: 0;
+  }
+}
+
+/* Seções de itens relacionados (RN94): o título é o botão que recolhe e abre a seção. */
+.alternar-secao {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaco-2);
+  padding: var(--espaco-1) var(--espaco-1) var(--espaco-1) 0;
+  border: none;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  text-align: left;
+
+  &:focus-visible {
+    outline: 2px solid var(--cor-primaria);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .pi {
+    font-size: 0.85rem;
+    color: var(--cor-texto-secundario);
+  }
+}
+
+.acoes-secao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.sem-relacionados {
+  margin: var(--espaco-6) 0 0;
+  font-size: 0.85rem;
+  color: var(--cor-texto-secundario);
+
+  .rotulo-vazios {
+    font-weight: 600;
+  }
+}
+
+.lista-mudancas {
+  margin: 0;
+  padding-left: var(--espaco-4);
+}
+
+.dialogo-bloqueio .p-confirmdialog-message {
+  white-space: pre-line;
+}
+
+// ---- Login e troca de senha ----
+
+.pagina-acesso {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espaco-12);
+  padding: var(--espaco-6) var(--espaco-4);
+  box-sizing: border-box;
+  background: radial-gradient(circle at 15% 20%, var(--cor-primaria-suave) 0, transparent 45%), var(--cor-fundo);
+}
+
+.apresentacao-acesso {
+  max-width: 26rem;
+
+  // A logo maior, direto sobre o fundo (a versão do tema).
+  .logo-marca {
+    margin-bottom: var(--espaco-2);
+  }
+
+  .nome-sistema {
+    margin: var(--espaco-4) 0 var(--espaco-2);
+    font-size: 2.25rem;
+    font-weight: var(--peso-titulo);
+    letter-spacing: -0.02em;
+    line-height: var(--altura-linha-titulo);
+  }
+
+  .frase-sistema {
+    margin: 0;
+    font-size: var(--fonte-subtitulo);
+    color: var(--cor-texto-secundario);
+    line-height: var(--altura-linha);
+  }
+}
+
+.cartao-acesso {
+  width: min(26rem, 100%);
+  box-sizing: border-box;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-grande);
+  box-shadow: var(--sombra-2);
+  // Filete de marca (laranja CAIXA) no topo do cartão, o mesmo do cabeçalho.
+  border-top: var(--espessura-filete-marca) solid var(--cor-marca-destaque);
+  padding: var(--espaco-8);
+
+  h1 {
+    margin-bottom: var(--espaco-1);
+  }
+
+  > .texto-secundario {
+    margin: 0 0 var(--espaco-6);
+  }
+}
+
+// Atalho de tema discreto no canto da tela de login.
+.tema-acesso {
+  position: absolute;
+  top: var(--espaco-3);
+  right: var(--espaco-3);
+}
+
+@media (max-width: 799.98px) {
+  .pagina-acesso {
+    flex-direction: column;
+    gap: var(--espaco-6);
+  }
+
+  .apresentacao-acesso {
+    text-align: center;
+
+    .nome-sistema {
+      font-size: var(--fonte-titulo-pagina);
+    }
+  }
+}
+
+.nao-encontrado {
+  text-align: center;
+  padding: var(--espaco-12) var(--espaco-4);
+}
+
+// ---- Painel gerencial (features/painel) ----
+
+.filtros-painel {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0 var(--espaco-4);
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+  padding: var(--espaco-3) var(--espaco-4) 0;
+  margin-bottom: var(--espaco-6);
+
+  .campo {
+    min-width: 12rem;
+  }
+
+  .periodo-aplicado {
+    margin: 0 0 var(--espaco-4) auto;
+  }
+}
+
+.secao-painel {
+  margin-bottom: var(--espaco-8);
+
+  > h2 {
+    margin-bottom: var(--espaco-3);
+  }
+}
+
+// KPIs numa faixa; gráficos em 2 colunas no desktop e 1 em telas menores.
+.faixa-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--espaco-4);
+  list-style: none;
+  margin: 0 0 var(--espaco-4);
+  padding: 0;
+}
+
+.cartao-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+  padding: var(--espaco-4);
+
+  // O indicador principal (o primeiro) leva o filete de marca laranja: um dos poucos usos do laranja CAIXA.
+  &:first-child {
+    border-top: var(--espessura-filete-marca) solid var(--cor-marca-destaque);
+  }
+}
+
+.kpi-rotulo {
+  color: var(--cor-texto-secundario);
+  font-size: 0.9rem;
+}
+
+.kpi-valor {
+  // Rótulos de uma ou duas linhas: o número fica sempre embaixo, alinhado em todos os cartões da linha.
+  margin-top: auto;
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.grade-painel {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espaco-4);
+}
+
+.cartao-painel {
+  display: block;
+  min-width: 0;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+  padding: var(--espaco-4);
+
+  &.largura-total {
+    grid-column: 1 / -1;
+  }
+
+  // O KPI de um widget fica numa faixa, sem cartão em volta dos cartões.
+  .faixa-kpis {
+    margin: 0;
+  }
+
+  h3 {
+    font-size: 1.05rem;
+    margin: 0;
+  }
+
+  h4 {
+    font-size: 0.95rem;
+    margin: var(--espaco-2) 0;
+  }
+}
+
+.cabecalho-cartao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-2);
+  margin-bottom: var(--espaco-3);
+}
+
+.titulo-cartao,
+.acoes-cartao {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-1);
+}
+
+.link-acao {
+  text-decoration: none;
+  gap: var(--espaco-1);
+}
+
+.area-grafico {
+  position: relative;
+  width: 100%;
+}
+
+.estado-cartao {
+  color: var(--cor-texto-secundario);
+  text-align: center;
+  padding: var(--espaco-8) var(--espaco-4);
+  margin: 0;
+}
+
+.nota-cartao {
+  font-size: 0.85rem;
+  margin: var(--espaco-2) 0 0;
+}
+
+.tabela-rolagem {
+  overflow-x: auto;
+}
+
+.tabela-dados {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+
+  th,
+  td {
+    padding: var(--espaco-2) var(--espaco-3);
+    border-bottom: 1px solid var(--cor-borda);
+    text-align: left;
+  }
+
+  th {
+    color: var(--cor-texto-secundario);
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+
+  .coluna-numero {
+    text-align: right;
+  }
+}
+
+.rankings {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--espaco-4);
+
+  ol {
+    margin: 0;
+    padding-left: var(--espaco-5);
+  }
+}
+
+// Análise personalizada: os controles à esquerda e o resultado à direita (empilhados em telas menores).
+.layout-analise {
+  display: grid;
+  grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr);
+  gap: var(--espaco-4);
+  align-items: start;
+}
+
+.painel-analise {
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+  padding: var(--espaco-4);
+}
+
+.grupo-controles {
+  border: none;
+  border-top: 1px solid var(--cor-borda);
+  margin: 0 0 var(--espaco-3);
+  padding: var(--espaco-3) 0 0;
+
+  legend {
+    font-weight: 600;
+    padding-right: var(--espaco-2);
+  }
+}
+
+.linha-controle {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--espaco-2);
+
+  > .campo {
+    flex: 1;
+    min-width: 0;
+  }
+
+  > .campo-estreito {
+    flex: 0 0 8rem;
+  }
+
+  > p-button {
+    margin-bottom: var(--espaco-4);
+  }
+}
+
+.resultado-analise {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-4);
+  min-width: 0;
+}
+
+@media (max-width: 1099px) {
+  .grade-painel,
+  .layout-analise {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+// ---- Administração e Minha conta (features/administracao, features/conta) ----
+
+// As confirmações podem ter parágrafos ("\n\n"), ex.: a de desativar equipe.
+.p-confirmdialog .p-confirmdialog-message {
+  white-space: pre-line;
+  max-width: 36rem;
+}
+
+.filtros-administracao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0 var(--espaco-4);
+
+  .campo {
+    min-width: 12rem;
+  }
+
+  .campo-busca {
+    flex: 1 1 16rem;
+  }
+
+  .acoes-filtros {
+    margin: 0 0 var(--espaco-4) auto;
+  }
+}
+
+.lista-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-1);
+}
+
+.formulario-estreito {
+  max-width: 44rem;
+}
+
+.perfil-com-descricao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-3);
+}
+
+.descricao-perfil {
+  margin: 0;
+  color: var(--cor-texto-secundario);
+}
+
+.opcao-perfil {
+  display: flex;
+  flex-direction: column;
+
+  small {
+    color: var(--cor-texto-secundario);
+  }
+}
+
+.lista-perfis {
+  margin: var(--espaco-1) 0 0;
+  padding-left: var(--espaco-4);
+  font-size: 0.9rem;
+}
+
+.senha-provisoria {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-3);
+  margin-bottom: var(--espaco-2);
+}
+
+.valor-senha {
+  font-size: 1.25rem;
+  letter-spacing: 0.05em;
+  padding: var(--espaco-2) var(--espaco-3);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+  background: var(--cor-fundo);
+  user-select: all;
+}
+
+.lista-links {
+  margin: 0;
+  padding-left: var(--espaco-4);
+}
+
+.aviso-membro {
+  display: inline-block;
+  margin-left: var(--espaco-2);
+  color: var(--cor-alerta);
+  font-size: 0.85rem;
+}
+
+// ---- Administração de listagens (features/administracao/listagens) ----
+
+.formulario-admin {
+  .campo-erros {
+    display: block;
+  }
+}
+
+// Dica de um CAMPO, logo abaixo dele: a margem negativa a encosta no campo (que tem margem própria embaixo). Só depois de um
+// .campo; depois de uma tabela ou de um bloco sem margem ela entra no elemento de cima: use .nota-secao.
+.campo-dica.bloco {
+  display: block;
+  margin: calc(-1 * var(--espaco-2)) 0 var(--espaco-4);
+}
+
+// Nota de uma SEÇÃO (ex.: abaixo da tabela da pré-visualização): no fluxo normal, com o espaçamento padrão entre blocos.
+.nota-secao {
+  margin: var(--espaco-4) 0 0;
+  color: var(--cor-texto-secundario);
+  font-size: var(--fonte-legenda);
+  line-height: var(--altura-linha);
+}
+
+.grupo-opcoes {
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+  padding: var(--espaco-3) var(--espaco-4);
+  margin: 0 0 var(--espaco-4);
+
+  legend {
+    padding: 0 var(--espaco-1);
+  }
+
+  .campo-dica.bloco {
+    margin: var(--espaco-2) 0 0;
+  }
+}
+
+.opcao-explicada {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espaco-2);
+  margin-bottom: var(--espaco-2);
+
+  label {
+    line-height: 1.4;
+  }
+}
+
+.campo-alternar {
+  flex-direction: row;
+  align-items: center;
+  gap: var(--espaco-3);
+}
+
+// Tabela simples (sem p-table) onde as linhas são arrastadas com o @angular/cdk.
+.tabela-admin {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--cor-superficie);
+
+  th,
+  td {
+    text-align: left;
+    padding: var(--espaco-2) var(--espaco-3);
+    border-bottom: 1px solid var(--cor-borda);
+    vertical-align: middle;
+  }
+
+  th {
+    font-weight: 600;
+    background: var(--cor-superficie-alternativa);
+  }
+}
+
+.coluna-alca {
+  width: 2rem;
+}
+
+.alca-arrastar {
+  cursor: grab;
+  color: var(--cor-texto-secundario);
+  padding: var(--espaco-1);
+}
+
+.linha-inativa td {
+  color: var(--cor-texto-secundario);
+}
+
+.cdk-drag-preview {
+  display: table;
+  background: var(--cor-superficie);
+  box-shadow: var(--sombra-2);
+
+  td {
+    padding: var(--espaco-2) var(--espaco-3);
+  }
+}
+
+.cdk-drag-placeholder {
+  opacity: 0.35;
+}
+
+.cdk-drop-list-dragging .cdk-drag:not(.cdk-drag-placeholder) {
+  transition: transform 200ms ease;
+}
+
+.secao-situacao {
+  margin-top: var(--espaco-8);
+  border-top: 1px solid var(--cor-borda);
+  padding-top: var(--espaco-4);
+
+  h2 {
+    margin-bottom: var(--espaco-2);
+  }
+}
+
+.painel-lateral-campo {
+  width: min(34rem, 100vw) !important;
+}
+
+.editor-opcoes {
+  list-style: none;
+  margin: 0 0 var(--espaco-3);
+  padding: 0;
+}
+
+.opcao-lista {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-1);
+  margin-bottom: var(--espaco-1);
+  background: var(--cor-superficie);
+
+  input {
+    flex: 1;
+  }
+}
+
+.zona-exclusao {
+  border-top: 1px solid var(--cor-borda);
+  margin-top: var(--espaco-4);
+  padding-top: var(--espaco-3);
+}
+
+.lista-unicidades {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 var(--espaco-6);
+
+  li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espaco-4);
+    padding: var(--espaco-2) var(--espaco-3);
+    border: 1px solid var(--cor-borda);
+    border-radius: var(--raio-medio);
+    margin-bottom: var(--espaco-2);
+    background: var(--cor-superficie);
+  }
+}
+
+.nova-unicidade h3,
+.cartao-dependencia h3 {
+  margin: 0 0 var(--espaco-3);
+  font-size: 1.05rem;
+}
+
+.cartao-dependencia {
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+  padding: var(--espaco-4);
+  margin-bottom: var(--espaco-4);
+  background: var(--cor-superficie);
+}
+
+.frase-construtor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-2);
+  margin-bottom: var(--espaco-4);
+  line-height: 2.4;
+}
+
+.campo-inline {
+  display: inline-block;
+}
+
+.frase-dependencia {
+  background: var(--cor-primaria-suave);
+  color: var(--cor-primaria-suave-texto);
+  border-radius: var(--raio-medio);
+  padding: var(--espaco-3) var(--espaco-4);
+  margin: 0 0 var(--espaco-2);
+  line-height: 1.5;
+}
+
+.exemplo-dependencia {
+  color: var(--cor-texto-secundario);
+  font-size: 0.9rem;
+}
+
+.previa-formulario {
+  margin-bottom: var(--espaco-6);
+}
+
+// Diálogo das alterações (simulação, ADR 0044).
+.lista-impactos {
+  padding-left: var(--espaco-5);
+}
+
+.impacto {
+  border-left: 4px solid var(--cor-perigo-destaque);
+  padding: var(--espaco-1) 0 var(--espaco-1) var(--espaco-3);
+  margin-bottom: var(--espaco-4);
+
+  &.impacto-informativo {
+    border-left-color: var(--cor-info-destaque);
+  }
+
+  h3 {
+    font-size: 1rem;
+    margin: 0 0 var(--espaco-1);
+  }
+
+  p {
+    margin: var(--espaco-1) 0;
+  }
+}
+
+.quantidade-impacto {
+  font-weight: 600;
+}
+
+.exemplos-impacto,
+.grupos-duplicados {
+  margin: var(--espaco-1) 0;
+  padding-left: var(--espaco-5);
+}
+
+.orientacao-impacto {
+  background: var(--cor-superficie-alternativa);
+  padding: var(--espaco-2) var(--espaco-3) !important;
+  border-radius: var(--raio-medio);
+}
+
+.alvo-historico {
+  margin: 0 0 var(--espaco-1);
+  font-weight: 600;
+}
+
+// Aprovação (RN33 a RN38, ADR 0045): a faixa do topo do detalhe, a situação nas tabelas e as decisões no histórico.
+.faixa-aprovacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espaco-4);
+  border: 1px solid var(--cor-borda);
+  border-left: 6px solid var(--cor-alerta-destaque);
+  border-radius: var(--raio-medio);
+  background: var(--cor-superficie);
+  padding: var(--espaco-3) var(--espaco-4);
+  margin-bottom: var(--espaco-4);
+
+  &.faixa-aprovado {
+    border-left-color: var(--cor-sucesso-destaque);
+  }
+
+  &.faixa-rejeitado {
+    border-left-color: var(--cor-perigo-destaque);
+  }
+}
+
+.faixa-conteudo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--espaco-1);
+  flex: 1 1 20rem;
+  min-width: 0;
+}
+
+.faixa-titulo {
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+.faixa-decisao p {
+  margin: 0;
+}
+
+.faixa-justificativa {
+  margin: var(--espaco-1) 0 0;
+  padding: var(--espaco-2) var(--espaco-3);
+  border-left: 3px solid var(--cor-borda);
+  background: var(--cor-superficie-alternativa);
+  border-radius: var(--raio-pequeno);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.linha-decisao > td {
+  background: var(--cor-fundo);
+}
+
+.celula-aprovacao {
+  white-space: nowrap;
+}
+
+div.celula-aprovacao,
+div.celula-avaliacao {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-2);
+}
+
+.contador-pendentes {
+  margin-left: var(--espaco-1);
+}
+
+.lista-explicacao {
+  padding-left: var(--espaco-5);
+
+  li {
+    margin-bottom: var(--espaco-2);
+  }
+}
+
+// Avaliação (RN39 a RN48): médias em estrelas, o resumo do detalhe e o editor de modelos.
+.media-estrelas {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaco-1);
+  white-space: nowrap;
+  color: var(--cor-estrela);
+
+  .media-numero {
+    margin-left: var(--espaco-1);
+    color: var(--cor-texto);
+    font-weight: 600;
+  }
+}
+
+.estrelas-texto {
+  color: var(--cor-estrela);
+  display: inline-flex;
+  gap: var(--espaco-1);
+}
+
+.resumo-avaliacao,
+.minha-avaliacao,
+.avaliacoes-individuais {
+  margin-bottom: var(--espaco-8);
+
+  h2 {
+    font-size: 1.15rem;
+    margin: 0 0 var(--espaco-2);
+  }
+}
+
+.grade-resumo-criterios {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 18rem), 1fr));
+  gap: var(--espaco-4);
+}
+
+.cartao-criterio-resumo {
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+  background: var(--cor-superficie);
+  padding: var(--espaco-3) var(--espaco-4);
+
+  h3 {
+    font-size: 1rem;
+    margin: 0 0 var(--espaco-1);
+  }
+}
+
+.media-criterio {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-2);
+  margin-bottom: var(--espaco-2);
+}
+
+.distribuicao {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+
+  li {
+    display: grid;
+    grid-template-columns: 2.5rem 1fr 2.5rem;
+    align-items: center;
+    gap: var(--espaco-2);
+    font-size: 0.9rem;
+  }
+}
+
+.rotulo-barra {
+  white-space: nowrap;
+  color: var(--cor-texto-secundario);
+}
+
+.barra {
+  display: block;
+  height: 0.6rem;
+  background: var(--cor-trilho);
+  border-radius: var(--raio-pequeno);
+  overflow: hidden;
+}
+
+.barra-preenchida {
+  display: block;
+  height: 100%;
+  background: var(--cor-estrela-barra);
+}
+
+.valor-barra {
+  text-align: right;
+}
+
+.resumo-anterior {
+  margin-top: var(--espaco-4);
+
+  summary {
+    cursor: pointer;
+    color: var(--cor-texto-secundario);
+  }
+}
+
+.avaliacao-individual {
+  border-top: 1px solid var(--cor-borda);
+  padding: var(--espaco-3) 0;
+
+  dl {
+    margin: var(--espaco-2) 0 0;
+  }
+
+  dt {
+    font-weight: 600;
+    margin-top: var(--espaco-1);
+  }
+
+  dd {
+    margin: 0;
+  }
+
+  p {
+    margin: var(--espaco-1) 0 0;
+  }
+}
+
+.criterio-avaliacao {
+  border: 0;
+  margin: 0 0 var(--espaco-4);
+  padding: 0;
+
+  legend,
+  .campo-rotulo {
+    font-weight: 600;
+  }
+}
+
+.linha-estrelas {
+  display: flex;
+  align-items: center;
+  gap: var(--espaco-3);
+  margin: var(--espaco-1) 0;
+}
+
+.rotulo-comentario {
+  font-size: 0.9rem;
+  margin-top: var(--espaco-2);
+}
+
+.editor-modelo {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr);
+  gap: var(--espaco-6);
+  align-items: start;
+}
+
+@media (max-width: 899px) {
+  .editor-modelo {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+.previa-avaliacao {
+  position: sticky;
+  top: 1rem;
+  border: 1px dashed var(--cor-borda);
+  border-radius: var(--raio-medio);
+  background: var(--cor-superficie);
+  padding: var(--espaco-4);
+
+  h2 {
+    font-size: 1.1rem;
+    margin: 0 0 var(--espaco-3);
+  }
+}
+
+.lista-criterios {
+  list-style: none;
+  margin: 0 0 var(--espaco-4);
+  padding: 0;
+}
+
+.cartao-criterio {
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+  background: var(--cor-superficie);
+  padding: var(--espaco-3) var(--espaco-4);
+  margin-bottom: var(--espaco-3);
+
+  &.criterio-inativo {
+    background: var(--cor-superficie-alternativa);
+  }
+}
+
+.cabecalho-criterio {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-2);
+  margin-bottom: var(--espaco-2);
+}
+
+.acoes-criterio {
+  display: inline-flex;
+  gap: var(--espaco-1);
+}
+
+.bloco-trava {
+  margin: 0 0 var(--espaco-2);
+}
+
+.linha-alternadores .campo-alternar {
+  display: inline-flex;
+}
+
+.linha-alternadores {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-6);
+  margin-top: var(--espaco-3);
+}
+
+// ---- Seletor de ícone (shared/icones, RN95) ----
+
+.seletor-icone {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espaco-3);
+}
+
+.icone-atual {
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--raio-medio);
+  background: var(--cor-primaria-suave);
+  color: var(--cor-primaria-suave-texto);
+
+  .pi {
+    font-size: 1.15rem;
+  }
+}
+
+.nome-icone-atual {
+  color: var(--cor-texto-secundario);
+}
+
+.popover-icones .p-popover-content {
+  padding: var(--espaco-3);
+}
+
+.painel-icones {
+  width: min(24rem, 90vw);
+}
+
+.busca-icone {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.total-icones {
+  margin: var(--espaco-2) 0;
+  color: var(--cor-texto-secundario);
+  font-size: var(--fonte-legenda);
+}
+
+.grade-icones {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: var(--espaco-1);
+  max-height: 16rem;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.opcao-icone {
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-width: 36px;
+  border: 1px solid transparent;
+  border-radius: var(--raio-medio);
+  background: transparent;
+  color: var(--cor-texto);
+  cursor: pointer;
+
+  &:hover {
+    background: var(--cor-superficie-hover);
+  }
+
+  &.escolhido {
+    background: var(--cor-primaria-suave);
+    color: var(--cor-primaria-suave-texto);
+    border-color: var(--cor-primaria);
+  }
+}
+
+.marca-area-atual {
+  display: inline-block;
+  margin-left: var(--espaco-2);
+  padding: 0 var(--espaco-2);
+  border-radius: var(--raio-total);
+  background: var(--cor-primaria-suave);
+  color: var(--cor-primaria-suave-texto);
+  font-size: var(--fonte-legenda);
+  font-weight: var(--peso-forte);
+}
+
+.coluna-principal:has(.marca-area-atual) .link-linha {
+  display: inline;
+}
+
+.p-datatable-thead p-sorticon,
+.p-datatable-thead .p-datatable-sort-icon {
+  margin-left: var(--espaco-1);
+}
+
+// Títulos dos grupos de campos nos formulários longos (formulario-registro.component.html).
+.titulo-grupo-campos {
+  font-size: var(--fonte-subtitulo);
+  font-weight: var(--peso-forte);
+  margin: var(--espaco-2) 0 var(--espaco-3);
+  padding-bottom: var(--espaco-2);
+  border-bottom: 1px solid var(--cor-borda);
+}
+
+// ---- Salvar sempre visível em listas longas (guia de interface → "Salvar sempre visível") ----
+// Cabeçalho FIXO de uma lista editável: título e contador, busca e ações rápidas, e Descartar/Salvar. Fica preso logo abaixo do
+// cabeçalho do sistema enquanto a lista rola.
+.barra-lista-fixa {
+  position: sticky;
+  top: var(--altura-cabecalho);
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-2);
+  margin: 0 0 var(--espaco-3);
+  padding: var(--espaco-3) var(--espaco-4);
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+  box-shadow: var(--sombra-1);
+}
+
+.barra-lista-linha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-2) var(--espaco-4);
+}
+
+.barra-lista-titulos {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--espaco-1) var(--espaco-3);
+}
+
+.barra-lista-titulo {
+  margin: 0;
+  font-size: var(--fonte-subtitulo);
+}
+
+.barra-lista-contador {
+  color: var(--cor-texto-secundario);
+  font-variant-numeric: tabular-nums;
+}
+
+.barra-lista-salvar,
+.barra-lista-busca,
+.barra-lista-rapidas {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+}
+
+.barra-lista-busca input[type='search'] {
+  width: 16rem;
+  max-width: 100%;
+  margin-right: var(--espaco-3);
+}
+
+// "3 alterações não salvas": discreto, com um ponto na cor de alerta (e o texto, para não depender só da cor).
+.indicador-pendentes {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espaco-1);
+  color: var(--cor-texto-secundario);
+  font-size: var(--fonte-legenda);
+
+  .pi {
+    font-size: 0.5rem;
+    color: var(--cor-alerta-destaque);
+  }
+}
+
+// Formulários longos: a barra de ações (.acoes-formulario) presa no rodapé, sempre visível. Os formulários de item usam
+// .pagina-formulario; os outros, esta classe.
+.acoes-formulario.acoes-fixas {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  padding: var(--espaco-3) 0;
+  background: var(--cor-superficie);
+  border-top: 1px solid var(--cor-borda);
+  box-shadow: 0 -4px 12px -8px var(--cor-sombra-rolagem);
+}
+
+.tabela-admin .linha-grupo th {
+  padding-top: var(--espaco-4);
+  text-align: left;
+  font-size: var(--fonte-legenda);
+  font-weight: var(--peso-forte);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--cor-texto-secundario);
+  background: transparent;
+}
+
+// ---- Importação de planilhas (RN97 a RN104) ----
+// O assistente (/:grupo/:entidade/importar): etapas visíveis, um cartão por etapa e a barra de ações presa no rodapé.
+
+.etapas-importacao {
+  margin-bottom: var(--espaco-4);
+}
+
+.cartao-importacao {
+  padding: var(--espaco-5) var(--espaco-5) 0;
+  background: var(--cor-superficie);
+  border: 1px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+}
+
+.titulo-etapa {
+  margin: 0 0 var(--espaco-2);
+  font-size: var(--fonte-titulo-secao);
+}
+
+.texto-etapa {
+  margin: 0 0 var(--espaco-4);
+  color: var(--cor-texto-secundario);
+}
+
+.modelo-importacao {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espaco-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--espaco-4);
+
+  .texto-etapa {
+    margin: 0;
+  }
+}
+
+.area-soltar {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--espaco-2);
+  padding: var(--espaco-8) var(--espaco-4);
+  text-align: center;
+  border: 2px dashed var(--cor-borda);
+  border-radius: var(--raio-medio);
+  background: var(--cor-superficie-alternativa);
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease;
+
+  &.arrastando {
+    border-color: var(--cor-primaria);
+    background: var(--cor-primaria-suave);
+  }
+
+  .icone-soltar {
+    font-size: 2rem;
+    color: var(--cor-primaria);
+  }
+
+  .texto-soltar {
+    margin: 0;
+  }
+
+  // O <label> do campo de arquivo, com cara de botão; o foco vem do <input> (escondido) logo depois.
+  .botao-escolher {
+    gap: var(--espaco-2);
+    cursor: pointer;
+  }
+
+  input[type='file']:focus-visible + .botao-escolher,
+  .botao-escolher:has(+ input[type='file']:focus-visible) {
+    outline: 2px solid var(--cor-foco);
+    outline-offset: 2px;
+  }
+}
+
+.tabela-mapeamento {
+  .nome-coluna-arquivo {
+    font-weight: 600;
+  }
+
+  .exemplos-coluna {
+    max-width: 28rem;
+  }
+
+  .exemplo-coluna {
+    display: inline-block;
+    max-width: 12rem;
+    margin: 0 var(--espaco-1) var(--espaco-1) 0;
+    padding: 0 var(--espaco-2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+    font-size: var(--fonte-legenda);
+    background: var(--cor-superficie-alternativa);
+    border-radius: var(--raio-pequeno);
+  }
+
+  .select-destino {
+    width: 100%;
+    min-width: 16rem;
+  }
+
+  .select-ignorado .p-select-label {
+    color: var(--cor-texto-secundario);
+    font-style: italic;
+  }
+}
+
+.texto-secundario {
+  color: var(--cor-texto-secundario);
+}
+
+.campo-equipe-padrao {
+  max-width: 28rem;
+}
+
+.resumo-importacao {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--espaco-3);
+  margin-bottom: var(--espaco-4);
+}
+
+.cartao-resumo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espaco-1);
+  padding: var(--espaco-3) var(--espaco-4);
+  background: var(--cor-superficie-alternativa);
+  border: 1px solid var(--cor-borda);
+  border-left: 4px solid var(--cor-borda);
+  border-radius: var(--raio-medio);
+
+  .numero-resumo {
+    font-size: var(--fonte-titulo-pagina);
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .rotulo-resumo {
+    color: var(--cor-texto-secundario);
+  }
+
+  &.resumo-novos {
+    border-left-color: var(--cor-sucesso);
+  }
+
+  &.resumo-atualizacoes {
+    border-left-color: var(--cor-primaria);
+  }
+
+  &.resumo-erros.com-erros {
+    border-left-color: var(--cor-perigo);
+
+    .numero-resumo {
+      color: var(--cor-perigo);
+    }
+  }
+}
+
+.tabela-previa {
+  td,
+  th {
+    white-space: nowrap;
+  }
+
+  // As colunas do arquivo não encolhem: com muitas colunas, a tabela cresce pelo conteúdo e rola na horizontal (a sombra indica).
+  .p-datatable-table {
+    width: max-content;
+    min-width: 100%;
+  }
+
+  .coluna-previa {
+    min-width: 8rem;
+  }
+
+  .valor-celula-previa {
+    display: inline-block;
+    max-width: 16rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    vertical-align: middle;
+  }
+
+  // Célula com erro: fundo, borda e um ícone (não só a cor), com a mensagem na dica e para o leitor de tela.
+  td.celula-erro {
+    background: var(--cor-perigo-suave);
+    box-shadow: inset 0 0 0 1px var(--cor-perigo);
+    cursor: help;
+
+    .pi {
+      margin-right: var(--espaco-1);
+      color: var(--cor-perigo);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--cor-foco);
+      outline-offset: -2px;
+    }
+  }
+
+  .observacoes-linha {
+    white-space: normal;
+    min-width: 16rem;
+  }
+
+  .mensagem-linha {
+    display: block;
+    color: var(--cor-perigo);
+  }
+}
+
+.acoes-conclusao {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espaco-2);
+  margin-bottom: var(--espaco-4);
+}
+
+.cartao-importacao .acoes-formulario.acoes-fixas {
+  margin: var(--espaco-4) calc(-1 * var(--espaco-5)) 0;
+  padding: var(--espaco-3) var(--espaco-5);
+  border-radius: 0 0 var(--raio-medio) var(--raio-medio);
+}
+
+// "Importações anteriores".
+.tabela-importacoes {
+  .arquivo-importacao {
+    max-width: 20rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .coluna-acoes-importacao {
+    width: 6rem;
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+
+// Histórico do item: a origem "Importação" ao lado da operação (RN32, RN97).
+.origem-historico {
+  display: block;
+  margin-top: var(--espaco-1);
+  color: var(--cor-texto-secundario);
+}

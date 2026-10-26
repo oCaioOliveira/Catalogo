@@ -1,0 +1,115 @@
+@if (meta(); as meta) {
+  <app-cabecalho-pagina [trilha]="trilha()" [titulo]="titulo" [icone]="icone()" [subtitulo]="subtitulo()">
+    @if (podeImportar()) {
+      <p-button
+        acoes
+        label="Importar planilha"
+        icon="pi pi-upload"
+        [routerLink]="['/', grupo(), entidade(), 'importar']"
+      />
+    }
+  </app-cabecalho-pagina>
+
+  @if (erro()) {
+    <app-estado-erro mensagem="Não foi possível carregar as importações." (tentarDeNovo)="tentarDeNovo()" />
+  } @else {
+    <p-table
+      appSombraRolagem
+      dataKey="id"
+      styleClass="tabela-importacoes"
+      [size]="densidade.tamanhoTabela()"
+      [value]="pagina()?.itens ?? []"
+      [lazy]="true"
+      [lazyLoadOnInit]="false"
+      [paginator]="(pagina()?.total ?? 0) > (pagina()?.tamanho ?? 20)"
+      [rows]="pagina()?.tamanho ?? 20"
+      [first]="((pagina()?.pagina ?? 1) - 1) * (pagina()?.tamanho ?? 20)"
+      [totalRecords]="pagina()?.total ?? 0"
+      [scrollable]="true"
+      (onLazyLoad)="aoMudarPagina($event)"
+    >
+      <ng-template #header>
+        <tr>
+          <th scope="col">Data</th>
+          <th scope="col">Usuário</th>
+          <th scope="col">Arquivo</th>
+          <th scope="col">Resumo</th>
+          <th scope="col">Situação</th>
+          <th scope="col" class="coluna-acoes-importacao"><span class="sr-only">Ações</span></th>
+        </tr>
+      </ng-template>
+      <ng-template #body let-item>
+        <tr>
+          <td>{{ formatarDataHoraSistema(item.criadoEm) }}</td>
+          <td>{{ item.usuario.nome || item.usuario.matricula }}</td>
+          <td class="arquivo-importacao">{{ item.nomeArquivo }}</td>
+          <td>{{ textoTotais(item.totais) }}</td>
+          <td>
+            <p-tag
+              [value]="situacaoDaImportacao(item.situacao).rotulo"
+              [severity]="situacaoDaImportacao(item.situacao).severidade"
+            />
+          </td>
+          <td class="coluna-acoes-importacao">
+            <p-button
+              icon="pi pi-download"
+              severity="secondary"
+              [text]="true"
+              [ariaLabel]="'Baixar relatório de ' + item.nomeArquivo"
+              pTooltip="Baixar relatório"
+              tooltipPosition="left"
+              [disabled]="!item.arquivoDisponivel"
+              [loading]="emAndamento() === item.id"
+              (onClick)="baixarRelatorio(item)"
+            />
+            @if (item.podeDesfazer) {
+              <p-button
+                icon="pi pi-undo"
+                severity="danger"
+                [text]="true"
+                [ariaLabel]="'Desfazer a importação de ' + item.nomeArquivo"
+                pTooltip="Desfazer importação"
+                tooltipPosition="left"
+                [disabled]="emAndamento() === item.id"
+                (onClick)="desfazer(item)"
+              />
+            }
+          </td>
+        </tr>
+      </ng-template>
+      <ng-template #emptymessage>
+        @if (carregando()) {
+          @for (linha of linhasEsqueleto; track linha) {
+            <tr>
+              <td colspan="6"><p-skeleton height="1.5rem" /></td>
+            </tr>
+          }
+        } @else {
+          <tr>
+            <td colspan="6" class="celula-vazia">
+              <app-estado-vazio
+                icone="pi-history"
+                titulo="Nenhuma importação ainda"
+                texto="As planilhas importadas aparecem aqui, com o resultado e o relatório de cada uma."
+                [compacto]="true"
+              >
+                @if (podeImportar()) {
+                  <p-button
+                    label="Importar planilha"
+                    icon="pi pi-upload"
+                    [routerLink]="['/', grupo(), entidade(), 'importar']"
+                  />
+                }
+              </app-estado-vazio>
+            </td>
+          </tr>
+        }
+      </ng-template>
+    </p-table>
+  }
+} @else {
+  <div aria-busy="true" aria-label="Carregando">
+    <p-skeleton width="16rem" height="2rem" styleClass="mb-3" />
+    <p-skeleton height="18rem" />
+  </div>
+}

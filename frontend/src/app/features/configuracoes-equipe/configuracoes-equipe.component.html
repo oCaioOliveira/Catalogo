@@ -1,0 +1,203 @@
+<app-cabecalho-pagina
+  [trilha]="[{ rotulo: 'Configurações' }, { rotulo: 'Configurações da equipe' }]"
+  titulo="Configurações da equipe"
+  icone="pi-sliders-h"
+  subtitulo="Aprovação de itens e modelos de avaliação, por tipo de item e por equipe. Sem nada ligado, o sistema funciona como sempre."
+/>
+
+<div class="filtros-painel">
+  <div class="campo">
+    <label class="campo-rotulo" id="config-listagem-rotulo" for="config-listagem">Área de gestão</label>
+    <p-select
+      inputId="config-listagem"
+      ariaLabelledBy="config-listagem-rotulo"
+      optionLabel="nome"
+      optionValue="chave"
+      placeholder="Escolha a área de gestão"
+      appendTo="body"
+      [options]="listagens()"
+      [ngModel]="grupo()"
+      (onChange)="trocarArea($event.value)"
+    />
+  </div>
+  <div class="campo">
+    <label class="campo-rotulo" id="config-equipe-rotulo" for="config-equipe">Equipe</label>
+    <p-select
+      inputId="config-equipe"
+      ariaLabelledBy="config-equipe-rotulo"
+      optionLabel="nome"
+      optionValue="id"
+      placeholder="Escolha a equipe"
+      appendTo="body"
+      [options]="equipes()"
+      [ngModel]="equipeId()"
+      (onChange)="escolher($event.value, grupo())"
+    />
+  </div>
+</div>
+
+@if (semOpcoes()) {
+  <app-estado-vazio
+    icone="pi-users"
+    titulo="Nenhuma área de gestão tem equipes suas habilitadas"
+    texto="Quem habilita equipes numa área de gestão é o administrador."
+  />
+} @else if (erro()) {
+  <app-estado-erro mensagem="Não foi possível carregar as configurações desta equipe." (tentarDeNovo)="recarregar()" />
+} @else if (linhas(); as linhas) {
+  <p-table
+    styleClass="tabela-registros"
+    [value]="linhas"
+    [size]="densidade.tamanhoTabela()"
+    [tableStyle]="{ 'min-width': '40rem' }"
+  >
+    <ng-template #header>
+      <tr>
+        <th>Tipo de item</th>
+        <th>Aprovação</th>
+        <th>Avaliação</th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-linha>
+      <tr>
+        <td>{{ nomePlural(linha.entidade) }}</td>
+        <td>
+          <div class="celula-aprovacao">
+            <p-toggleswitch
+              [inputId]="'aprovacao-' + linha.entidade.chave"
+              [ngModel]="linha.aprovacao"
+              [disabled]="alterando() === linha.entidade.chave"
+              (onChange)="alternarAprovacao(linha, $event.checked)"
+            />
+            <label [for]="'aprovacao-' + linha.entidade.chave">
+              <span class="sr-only">Aprovação de {{ nomePlural(linha.entidade) }}: </span>
+              {{ linha.aprovacao ? 'Ligada' : 'Desligada' }}
+            </label>
+          </div>
+        </td>
+        <td>
+          <div class="celula-avaliacao">
+            @if (linha.ativo; as ativo) {
+              <p-tag value="Ativo" severity="success" />
+              <span>{{ ativo.nome }}</span>
+              <p-button
+                label="Editar"
+                icon="pi pi-pencil"
+                size="small"
+                severity="secondary"
+                [outlined]="true"
+                [ariaLabel]="'Editar o modelo de avaliação de ' + nomePlural(linha.entidade)"
+                [routerLink]="linkEditor(linha, false)"
+              />
+              <p-button
+                label="Desativar"
+                icon="pi pi-ban"
+                size="small"
+                severity="danger"
+                [text]="true"
+                [ariaLabel]="'Desativar o modelo de avaliação de ' + nomePlural(linha.entidade)"
+                [disabled]="alterando() === linha.entidade.chave"
+                (onClick)="alternarModelo(linha, false)"
+              />
+            } @else {
+              <p-tag [value]="linha.inativo ? 'Inativo' : 'Nenhum'" severity="secondary" />
+              @if (linha.inativo; as inativo) {
+                <span class="texto-secundario">{{ inativo.nome }}</span>
+                <p-button
+                  label="Reativar"
+                  icon="pi pi-check-circle"
+                  size="small"
+                  severity="secondary"
+                  [text]="true"
+                  [ariaLabel]="'Reativar o modelo de avaliação de ' + nomePlural(linha.entidade)"
+                  [disabled]="alterando() === linha.entidade.chave"
+                  (onClick)="alternarModelo(linha, true)"
+                />
+              }
+              <p-button
+                label="Criar modelo"
+                icon="pi pi-plus"
+                size="small"
+                severity="secondary"
+                [outlined]="true"
+                [ariaLabel]="'Criar um modelo de avaliação para ' + nomePlural(linha.entidade)"
+                [routerLink]="linkEditor(linha, true)"
+              />
+            }
+          </div>
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      <tr>
+        <td colspan="3" class="lista-vazia">Esta área de gestão não tem tipos de item por equipe.</td>
+      </tr>
+    </ng-template>
+  </p-table>
+} @else if (equipeId() && grupo()) {
+  <div aria-busy="true" aria-label="Carregando"><p-skeleton height="12rem" /></div>
+}
+
+<p-dialog
+  header="Ligar a aprovação"
+  [modal]="true"
+  [visible]="!!explicando()"
+  [draggable]="false"
+  [style]="{ width: 'min(40rem, 95vw)' }"
+  (visibleChange)="$event ? null : explicando.set(null)"
+>
+  @if (explicando(); as linha) {
+    <p>
+      Com a aprovação ligada em <strong>{{ nomePlural(linha.entidade) }}</strong> na equipe
+      <strong>{{ nomeEquipe() }}</strong
+      >:
+    </p>
+    <ul class="lista-explicacao">
+      <li>
+        <strong>Externos</strong> passam a cadastrar itens, que ficam <strong>pendentes</strong> até alguém decidir.
+        Eles só alteram os próprios itens pendentes ou rejeitados (e reenviam os rejeitados).
+      </li>
+      <li>
+        <strong>Gestores</strong> da equipe e <strong>administradores</strong> aprovam ou rejeitam, sempre com uma
+        justificativa, pela fila "Aprovações".
+      </li>
+      <li>
+        <strong>Internos</strong> continuam cadastrando como hoje: os itens deles já nascem aprovados. Itens pendentes
+        de outras pessoas não aparecem para os externos.
+      </li>
+      <li>Itens que já existem continuam <strong>aprovados</strong>.</li>
+    </ul>
+  }
+  <ng-template #footer>
+    <p-button label="Cancelar" severity="secondary" [text]="true" (onClick)="explicando.set(null)" />
+    <p-button label="Ligar a aprovação" icon="pi pi-check" (onClick)="confirmarLigar()" />
+  </ng-template>
+</p-dialog>
+
+<p-dialog
+  header="Ainda há itens pendentes"
+  [modal]="true"
+  [visible]="!!bloqueioPendentes()"
+  [draggable]="false"
+  [style]="{ width: 'min(36rem, 95vw)' }"
+  (visibleChange)="$event ? null : bloqueioPendentes.set(null)"
+>
+  @if (bloqueioPendentes(); as b) {
+    <p-message severity="warn" styleClass="mb-3">{{ b.mensagem }}</p-message>
+    <p>
+      Decida {{ b.quantidade === 1 ? 'o item pendente' : 'os ' + b.quantidade + ' itens pendentes' }} antes de desligar
+      a aprovação.
+    </p>
+    <p>
+      <a
+        routerLink="/aprovacoes"
+        [queryParams]="{ grupo: grupo(), entidade: b.linha.entidade.chave, equipeId: equipeId() }"
+        (click)="bloqueioPendentes.set(null)"
+        >Abrir a fila de aprovação, já filtrada</a
+      >
+    </p>
+  }
+  <ng-template #footer>
+    <p-button label="Fechar" severity="secondary" (onClick)="bloqueioPendentes.set(null)" />
+  </ng-template>
+</p-dialog>

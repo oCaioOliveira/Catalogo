@@ -1,0 +1,58 @@
+<main class="pagina-acesso pagina-login">
+  <div class="tema-acesso"><app-botao-tema /></div>
+  <section class="apresentacao-acesso" aria-label="Sobre o Catálogo">
+    <app-logo-marca [altura]="44" />
+    <p class="nome-sistema">Catálogo</p>
+    <p class="frase-sistema">
+      Os cadastros das suas equipes num lugar só: testes, projetos e o que mais a sua área de gestão acompanhar, com
+      aprovação, avaliação e painel.
+    </p>
+  </section>
+  <section class="cartao-acesso" aria-labelledby="titulo-login">
+    <h1 id="titulo-login">Entrar</h1>
+    <p class="texto-secundario">Use a sua matrícula e a sua senha.</p>
+
+    @if (erro()) {
+      <p-message severity="error" styleClass="mb-3" role="alert">{{ erro() }}</p-message>
+    }
+
+    <form [formGroup]="formulario" (ngSubmit)="entrar()" novalidate>
+      <div class="campo">
+        <label for="matricula" class="campo-rotulo">Matrícula</label>
+        <input
+          pInputText
+          id="matricula"
+          appFocoInicial
+          formControlName="matricula"
+          autocomplete="username"
+          class="w-full"
+          [attr.aria-invalid]="invalido('matricula')"
+          [attr.aria-describedby]="invalido('matricula') ? 'matricula-erro' : null"
+        />
+        @if (invalido('matricula')) {
+          <ul class="campo-erros" id="matricula-erro">
+            <li>Informe a matrícula.</li>
+          </ul>
+        }
+      </div>
+      <div class="campo">
+        <label for="senha" class="campo-rotulo">Senha</label>
+        <p-password
+          inputId="senha"
+          formControlName="senha"
+          autocomplete="current-password"
+          [feedback]="false"
+          [toggleMask]="true"
+          [fluid]="true"
+          [invalid]="invalido('senha')"
+        />
+        @if (invalido('senha')) {
+          <ul class="campo-erros" id="senha-erro">
+            <li>Informe a senha.</li>
+          </ul>
+        }
+      </div>
+      <p-button type="submit" label="Entrar" icon="pi pi-sign-in" styleClass="w-full" [loading]="entrando()" />
+    </form>
+  </section>
+</main>

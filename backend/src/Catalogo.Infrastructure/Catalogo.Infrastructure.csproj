@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" />
+    <!-- Exportação em XLSX (Exportacao/GeradorXlsx). -->
+    <PackageReference Include="ClosedXML" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Catalogo.Application\Catalogo.Application.csproj" />
+    <ProjectReference Include="..\Catalogo.Domain\Catalogo.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- O teste que confere o SQL gerado pela agregação do painel (ToQueryString, docs/adr/0031). -->
+    <InternalsVisibleTo Include="Catalogo.Api.IntegrationTests" />
+  </ItemGroup>
+</Project>

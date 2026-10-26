@@ -1,0 +1,308 @@
+<app-cabecalho-pagina
+  [trilha]="[
+    { rotulo: contexto.nomeGrupo(), link: ['/', grupo()] },
+    { rotulo: 'Painel', link: ['/painel', grupo()], parametros: parametrosPainel() },
+    { rotulo: 'Análise personalizada' },
+  ]"
+  titulo="Análise personalizada"
+  icone="pi-sliders-h"
+  subtitulo="Monte um gráfico escolhendo o tipo de item, as dimensões e as métricas. O link reproduz a análise."
+>
+  <p-button
+    acoes
+    label="Copiar configuração"
+    icon="pi pi-copy"
+    severity="secondary"
+    [outlined]="true"
+    [disabled]="!entidade()"
+    (onClick)="copiarConfiguracao()"
+  />
+</app-cabecalho-pagina>
+
+<app-filtros-painel [estado]="estado().painel" [opcoesEquipe]="contexto.opcoesEquipe()" (mudou)="mudarPainel($event)" />
+
+@if (contexto.erro()) {
+  <app-estado-erro
+    mensagem="Não foi possível carregar os tipos de item desta área de gestão."
+    (tentarDeNovo)="recarregarContexto()"
+  />
+} @else {
+  <div class="layout-analise">
+    <form class="painel-analise" aria-label="Configuração da análise" (submit)="$event.preventDefault()">
+      <div class="campo">
+        <label class="campo-rotulo" for="analise-entidade" id="analise-entidade-rotulo">Tipo de item</label>
+        <p-select
+          inputId="analise-entidade"
+          ariaLabelledBy="analise-entidade-rotulo"
+          name="entidade"
+          optionLabel="rotulo"
+          optionValue="valor"
+          placeholder="Escolha o tipo de item"
+          appendTo="body"
+          [fluid]="true"
+          [options]="opcoesEntidade()"
+          [ngModel]="configuracao().entidade || null"
+          (ngModelChange)="escolherEntidade($event)"
+        />
+      </div>
+
+      @if (entidade()) {
+        <fieldset class="grupo-controles">
+          <legend>Dimensões (até 2)</legend>
+          @for (dimensao of configuracao().agruparPor; track $index; let i = $index) {
+            <div class="linha-controle">
+              <div class="campo">
+                <label class="campo-rotulo" [for]="'analise-dimensao-' + i" [id]="'analise-dimensao-' + i + '-rotulo'"
+                  >Dimensão {{ i + 1 }}</label
+                >
+                <p-select
+                  optionLabel="rotulo"
+                  optionValue="valor"
+                  appendTo="body"
+                  [filter]="true"
+                  [fluid]="true"
+                  [inputId]="'analise-dimensao-' + i"
+                  [ariaLabelledBy]="'analise-dimensao-' + i + '-rotulo'"
+                  [name]="'dimensao-' + i"
+                  [options]="opcoesDimensao()"
+                  [ngModel]="partesDaDimensao(dimensao).campo"
+                  (ngModelChange)="mudarDimensao(i, $event, partesDaDimensao(dimensao).periodo)"
+                />
+              </div>
+              @if (ehDimensaoDeData(partesDaDimensao(dimensao).campo)) {
+                <div class="campo campo-estreito">
+                  <label class="campo-rotulo" [for]="'analise-periodo-' + i" [id]="'analise-periodo-' + i + '-rotulo'"
+                    >Agrupar por</label
+                  >
+                  <p-select
+                    optionLabel="rotulo"
+                    optionValue="valor"
+                    appendTo="body"
+                    [fluid]="true"
+                    [inputId]="'analise-periodo-' + i"
+                    [ariaLabelledBy]="'analise-periodo-' + i + '-rotulo'"
+                    [name]="'periodo-' + i"
+                    [options]="periodos"
+                    [ngModel]="partesDaDimensao(dimensao).periodo"
+                    (ngModelChange)="mudarDimensao(i, partesDaDimensao(dimensao).campo, $event)"
+                  />
+                </div>
+              }
+              <p-button
+                icon="pi pi-times"
+                severity="secondary"
+                [text]="true"
+                [ariaLabel]="'Remover a dimensão ' + (i + 1)"
+                (onClick)="removerDimensao(i)"
+              />
+            </div>
+          }
+          @if (configuracao().agruparPor.length < 2) {
+            <p-button
+              label="Adicionar dimensão"
+              icon="pi pi-plus"
+              size="small"
+              severity="secondary"
+              [text]="true"
+              (onClick)="adicionarDimensao()"
+            />
+          }
+          @if (errosDimensoes().length > 0) {
+            <ul class="campo-erros" role="alert">
+              @for (erro of errosDimensoes(); track $index) {
+                <li>{{ erro }}</li>
+              }
+            </ul>
+          }
+        </fieldset>
+
+        <fieldset class="grupo-controles">
+          <legend>Métricas (até 5)</legend>
+          @for (metrica of metricasNaTela(); track $index; let i = $index) {
+            <div class="linha-controle">
+              <div class="campo">
+                <label class="campo-rotulo" [for]="'analise-metrica-' + i" [id]="'analise-metrica-' + i + '-rotulo'"
+                  >Métrica {{ i + 1 }}</label
+                >
+                <p-select
+                  optionLabel="rotulo"
+                  optionValue="valor"
+                  appendTo="body"
+                  [filter]="true"
+                  [fluid]="true"
+                  [inputId]="'analise-metrica-' + i"
+                  [ariaLabelledBy]="'analise-metrica-' + i + '-rotulo'"
+                  [name]="'metrica-' + i"
+                  [options]="opcoesMetrica()"
+                  [ngModel]="metrica"
+                  (ngModelChange)="mudarMetrica(i, $event)"
+                />
+              </div>
+              @if (metricasNaTela().length > 1) {
+                <p-button
+                  icon="pi pi-times"
+                  severity="secondary"
+                  [text]="true"
+                  [ariaLabel]="'Remover a métrica ' + (i + 1)"
+                  (onClick)="removerMetrica(i)"
+                />
+              }
+            </div>
+          }
+          @if (metricasNaTela().length < 5) {
+            <p-button
+              label="Adicionar métrica"
+              icon="pi pi-plus"
+              size="small"
+              severity="secondary"
+              [text]="true"
+              (onClick)="adicionarMetrica()"
+            />
+          }
+          @if (errosMetricas().length > 0) {
+            <ul class="campo-erros" role="alert">
+              @for (erro of errosMetricas(); track $index) {
+                <li>{{ erro }}</li>
+              }
+            </ul>
+          }
+        </fieldset>
+
+        <div class="campo">
+          <label class="campo-rotulo" for="analise-campo-periodo" id="analise-campo-periodo-rotulo"
+            >O período do painel vale para</label
+          >
+          <p-select
+            inputId="analise-campo-periodo"
+            ariaLabelledBy="analise-campo-periodo-rotulo"
+            name="campoPeriodo"
+            optionLabel="rotulo"
+            optionValue="valor"
+            appendTo="body"
+            [fluid]="true"
+            [options]="opcoesPeriodo()"
+            [ngModel]="configuracao().campoPeriodo"
+            (ngModelChange)="mudarCampoPeriodo($event)"
+          />
+          @if (errosPeriodo().length > 0) {
+            <ul class="campo-erros" role="alert">
+              @for (erro of errosPeriodo(); track $index) {
+                <li>{{ erro }}</li>
+              }
+            </ul>
+          }
+        </div>
+
+        <div class="campo">
+          <label class="campo-rotulo" for="analise-visualizacao" id="analise-visualizacao-rotulo">Visualização</label>
+          <p-select
+            inputId="analise-visualizacao"
+            ariaLabelledBy="analise-visualizacao-rotulo"
+            name="visualizacao"
+            optionLabel="rotulo"
+            optionValue="valor"
+            appendTo="body"
+            [fluid]="true"
+            [options]="opcoesVisualizacao()"
+            [ngModel]="configuracao().visualizacao"
+            (ngModelChange)="mudarVisualizacao($event)"
+          />
+        </div>
+
+        <div class="linha-controle">
+          <div class="campo">
+            <label class="campo-rotulo" for="analise-ordenacao" id="analise-ordenacao-rotulo">Ordenar por</label>
+            <p-select
+              inputId="analise-ordenacao"
+              ariaLabelledBy="analise-ordenacao-rotulo"
+              name="ordenarPor"
+              optionLabel="rotulo"
+              optionValue="valor"
+              appendTo="body"
+              [fluid]="true"
+              [options]="opcoesOrdenacao()"
+              [ngModel]="configuracao().ordenarPor ?? ''"
+              (ngModelChange)="mudarOrdenacao($event)"
+            />
+          </div>
+          <div class="campo campo-estreito">
+            <label class="campo-rotulo" for="analise-limite">Limite de linhas</label>
+            <p-inputnumber
+              inputId="analise-limite"
+              name="limite"
+              placeholder="100"
+              [min]="1"
+              [max]="500"
+              [fluid]="true"
+              [ngModel]="configuracao().limite ?? null"
+              (onBlur)="mudarLimite($any($event.target).value ? +$any($event.target).value : null)"
+            />
+          </div>
+        </div>
+        @if (errosOrdenacao().length > 0) {
+          <ul class="campo-erros" role="alert">
+            @for (erro of errosOrdenacao(); track $index) {
+              <li>{{ erro }}</li>
+            }
+          </ul>
+        }
+
+        <fieldset class="grupo-controles">
+          <legend>Filtros</legend>
+          <div class="campo">
+            <label class="campo-rotulo" for="analise-filtrar-por" id="analise-filtrar-por-rotulo">Filtrar por</label>
+            <p-multiselect
+              inputId="analise-filtrar-por"
+              ariaLabelledBy="analise-filtrar-por-rotulo"
+              name="filtrarPor"
+              optionLabel="rotulo"
+              optionValue="caminho"
+              placeholder="Escolha os campos"
+              appendTo="body"
+              [filter]="true"
+              [fluid]="true"
+              [options]="camposFiltro()"
+              [ngModel]="camposComFiltro()"
+              (ngModelChange)="camposComFiltro.set($event)"
+            />
+          </div>
+          @if (errosFiltros().length > 0) {
+            <ul class="campo-erros" role="alert">
+              @for (erro of errosFiltros(); track $index) {
+                <li>{{ erro }}</li>
+              }
+            </ul>
+          }
+        </fieldset>
+      }
+    </form>
+
+    <div class="resultado-analise">
+      @if (entidade()) {
+        @if (filtrosDisponiveis().length > 0) {
+          <app-filtros-registros
+            [grupo]="grupo()"
+            [entidade]="entidade()!"
+            [filtrosDisponiveis]="filtrosDisponiveis()"
+            [valores]="valoresFiltros()"
+            (aplicar)="aplicarFiltros($event)"
+          />
+        }
+        <app-widget
+          [grupo]="grupo()"
+          [configuracao]="configuracao()"
+          [estadoPainel]="estado().painel"
+          [entidades]="entidades()"
+          (errosApi)="errosApi.set($event)"
+        />
+      } @else {
+        <app-estado-vazio
+          icone="pi-chart-bar"
+          titulo="Escolha o tipo de item para começar"
+          texto="Depois, as dimensões (como agrupar) e as métricas (o que medir). O gráfico aparece aqui."
+          [compacto]="true"
+        />
+      }
+    </div>
+  </div>
+}

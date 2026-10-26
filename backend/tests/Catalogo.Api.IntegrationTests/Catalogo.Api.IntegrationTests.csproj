@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <!-- "Cofre" local do user-secrets com a connection string do banco de TESTES. -->
+    <UserSecretsId>catalogo-testes-7d2a9f4e-1b3c-4e5f-8a6d-9c0b1e2f3a4d</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <!-- Lê o XLSX gerado pela exportação. -->
+    <PackageReference Include="ClosedXML" />
+    <PackageReference Include="Respawn" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Catalogo.Api\Catalogo.Api.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

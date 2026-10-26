@@ -1,0 +1,187 @@
+<app-cabecalho-pagina
+  [trilha]="[{ rotulo: 'Configurações' }, { rotulo: 'Usuários' }]"
+  titulo="Usuários"
+  icone="pi-user"
+  subtitulo="Quem acessa o sistema, com o perfil e as equipes de cada um."
+>
+  <p-button acoes label="Novo usuário" icon="pi pi-plus" routerLink="novo" />
+</app-cabecalho-pagina>
+
+<form class="painel-filtros filtros-administracao" aria-label="Filtros de usuários" (ngSubmit)="pesquisar()">
+  <div class="campo campo-busca">
+    <label class="campo-rotulo" for="usuarios-busca">Matrícula ou nome</label>
+    <input
+      pInputText
+      id="usuarios-busca"
+      name="busca"
+      type="search"
+      placeholder="Digite e tecle Enter"
+      [(ngModel)]="busca"
+    />
+  </div>
+  <div class="campo">
+    <label class="campo-rotulo" for="usuarios-perfil" id="usuarios-perfil-rotulo">Perfil</label>
+    <p-select
+      inputId="usuarios-perfil"
+      ariaLabelledBy="usuarios-perfil-rotulo"
+      name="perfil"
+      placeholder="Todos"
+      optionLabel="rotulo"
+      optionValue="valor"
+      appendTo="body"
+      [showClear]="true"
+      [options]="opcoesPerfil"
+      [ngModel]="filtros().perfil"
+      (ngModelChange)="filtrar({ perfil: $event ?? null })"
+    />
+  </div>
+  <div class="campo">
+    <label class="campo-rotulo" for="usuarios-equipe" id="usuarios-equipe-rotulo">Equipe</label>
+    <p-select
+      inputId="usuarios-equipe"
+      ariaLabelledBy="usuarios-equipe-rotulo"
+      name="equipe"
+      placeholder="Todas"
+      optionLabel="rotulo"
+      optionValue="valor"
+      appendTo="body"
+      [filter]="true"
+      [showClear]="true"
+      [options]="opcoesEquipe()"
+      [ngModel]="filtros().equipeId"
+      (ngModelChange)="filtrar({ equipeId: $event ?? null })"
+    />
+  </div>
+  <div class="campo">
+    <label class="campo-rotulo" for="usuarios-situacao" id="usuarios-situacao-rotulo">Situação</label>
+    <p-select
+      inputId="usuarios-situacao"
+      ariaLabelledBy="usuarios-situacao-rotulo"
+      name="situacao"
+      placeholder="Todos"
+      optionLabel="rotulo"
+      optionValue="valor"
+      appendTo="body"
+      [showClear]="true"
+      [options]="opcoesSituacao"
+      [ngModel]="filtros().ativo"
+      (ngModelChange)="filtrar({ ativo: $event ?? null })"
+    />
+  </div>
+  <div class="acoes-filtros">
+    @if (temFiltros()) {
+      <p-button
+        type="button"
+        label="Limpar filtros"
+        icon="pi pi-filter-slash"
+        severity="secondary"
+        [text]="true"
+        (onClick)="limpar()"
+      />
+    }
+    <p-button type="submit" label="Pesquisar" icon="pi pi-search" [outlined]="true" />
+  </div>
+</form>
+
+<div class="barra-tabela">
+  <div class="barra-tabela-inicio">
+    @if (resultado(); as r) {
+      <span class="total-tabela" aria-live="polite">{{ r.total === 1 ? '1 usuário' : r.total + ' usuários' }}</span>
+    }
+  </div>
+  <div class="barra-tabela-fim">
+    <app-alternar-densidade />
+  </div>
+</div>
+
+@if (erro()) {
+  <app-estado-erro mensagem="Não foi possível carregar os usuários." (tentarDeNovo)="tentarDeNovo()" />
+} @else {
+  <p-table
+    appSombraRolagem
+    dataKey="id"
+    styleClass="tabela-larga"
+    [scrollable]="true"
+    [size]="densidade.tamanhoTabela()"
+    [value]="resultado()?.itens ?? []"
+    [lazy]="true"
+    [lazyLoadOnInit]="false"
+    [paginator]="(resultado()?.total ?? 0) > 0"
+    [rows]="filtros().tamanho"
+    [first]="(filtros().pagina - 1) * filtros().tamanho"
+    [totalRecords]="resultado()?.total ?? 0"
+    [rowsPerPageOptions]="opcoesTamanho"
+    [showCurrentPageReport]="true"
+    currentPageReportTemplate="{first} a {last} de {totalRecords}"
+    [sortField]="ordenacao().campo"
+    [sortOrder]="ordenacao().ordem"
+    (onLazyLoad)="aoMudarTabela($event)"
+  >
+    <ng-template #header>
+      <tr>
+        <th pSortableColumn="matricula" pFrozenColumn style="width: 11rem">
+          Matrícula <p-sortIcon field="matricula" />
+        </th>
+        <th pSortableColumn="nome" style="width: 15rem">Nome <p-sortIcon field="nome" /></th>
+        <th style="width: 10rem">Perfil</th>
+        <th style="width: 15rem">Equipes</th>
+        <th style="width: 10rem">Situação</th>
+        <th pSortableColumn="ultimoAcessoEm" style="width: 10rem">
+          Último acesso <p-sortIcon field="ultimoAcessoEm" />
+        </th>
+        <th class="coluna-acoes" pFrozenColumn alignFrozen="right"><span class="sr-only">Ações</span></th>
+      </tr>
+    </ng-template>
+    <ng-template #body let-usuario>
+      <tr class="linha-clicavel" (click)="abrir(usuario, $event)">
+        <td pFrozenColumn class="coluna-principal">
+          <a class="link-linha" [routerLink]="[usuario.id]">{{ usuario.matricula }}</a>
+        </td>
+        <td>
+          <span class="valor-tabela" [attr.title]="usuario.nome">{{ usuario.nome }}</span>
+        </td>
+        <td><p-tag [value]="nomePerfil(usuario)" [severity]="severidadePerfil(usuario.perfil)" /></td>
+        <td>
+          <span class="valor-tabela" [attr.title]="textoEquipes(usuario)">{{ textoEquipes(usuario) }}</span>
+        </td>
+        <td>
+          @if (situacao(usuario); as s) {
+            <p-tag [value]="s.rotulo" [severity]="s.severidade" />
+          }
+        </td>
+        <td>
+          @if (usuario.ultimoAcessoEm) {
+            <app-data-relativa [data]="usuario.ultimoAcessoEm" />
+          } @else {
+            Nunca
+          }
+        </td>
+        <td class="coluna-acoes" pFrozenColumn alignFrozen="right">
+          <app-menu-acoes-linha [acoes]="acoesPorLinha().get(usuario.id) ?? []" [rotulo]="usuario.matricula" />
+        </td>
+      </tr>
+    </ng-template>
+    <ng-template #emptymessage>
+      @if (carregando()) {
+        @for (linha of linhasEsqueleto; track linha) {
+          <tr>
+            <td colspan="7"><p-skeleton height="1.5rem" /></td>
+          </tr>
+        }
+      } @else {
+        <tr>
+          <td colspan="7" class="celula-vazia">
+            <app-estado-vazio
+              icone="pi-user"
+              titulo="Nenhum usuário encontrado"
+              [texto]="temFiltros() ? 'Mude ou limpe os filtros para ver mais usuários.' : null"
+              [compacto]="true"
+            />
+          </td>
+        </tr>
+      }
+    </ng-template>
+  </p-table>
+}
+
+<app-senha-provisoria-dialog />

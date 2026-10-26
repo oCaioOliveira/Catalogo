@@ -1,0 +1,3 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- O Domain NÃO tem PackageReference nem referência a outros projetos (ver AGENTS.md desta pasta). -->
+</Project>

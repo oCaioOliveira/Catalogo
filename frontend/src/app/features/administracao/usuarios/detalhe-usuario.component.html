@@ -1,0 +1,105 @@
+@if (usuario(); as usuario) {
+  <app-cabecalho-pagina
+    [trilha]="[
+      { rotulo: 'Configurações' },
+      { rotulo: 'Usuários', link: '/configuracoes/usuarios' },
+      { rotulo: usuario.nome },
+    ]"
+    [titulo]="usuario.nome"
+    icone="pi-user"
+    [subtitulo]="'Matrícula ' + usuario.matricula"
+  >
+    <p-button
+      acoes
+      label="Redefinir senha"
+      icon="pi pi-key"
+      severity="secondary"
+      [outlined]="true"
+      (onClick)="redefinirSenha()"
+    />
+    <p-button
+      acoes
+      [label]="usuario.ativo ? 'Desativar usuário' : 'Ativar usuário'"
+      [icon]="usuario.ativo ? 'pi pi-ban' : 'pi pi-check-circle'"
+      [severity]="usuario.ativo ? 'danger' : 'secondary'"
+      [outlined]="true"
+      (onClick)="alterarAtivacao()"
+    />
+    <p-button acoes label="Editar" icon="pi pi-pencil" [routerLink]="['editar']" />
+  </app-cabecalho-pagina>
+
+  <p-tabs value="dados">
+    <p-tablist>
+      <p-tab value="dados">Dados</p-tab>
+      <p-tab value="historico">Histórico</p-tab>
+    </p-tablist>
+    <p-tabpanels>
+      <p-tabpanel value="dados">
+        <dl class="grade-leitura">
+          <div>
+            <dt>Matrícula</dt>
+            <dd>{{ usuario.matricula }}</dd>
+          </div>
+          <div>
+            <dt>Nome</dt>
+            <dd>{{ usuario.nome }}</dd>
+          </div>
+          <div>
+            <dt>Perfil</dt>
+            <dd>
+              <p-tag [value]="nomesPerfil[usuario.perfil]" [severity]="severidadePerfil(usuario.perfil)" />
+              <span class="texto-secundario"> {{ descricoesPerfil[usuario.perfil] }}</span>
+            </dd>
+          </div>
+          <div>
+            <dt>Situação</dt>
+            <dd>
+              @if (situacao(); as s) {
+                <p-tag [value]="s.rotulo" [severity]="s.severidade" />
+              }
+              @if (usuario.deveTrocarSenha) {
+                <span class="texto-secundario"> Precisa trocar a senha no próximo acesso.</span>
+              }
+            </dd>
+          </div>
+          <div>
+            <dt>Último acesso</dt>
+            <dd>{{ formatarDataHoraSistema(usuario.ultimoAcessoEm) || 'Nunca' }}</dd>
+          </div>
+          <div>
+            <dt>Criado em</dt>
+            <dd>{{ formatarDataHoraSistema(usuario.criadoEm) }}</dd>
+          </div>
+          <div class="campo-largo">
+            <dt>Equipes</dt>
+            <dd>
+              @if (usuario.perfil === 'ADMINISTRADOR') {
+                Todas as equipes
+              } @else {
+                <ul class="lista-links">
+                  @for (equipe of usuario.equipes; track equipe.id) {
+                    <li>
+                      <a [routerLink]="['/configuracoes/equipes', equipe.id]">{{ equipe.nome }}</a>
+                      @if (!equipe.ativa) {
+                        <span class="texto-secundario"> (inativa)</span>
+                      }
+                    </li>
+                  } @empty {
+                    <li class="texto-secundario">Nenhuma equipe.</li>
+                  }
+                </ul>
+              }
+            </dd>
+          </div>
+        </dl>
+      </p-tabpanel>
+      <p-tabpanel value="historico">
+        <app-historico [carregar]="carregarHistorico()" [nomeCampo]="nomeCampo" [valor]="valor" />
+      </p-tabpanel>
+    </p-tabpanels>
+  </p-tabs>
+} @else {
+  <p-skeleton height="12rem" />
+}
+
+<app-senha-provisoria-dialog />

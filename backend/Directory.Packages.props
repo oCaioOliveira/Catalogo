@@ -1,0 +1,30 @@
+<Project>
+  <!--
+    Central Package Management: as versões de TODOS os pacotes ficam só aqui.
+    Nos .csproj use <PackageReference Include="Nome" /> sem Version.
+
+    Pacotes PROIBIDOS (o teste PacotesTests falha se aparecerem):
+    MediatR, AutoMapper, MassTransit, FluentAssertions 8 ou superior (docs/adr/0004) e Dapper (docs/adr/0011).
+  -->
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+  <ItemGroup Label="Aplicação">
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.32" />
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="8.0.32" />
+    <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.3.1" />
+    <!-- Só o PasswordHasher (PBKDF2), sem o ASP.NET Core Identity completo (docs/adr/0016). -->
+    <PackageVersion Include="Microsoft.Extensions.Identity.Core" Version="8.0.32" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.32" />
+    <!-- Exportação em XLSX (licença MIT). Só a Infrastructure usa; os testes de integração leem o arquivo gerado. -->
+    <PackageVersion Include="ClosedXML" Version="0.105.1" />
+  </ItemGroup>
+  <ItemGroup Label="Testes">
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="NetArchTest.Rules" Version="1.3.2" />
+    <PackageVersion Include="Respawn" Version="7.0.0" />
+    <PackageVersion Include="Microsoft.AspNetCore.Mvc.Testing" Version="8.0.32" />
+  </ItemGroup>
+</Project>
