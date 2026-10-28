@@ -31,7 +31,7 @@ public sealed class OutroSistemaNoMesmoBancoTests(BancoDeTestesFixture banco) : 
         IF OBJECT_ID(N'dbo.Usuario', N'U') IS NOT NULL DROP TABLE dbo.Usuario;
         """;
 
-    [Fact]
+    [FactComAdministradorDeTestes]
     public async Task TabelasDeMesmoNomeEmDbo_CatalogoFuncionaSemLerNemAlterarElas()
     {
         await using var administrador = new SqlConnection(Banco.ConnectionStringAdministrador);
@@ -62,7 +62,7 @@ public sealed class OutroSistemaNoMesmoBancoTests(BancoDeTestesFixture banco) : 
             await aplicacao.OpenAsync();
             var negado = await Assert.ThrowsAsync<SqlException>(() => Executar(aplicacao, "SELECT COUNT(*) FROM dbo.Usuario;"));
             Assert.Equal(229, negado.Number); // permissão negada (SELECT)
-            await Executar(aplicacao, $"SELECT COUNT(*) FROM {SchemaBanco.Nome}.Usuario;");
+            await Executar(aplicacao, $"SELECT COUNT(*) FROM {Banco.Tabela("Usuario")};");
         }
         finally
         {

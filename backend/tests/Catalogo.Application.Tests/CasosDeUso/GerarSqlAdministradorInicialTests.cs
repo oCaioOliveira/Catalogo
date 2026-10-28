@@ -18,11 +18,11 @@ public class GerarSqlAdministradorInicialTests
         Assert.DoesNotContain("'SenhaForte123'", script);
         Assert.Contains("N'C123456', N'Fulano', N'hash:SenhaForte123',\n", script.ReplaceLineEndings("\n"));
         Assert.Contains("N'ADMINISTRADOR', 1, 1);", script);   // ativo e DeveTrocarSenha
-        Assert.Contains("INSERT catalogo.HistoricoAlteracao", script);
+        Assert.Contains("INSERT cat.CATTB015_HISTORICO_ALTERACAO", script);
         Assert.Contains("N'USUARIO'", script);
         Assert.Contains("N'CRIACAO'", script);
         Assert.Contains("\"equipes\":[]", script);
-        Assert.Contains("WHERE Matricula = N'C123456'", script);
+        Assert.Contains("WHERE CO_MATRICULA = N'C123456'", script);
         Assert.Contains("SET NOEXEC ON", script);
         Assert.DoesNotContain("$(", script);
     }

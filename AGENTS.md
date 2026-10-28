@@ -19,7 +19,7 @@ Este repositório tem a **API** e o **banco**. A aplicação web (Angular 20 + P
 | Pasta | O que tem | Leia antes de mexer |
 |---|---|---|
 | [`backend/`](backend/) | API .NET 8 (Clean Architecture enxuta) e os seus testes. O contrato da API fica em `backend/openapi/v1.json` | [`backend/AGENTS.md`](backend/AGENTS.md) e o AGENTS.md do projeto em `backend/src/` ou `backend/tests/` |
-| [`database/`](database/) | scripts versionados do schema (`V00x`), SQL Server local em Docker, **pacotes de entrega para os DBAs** (`entrega/`) e o gerador de carga de áreas (`ferramentas/`). Tudo no schema **`catalogo`** ([ADR 0049](docs/adr/0049-schema-catalogo-e-pacotes-de-entrega.md)) | [`database/AGENTS.md`](database/AGENTS.md) |
+| [`database/`](database/) | scripts versionados do schema (`V00x`), SQL Server local em Docker, **pacotes de entrega para os DBAs** (`entrega/`) e o gerador de carga de áreas (`ferramentas/`). Tudo no schema **`cat`**, com os nomes do padrão da CAIXA (`CATTB0xx`, [ADR 0052](docs/adr/0052-padrao-de-nomes-caixa-e-sql-server-2014.md)) | [`database/AGENTS.md`](database/AGENTS.md) |
 | [`docs/`](docs/) | o que vale para a API e para o front: arquitetura, modelo de dados, segurança, regras (RNxx), áreas de gestão, ADRs e a **fonte** do [glossário](docs/glossario.md) | [`docs/arquitetura.md`](docs/arquitetura.md) |
 | [`docs/api/`](docs/api/) | guia para quem **consome** a API (front-end): autenticação, paginação, registros, exportação e códigos de erro. Contrato em `backend/openapi/v1.json` | [`docs/api/README.md`](docs/api/README.md) |
 
@@ -36,7 +36,7 @@ contrato (`openapi/v1.json`).
    A numeração é **única** com o repositório do front-end: veja o último número nos dois antes de criar um.
 3. **Áreas de gestão (metadados) são criadas e alteradas pela interface** (Configurações → Áreas de gestão, guia
    `docs/guias/criar-uma-listagem.md` no repositório do front-end) ou pela API, pelo administrador
-   ([`docs/api/administracao-de-metadados.md`](docs/api/administracao-de-metadados.md)); **o schema do banco só muda por script** em `database/scripts/` ([ADR 0003](docs/adr/0003-schema-por-scripts-sql.md)), sempre no schema `catalogo`, e chega à produção como um **pacote de entrega** para os DBAs (`database/entrega/`, [ADR 0049](docs/adr/0049-schema-catalogo-e-pacotes-de-entrega.md)).
+   ([`docs/api/administracao-de-metadados.md`](docs/api/administracao-de-metadados.md)); **o schema do banco só muda por script** em `database/scripts/` ([ADR 0003](docs/adr/0003-schema-por-scripts-sql.md)), sempre no schema `cat` com os nomes do padrão da CAIXA ([ADR 0052](docs/adr/0052-padrao-de-nomes-caixa-e-sql-server-2014.md)), e chega à produção como um **pacote de entrega** para os DBAs (`database/entrega/`, [ADR 0049](docs/adr/0049-schema-catalogo-e-pacotes-de-entrega.md)).
    Uma área de gestão nova só aparece para as equipes que o administrador habilitar nela (RN90 a RN93, [ADR 0046](docs/adr/0046-listagens-habilitadas-por-equipe.md)).
 4. **Nunca coloque segredos em arquivos versionados**: senhas e connection strings ficam em
    user-secrets, em `database/.env` (fora do git) ou em variáveis de ambiente nos servidores.

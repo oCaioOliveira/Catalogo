@@ -4,7 +4,22 @@ Complementa o [`AGENTS.md` da raiz](../AGENTS.md). O passo a passo do Docker loc
 conectar) está em [`database/README.md`](README.md). A decisão está em
 [`docs/adr/0003`](../docs/adr/0003-schema-por-scripts-sql.md).
 
-## Schema `catalogo` (V012)
+## Padrão de nomes da CAIXA: schema `cat` (V013, [ADR 0052](../docs/adr/0052-padrao-de-nomes-caixa-e-sql-server-2014.md))
+
+- **Desde o V013, todos os objetos ficam no schema `cat`, com os nomes do padrão da CAIXA**: tabelas `CATTB001_GRUPO` a
+  `CATTB023_VERSAO_SCHEMA` e colunas com prefixo de tipo (`NU_`, `CO_`, `NO_`, `DE_`, `DH_`/`DT_`, `IC_`, `VR_`). O de-para completo
+  está no `V013__padrao_caixa.sql` e, no código, em `NomesBanco` (Infrastructure); o teste `NomesBancoTests` exige que sejam iguais.
+  Os nomes de constraints e índices (`PK_Grupo`, `UQ_RegistroChaveUnica_Valor`...) não mudaram.
+- **Scripts novos (V014 em diante) usam os nomes físicos**: `cat.CATTB011_REGISTRO`, `NU_NSU_REGISTRO`. Tabela ou coluna nova entra
+  também no `NomesBanco` (senão o modelo do EF falha ao subir).
+- **SQL Server 2014 (nível 120)** no banco da CAIXA (`CATDB001`): nada de `ISJSON`, `OPENJSON`, `STRING_AGG`, `CREATE OR ALTER`,
+  `DROP ... IF EXISTS`, `TRIM`. O `sp_rename` não renomeia coluna usada em CHECK: remova e recrie o CHECK (como o V013).
+- **Testes de integração no banco da CAIXA**: o login não cria outro banco, então os testes usam o schema `cat_testes` no `CATDB001`,
+  montado por `./ferramentas/estrutura_padrao_caixa.ps1 -Modo SchemaTestes` (com a carga da área testes_desempenho). Rode de novo depois
+  de cada `V0xx` novo.
+- `./ferramentas/executar_script_sql.ps1` executa um `.sql` como o SSMS (lotes por `GO`, mesma sessão), para quem não tem SSMS.
+
+## Schema `catalogo` (V012, substituído pelo V013)
 
 - **Todos os objetos do Catálogo ficam no schema `catalogo`**, em todos os ambientes: o banco de produção é compartilhado com outros
   sistemas, que têm tabelas de nomes genéricos em `dbo` (`Usuario`, `Equipe`, `Registro`). O `V012` moveu as tabelas de `dbo` para

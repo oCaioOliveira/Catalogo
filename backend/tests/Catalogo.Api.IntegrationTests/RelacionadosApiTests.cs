@@ -187,8 +187,9 @@ public class RelacionadosApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco
         Assert.Single(System.Text.RegularExpressions.Regex.Matches(sql, "GROUP BY"));
         Assert.Contains("COUNT(*)", sql);
         Assert.Contains("UNION ALL", sql);
-        Assert.Contains("[RegistroReferencia]", sql);
-        Assert.Contains("[SituacaoAprovacao]", sql); // o escopo de aprovação do EXTERNO (RN37) está no WHERE
+        Assert.Contains($"[{NomesBanco.Tabela("RegistroReferencia")}]", sql);
+        // o escopo de aprovação do EXTERNO (RN37) está no WHERE
+        Assert.Contains($"[{NomesBanco.Coluna("Registro", "SituacaoAprovacao")}]", sql);
     }
 
     private static JsonObject Relatorio(string projeto, string rtc, string ambiente, string status, string bateria) => new()

@@ -7,6 +7,7 @@ using Catalogo.Infrastructure.Painel;
 using Catalogo.Infrastructure.Persistencia;
 using Catalogo.Infrastructure.Repositorios;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -22,8 +23,11 @@ public static class ConfiguracaoInfraestrutura
     {
         // A connection string é lida só quando o DbContext é criado, depois de toda a configuração
         // carregada (inclusive a dos testes de integração).
-        services.AddDbContext<CatalogoDbContext>((provedor, opcoes) =>
-            opcoes.UseSqlServer(ObterConnectionString(provedor.GetRequiredService<IConfiguration>())));
+        // Nível de compatibilidade 120 (SQL Server 2014, o do CATDB001): o EF não usa OPENJSON (ex.: Contains numa lista vira IN).
+        services.AddSingleton(provedor => new OpcoesBanco(ObterSchema(provedor.GetRequiredService<IConfiguration>())));
+        services.AddDbContext<CatalogoDbContext>((provedor, opcoes) => opcoes
+            .UseSqlServer(ObterConnectionString(provedor.GetRequiredService<IConfiguration>()), sql => sql.UseCompatibilityLevel(120))
+            .ReplaceService<IModelCacheKeyFactory, ChaveModeloPorSchema>());
 
         services.AddMemoryCache();
         services.AddScoped<IMetadadosProvider, MetadadosProvider>();
@@ -75,5 +79,18 @@ public static class ConfiguracaoInfraestrutura
         }
 
         return connectionString;
+    }
+
+    /// <summary>O schema do banco (<see cref="SchemaBanco.ChaveConfiguracao"/>), ou "cat". Só letras, números e "_".</summary>
+    public static string ObterSchema(IConfiguration configuracao)
+    {
+        var schema = configuracao[SchemaBanco.ChaveConfiguracao];
+        if (string.IsNullOrWhiteSpace(schema))
+            return SchemaBanco.Nome;
+
+        if (!System.Text.RegularExpressions.Regex.IsMatch(schema, "^[A-Za-z_][A-Za-z0-9_]{0,127}$"))
+            throw new InvalidOperationException($"'{SchemaBanco.ChaveConfiguracao}' inválido: '{schema}' (só letras, números e \"_\").");
+
+        return schema;
     }
 }

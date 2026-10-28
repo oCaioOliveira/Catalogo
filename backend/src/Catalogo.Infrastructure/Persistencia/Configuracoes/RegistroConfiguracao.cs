@@ -13,10 +13,7 @@ internal sealed class RegistroConfiguracao : IEntityTypeConfiguration<Registro>
     public void Configure(EntityTypeBuilder<Registro> builder)
     {
         builder.ToTable("Registro", tabela =>
-        {
-            tabela.HasCheckConstraint("CK_Registro_Dados_Json", "ISJSON(Dados) = 1");
-            tabela.HasCheckConstraint("CK_Registro_SituacaoAprovacao", "SituacaoAprovacao IN ('PENDENTE','APROVADO','REJEITADO')");
-        });
+            tabela.HasCheckConstraint("CK_Registro_SituacaoAprovacao", "SituacaoAprovacao IN ('PENDENTE','APROVADO','REJEITADO')"));
 
         builder.HasKey(r => r.Id).HasName("PK_Registro");
         // Alvo das FKs compostas de RegistroReferencia e RegistroChaveUnica.

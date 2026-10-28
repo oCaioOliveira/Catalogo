@@ -41,9 +41,15 @@ Mudança de schema **sempre** nesta ordem:
 4. Rode `dotnet test`. Os testes de integração rodam contra o banco real e pegam mapeamento errado.
 5. Mudou a estrutura? Ela também vai num **pacote de entrega** para os DBAs (`database/entrega/`, ver o AGENTS.md do database).
 
-Todas as tabelas ficam no schema `catalogo` (V012). O nome do schema existe **só** em `Persistencia/SchemaBanco.cs`
-(`SchemaBanco.Nome`), aplicado pelo `HasDefaultSchema` do `CatalogoDbContext`: as configurações usam `ToTable("Nome")` sem schema,
-e nenhum código escreve `dbo.` ou `catalogo.` à mão.
+Todas as tabelas ficam no schema `cat` (V013), com os nomes do padrão da CAIXA ([ADR 0052](../../../docs/adr/0052-padrao-de-nomes-caixa-e-sql-server-2014.md)):
+
+- As configurações (`Persistencia/Configuracoes`) usam os **nomes lógicos** (`ToTable("Registro")`, propriedade `Dados`), sem schema.
+  O `CatalogoDbContext` aplica o schema (`OpcoesBanco`, configuração `Banco:Schema`, padrão `SchemaBanco.Nome` = `cat`) e troca
+  tabelas e colunas pelos **nomes físicos** de `Persistencia/NomesBanco.cs` (`CATTB011_REGISTRO`, `DE_REGISTRO_DADO`).
+- Tabela ou coluna nova: entra no script `V0xx`, na configuração (nome lógico) **e** no `NomesBanco` (nome físico). Sem o nome físico,
+  o modelo falha ao subir; o `NomesBancoTests` confere o `NomesBanco` contra o de-para do V013.
+- SQL Server 2014: o `UseSqlServer` usa `UseCompatibilityLevel(120)` (sem `OPENJSON`). Não use recursos de JSON do SQL Server.
+- Nenhum código escreve `dbo.`, `cat.` ou `catalogo.` à mão.
 
 Proibido: migrations, `EnsureCreated`, `EnsureDeleted`, `Migrate` ([adr/0003](../../../docs/adr/0003-schema-por-scripts-sql.md)).
 As diferenças conscientes entre o script e o mapeamento estão em

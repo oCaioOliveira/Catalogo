@@ -502,7 +502,7 @@ public sealed class PainelApiTests(BancoDeTestesFixture banco) : TesteDeApi(banc
         Assert.Contains("AVG(", sql);
         // Saltos: 2 (projeto.sigla) + 1 (data_execucao) nas dimensões e 2 no filtro (ambiente.nome); a sigla, REFERENCIA, mais um
         // JOIN com RegistroReferencia para o valor.
-        Assert.True(System.Text.RegularExpressions.Regex.Matches(sql, @"\[RegistroReferencia\]").Count >= 5, sql);
+        Assert.True(System.Text.RegularExpressions.Regex.Matches(sql, $@"\[{Catalogo.Infrastructure.Persistencia.NomesBanco.Tabela("RegistroReferencia")}\]").Count >= 5, sql);
     }
 
     // ---- Exportação (RN88) ----

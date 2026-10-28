@@ -70,12 +70,12 @@ public sealed class GerarSqlAdministradorInicial(IHasherSenha hasher)
             GO
 
             PRINT '03_administrador_inicial: verificando pré-requisitos...';
-            IF OBJECT_ID(N'catalogo.Usuario', N'U') IS NULL OR OBJECT_ID(N'catalogo.HistoricoAlteracao', N'U') IS NULL
+            IF OBJECT_ID(N'cat.CATTB008_USUARIO', N'U') IS NULL OR OBJECT_ID(N'cat.CATTB015_HISTORICO_ALTERACAO', N'U') IS NULL
             BEGIN
-                RAISERROR (N'03_administrador_inicial: a estrutura do Catálogo não está instalada (schema catalogo). Execute antes o 01 e o 02. Nada foi alterado.', 16, 1);
+                RAISERROR (N'03_administrador_inicial: a estrutura do Catálogo não está instalada (schema cat). Execute antes a instalação da estrutura. Nada foi alterado.', 16, 1);
                 SET NOEXEC ON;
             END
-            ELSE IF EXISTS (SELECT 1 FROM catalogo.Usuario WHERE Matricula = {matricula})
+            ELSE IF EXISTS (SELECT 1 FROM cat.CATTB008_USUARIO WHERE CO_MATRICULA = {matricula})
             BEGIN
                 RAISERROR (N'03_administrador_inicial: já existe um usuário com a matrícula {usuario.Matricula}. Nada foi alterado.', 16, 1);
                 SET NOEXEC ON;
@@ -84,13 +84,13 @@ public sealed class GerarSqlAdministradorInicial(IHasherSenha hasher)
 
             BEGIN TRANSACTION;
 
-            INSERT catalogo.Usuario (Id, Matricula, Nome, SenhaHash, Perfil, Ativo, DeveTrocarSenha)
+            INSERT cat.CATTB008_USUARIO (NU_NSU_USUARIO, CO_MATRICULA, NO_USUARIO, CO_SENHA_HASH, NO_PERFIL, IC_ATIVO_USR, IC_TROCAR_SENHA)
             VALUES ('{usuario.Id:D}', {matricula}, {Literal(usuario.Nome)}, {Literal(usuario.SenhaHash)},
                     {Literal(PerfilConversor.ParaTexto(usuario.Perfil))}, {(usuario.Ativo ? 1 : 0)}, {(usuario.DeveTrocarSenha ? 1 : 0)});
             PRINT '03_administrador_inicial: 1/2 usuário administrador cadastrado.';
 
             -- Histórico (RN32): a criação, com o próprio administrador como autor, como no comando criar-admin.
-            INSERT catalogo.HistoricoAlteracao (AlvoTipo, AlvoId, Operacao, UsuarioId, UsuarioMatricula, CorrelacaoId, DadosDepois)
+            INSERT cat.CATTB015_HISTORICO_ALTERACAO (NO_ALVO_TIPO, NU_ALVO, NO_OPERACAO, NU_NSU_CE_USUARIO_HA, CO_MATRI_USUARIO, NU_CORRELACAO, DE_DADO_DEPOIS)
             VALUES ({Literal(HistoricoConversor.ParaTexto(AlvoHistorico.Usuario))}, '{usuario.Id:D}', {Literal(HistoricoConversor.ParaTexto(OperacaoHistorico.Criacao))},
                     '{usuario.Id:D}', {matricula}, '{correlacaoId:D}', {Literal(dadosHistorico)});
             PRINT '03_administrador_inicial: 2/2 histórico de criação gravado.';

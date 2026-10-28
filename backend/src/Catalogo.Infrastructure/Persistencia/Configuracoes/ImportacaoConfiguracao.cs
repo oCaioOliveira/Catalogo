@@ -15,9 +15,7 @@ internal sealed class ImportacaoConfiguracao : IEntityTypeConfiguration<Importac
         {
             tabela.HasCheckConstraint("CK_Importacao_Formato", "Formato IN ('XLSX','CSV')");
             tabela.HasCheckConstraint("CK_Importacao_Situacao", "Situacao IN ('ENVIADA','VALIDADA','CONCLUIDA','DESFEITA','EXPIRADA')");
-            tabela.HasCheckConstraint("CK_Importacao_Opcoes_Json", "Opcoes IS NULL OR ISJSON(Opcoes) = 1");
-            tabela.HasCheckConstraint("CK_Importacao_Mapeamento_Json", "Mapeamento IS NULL OR ISJSON(Mapeamento) = 1");
-            tabela.HasCheckConstraint("CK_Importacao_Resumo_Json", "Resumo IS NULL OR ISJSON(Resumo) = 1");
+            // V013: sem os CHECKs de ISJSON (SQL Server 2014); o JSON é sempre gerado pela aplicação.
         });
 
         builder.HasKey(i => i.Id).HasName("PK_Importacao");

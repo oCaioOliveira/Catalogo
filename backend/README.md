@@ -43,6 +43,23 @@ dotnet user-secrets set "ConnectionStrings:CatalogoTestesAdmin" \
 
 > `TrustServerCertificate=True` é só para desenvolvimento (o container usa um certificado autoassinado).
 
+### No ambiente da CAIXA (banco `CATDB001`, sem Docker)
+
+O banco é o `CATDB001` (servidor `scthmdadnt0017`, SQL Server 2014), no schema `cat` ([ADR 0052](../docs/adr/0052-padrao-de-nomes-caixa-e-sql-server-2014.md)).
+O login não cria outro banco: os testes de integração usam o schema **`cat_testes`** do próprio `CATDB001` (só apagam dados num
+schema terminado em `_testes`). Em PowerShell, com `<usuario>`/`<senha>` passados pelo DBA:
+
+```powershell
+$cs = "Server=scthmdadnt0017;Database=CATDB001;User Id=<usuario>;Password=<senha>;Encrypt=True;TrustServerCertificate=True"
+dotnet user-secrets set "ConnectionStrings:Catalogo" $cs --project src/Catalogo.Api
+dotnet user-secrets set "ConnectionStrings:CatalogoTestes" $cs --project tests/Catalogo.Api.IntegrationTests
+dotnet user-secrets set "SchemaTestes" "cat_testes" --project tests/Catalogo.Api.IntegrationTests
+# Monta (ou recria, apagando os dados de teste) o schema cat_testes. Rode de novo depois de cada script V0xx novo.
+../database/ferramentas/estrutura_padrao_caixa.ps1 -Modo SchemaTestes -ConnectionString $cs -Schema cat_testes
+```
+
+Sem a `CatalogoTestesAdmin`, o `OutroSistemaNoMesmoBancoTests` aparece como ignorado (ele só faz sentido no Docker local).
+
 Nos servidores (Homologação e Produção) a connection string vem da variável de ambiente
 `ConnectionStrings__Catalogo` (dois sublinhados). Sem ela, a API não sobe e explica o que falta.
 

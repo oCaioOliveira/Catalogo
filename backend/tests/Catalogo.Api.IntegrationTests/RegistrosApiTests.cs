@@ -132,7 +132,9 @@ public class RegistrosApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
 
         await using var conexao = new SqlConnection(Banco.ConnectionString);
         await conexao.OpenAsync();
-        await using var comando = new SqlCommand($"SELECT Dados FROM {SchemaBanco.Nome}.Registro WHERE Id = @id", conexao);
+        await using var comando = new SqlCommand(
+            $"SELECT {NomesBanco.Coluna("Registro", "Dados")} FROM {Banco.Tabela("Registro")} WHERE {NomesBanco.Coluna("Registro", "Id")} = @id",
+            conexao);
         comando.Parameters.AddWithValue("@id", Guid.Parse(id));
 
         Assert.Equal("{\"nome\":\"Comunidade Ágil\"}", (string)(await comando.ExecuteScalarAsync())!);

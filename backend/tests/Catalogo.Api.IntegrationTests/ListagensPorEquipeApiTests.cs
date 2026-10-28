@@ -1,11 +1,8 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json.Nodes;
-using System.Text.RegularExpressions;
 using Catalogo.Api.IntegrationTests.Apoio;
 using Catalogo.Domain.Acesso;
-using Catalogo.Infrastructure.Persistencia;
-using Microsoft.Data.SqlClient;
 
 namespace Catalogo.Api.IntegrationTests;
 
@@ -256,62 +253,6 @@ public class ListagensPorEquipeApiTests(BancoDeTestesFixture banco) : TesteDeMet
         Assert.Equal(HttpStatusCode.OK, (await _gestorTD.GetAsync($"/api/v1/aprovacoes/pendentes?grupo={Grupo}")).StatusCode);
     }
 
-    [Fact]
-    public async Task CargaInicialDoV009_SeedParaTodas_OutrasParaQuemTemItens()
-    {
-        // V009: "testes_desempenho" para TODAS as equipes existentes; cada outra listagem, para as equipes que já têm itens nela.
-        // O script só carrega com a tabela vazia: aqui ele roda de novo, depois de esvaziá-la, sobre o banco de testes.
-        // O V009 (imutável) foi escrito para dbo; desde o V012 as tabelas ficam no schema do Catálogo, então ele roda com o schema trocado.
-        await PrepararAsync();
-        EquipeDosAtalhos = _d;
-        await CriarEquipamento("N1", await CriarCategoria("Notebook"));
-        var semItens = await CriarEquipeAsync("Equipe Sem Itens", habilitarNoSeed: false);
-
-        await using var conexao = new SqlConnection(Banco.ConnectionString);
-        await conexao.OpenAsync();
-        await Executar(conexao, $"DELETE FROM {SchemaBanco.Nome}.GrupoEquipe;");
-        var v009 = (await File.ReadAllTextAsync(CaminhoDoV009())).Replace("dbo.", SchemaBanco.Nome + ".", StringComparison.Ordinal);
-        foreach (var lote in Regex.Split(v009, @"^\s*GO\s*$", RegexOptions.Multiline))
-        {
-            if (!string.IsNullOrWhiteSpace(lote))
-                await Executar(conexao, lote);
-        }
-
-        var vinculos = await LerVinculos(conexao);
-        Assert.Equal(
-            new[] { "Equipe D", "Equipe Padrão", "Equipe Sem Itens", "Equipe T" },
-            vinculos.Where(v => v.Grupo == BancoDeTestesFixture.GrupoDoSeed).Select(v => v.Equipe).Order());
-        Assert.Equal(["Equipe D"], vinculos.Where(v => v.Grupo == Grupo).Select(v => v.Equipe));
-        Assert.DoesNotContain(vinculos, v => v.Grupo == Grupo && v.Equipe == semItens.Nome);
-    }
-
-    private static async Task Executar(SqlConnection conexao, string sql)
-    {
-        await using var comando = new SqlCommand(sql, conexao);
-        await comando.ExecuteNonQueryAsync();
-    }
-
-    private static async Task<List<(string Grupo, string Equipe)>> LerVinculos(SqlConnection conexao)
-    {
-        await using var comando = new SqlCommand(
-            $"SELECT g.Chave, e.Nome FROM {SchemaBanco.Nome}.GrupoEquipe v JOIN {SchemaBanco.Nome}.Grupo g ON g.Id = v.GrupoId " +
-            $"JOIN {SchemaBanco.Nome}.Equipe e ON e.Id = v.EquipeId", conexao);
-        await using var leitor = await comando.ExecuteReaderAsync();
-        var vinculos = new List<(string, string)>();
-        while (await leitor.ReadAsync())
-            vinculos.Add((leitor.GetString(0), leitor.GetString(1)));
-        return vinculos;
-    }
-
-    private static string CaminhoDoV009()
-    {
-        for (var pasta = new DirectoryInfo(AppContext.BaseDirectory); pasta is not null; pasta = pasta.Parent)
-        {
-            var caminho = Path.Combine(pasta.FullName, "database", "scripts", "V009__grupo_equipe.sql");
-            if (File.Exists(caminho))
-                return caminho;
-        }
-
-        throw new FileNotFoundException("database/scripts/V009__grupo_equipe.sql não encontrado acima da pasta dos testes.");
-    }
+    // A carga inicial do V009 (equipes habilitadas a partir dos itens existentes) não tem mais teste aqui: desde o V013 os nomes
+    // de tabela e coluna que o V009 (imutável) usa não existem mais, e nenhum ambiente novo passa por ela (docs/adr/0052).
 }

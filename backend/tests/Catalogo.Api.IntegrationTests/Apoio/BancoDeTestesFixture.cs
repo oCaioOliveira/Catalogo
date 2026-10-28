@@ -27,26 +27,20 @@ public sealed class BancoDeTestesFixture : IAsyncLifetime
     /// </summary>
     public const string NomeConnectionStringAdministrador = "CatalogoTestesAdmin";
 
+    /// <summary>
+    /// Schema das tabelas de teste (user-secrets ou variável de ambiente <c>SchemaTestes</c>). Padrão: o mesmo da aplicação (cat),
+    /// num banco de testes (Docker local). No banco da CAIXA, que não permite criar outro banco, é um schema próprio (cat_testes),
+    /// montado por database/ferramentas/estrutura_padrao_caixa.ps1 -Modo SchemaTestes.
+    /// </summary>
+    public const string ChaveSchemaTestes = "SchemaTestes";
+
     // Só os DADOS são apagados (registros, usuários, equipes e histórico).
     // Metadados (Grupo, Entidade, Campo...) vêm do seed dos scripts e ficam.
-    private static readonly Table[] TabelasDeDados =
+    private static readonly string[] TabelasDeDados =
     [
-        new(SchemaBanco.Nome, "AvaliacaoResposta"),
-        new(SchemaBanco.Nome, "Avaliacao"),
-        new(SchemaBanco.Nome, "CriterioAvaliacao"),
-        new(SchemaBanco.Nome, "ModeloAvaliacao"),
-        new(SchemaBanco.Nome, "RegistroChaveUnica"),
-        new(SchemaBanco.Nome, "RegistroReferencia"),
-        new(SchemaBanco.Nome, "RegistroValor"),
-        new(SchemaBanco.Nome, "Registro"),
-        new(SchemaBanco.Nome, "HistoricoAlteracao"),
-        new(SchemaBanco.Nome, "ImportacaoArquivo"),
-        new(SchemaBanco.Nome, "Importacao"),
-        new(SchemaBanco.Nome, "ConfiguracaoEntidadeEquipe"),
-        new(SchemaBanco.Nome, "GrupoEquipe"),
-        new(SchemaBanco.Nome, "UsuarioEquipe"),
-        new(SchemaBanco.Nome, "Usuario"),
-        new(SchemaBanco.Nome, "Equipe"),
+        "AvaliacaoResposta", "Avaliacao", "CriterioAvaliacao", "ModeloAvaliacao", "RegistroChaveUnica", "RegistroReferencia",
+        "RegistroValor", "Registro", "HistoricoAlteracao", "ImportacaoArquivo", "Importacao", "ConfiguracaoEntidadeEquipe",
+        "GrupoEquipe", "UsuarioEquipe", "Usuario", "Equipe",
     ];
 
     /// <summary>Chave do JWT só dos testes (aleatória a cada execução).</summary>
@@ -55,6 +49,12 @@ public sealed class BancoDeTestesFixture : IAsyncLifetime
     private Respawner _respawner = null!;
 
     public string ConnectionString { get; } = LerConnectionString(NomeConnectionString);
+
+    /// <summary>O schema das tabelas de teste (ver <see cref="ChaveSchemaTestes"/>).</summary>
+    public string Schema { get; } = LerSchema();
+
+    /// <summary>Nome físico qualificado de uma tabela lógica, para SQL escrito nos testes (ex.: "Registro" → cat.CATTB011_REGISTRO).</summary>
+    public string Tabela(string tabelaLogica) => $"{Schema}.{NomesBanco.Tabela(tabelaLogica)}";
 
     /// <summary>Lida só quando um teste pede (ver <see cref="NomeConnectionStringAdministrador"/>).</summary>
     public string ConnectionStringAdministrador => LerConnectionString(NomeConnectionStringAdministrador);
@@ -68,6 +68,7 @@ public sealed class BancoDeTestesFixture : IAsyncLifetime
             // Ambiente próprio: não carrega o user-secrets da Api (que aponta para o banco de desenvolvimento).
             builder.UseEnvironment("Testes");
             builder.UseSetting("ConnectionStrings:Catalogo", ConnectionString);
+            builder.UseSetting(SchemaBanco.ChaveConfiguracao, Schema);
             builder.UseSetting("Jwt:ChaveAssinatura", ChaveJwtDosTestes);
             // Os testes fazem muitos logins seguidos do mesmo "endereço": o limite de produção atrapalharia.
             builder.UseSetting("Seguranca:LoginLimitePorMinuto", "100000");
@@ -80,7 +81,7 @@ public sealed class BancoDeTestesFixture : IAsyncLifetime
         _respawner = await Respawner.CreateAsync(conexao, new RespawnerOptions
         {
             DbAdapter = DbAdapter.SqlServer,
-            TablesToInclude = TabelasDeDados,
+            TablesToInclude = TabelasDeDados.Select(t => new Table(Schema, NomesBanco.Tabela(t))).ToArray(),
         });
     }
 
@@ -127,14 +128,20 @@ public sealed class BancoDeTestesFixture : IAsyncLifetime
 
     public async Task DisposeAsync() => await Fabrica.DisposeAsync();
 
+    private static IConfiguration Configuracao() => new ConfigurationBuilder()
+        .AddUserSecrets<BancoDeTestesFixture>(optional: true)
+        .AddEnvironmentVariables()
+        .Build();
+
+    private static string LerSchema()
+    {
+        var schema = Configuracao()[ChaveSchemaTestes];
+        return string.IsNullOrWhiteSpace(schema) ? SchemaBanco.Nome : schema;
+    }
+
     private static string LerConnectionString(string nome)
     {
-        var configuracao = new ConfigurationBuilder()
-            .AddUserSecrets<BancoDeTestesFixture>(optional: true)
-            .AddEnvironmentVariables()
-            .Build();
-
-        var connectionString = configuracao.GetConnectionString(nome);
+        var connectionString = Configuracao().GetConnectionString(nome);
         if (string.IsNullOrWhiteSpace(connectionString))
         {
             throw new InvalidOperationException(
@@ -142,12 +149,14 @@ public sealed class BancoDeTestesFixture : IAsyncLifetime
                 $"integração ou variável de ambiente ConnectionStrings__{nome}). Ver README.md.");
         }
 
-        // Proteção: o Respawn APAGA dados. Nunca rode contra um banco que não seja o de testes.
+        // Proteção: o Respawn APAGA dados. Nunca rode contra um banco ou schema que não seja o de testes.
         var banco = new SqlConnectionStringBuilder(connectionString).InitialCatalog;
-        if (!banco.EndsWith("_Testes", StringComparison.OrdinalIgnoreCase))
+        var schema = LerSchema();
+        if (!banco.EndsWith("_Testes", StringComparison.OrdinalIgnoreCase) && !schema.EndsWith("_testes", StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException(
-                $"Os testes de integração apagam dados e só rodam num banco terminado em '_Testes' (configurado: '{banco}').");
+                "Os testes de integração apagam dados e só rodam num banco terminado em '_Testes' ou num schema terminado em " +
+                $"'_testes' (configurado: banco '{banco}', schema '{schema}').");
         }
 
         return connectionString;

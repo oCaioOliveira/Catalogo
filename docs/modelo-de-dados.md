@@ -6,10 +6,39 @@ A fonte da verdade são os scripts de [`database/scripts/`](../database/scripts/
 [`V003`](../database/scripts/V003__usuarios_equipes_historico.sql) (usuários, equipes, escopo e histórico), V004 (aprovação), V005 (avaliação) e
 [`V006`](../database/scripts/V006__administracao_metadados.sql) (administração de metadados), V007 e V008 (tipo URL e plural) e
 [`V009`](../database/scripts/V009__grupo_equipe.sql) (listagens habilitadas por equipe), V010 (ícone), V011 (importação) e
-[`V012`](../database/scripts/V012__schema_catalogo.sql) (schema `catalogo`).
+[`V012`](../database/scripts/V012__schema_catalogo.sql) (schema `catalogo`) e
+[`V013`](../database/scripts/V013__padrao_caixa.sql) (padrão de nomes da CAIXA: schema `cat`, tabelas `CATTB0xx`).
 Este documento explica o modelo. Se algo aqui divergir dos scripts, **valem os scripts**, e este documento deve ser corrigido.
 
-## Schema `catalogo` (V012)
+## Nomes físicos: padrão da CAIXA (V013, [ADR 0052](adr/0052-padrao-de-nomes-caixa-e-sql-server-2014.md))
+
+Este documento usa os **nomes lógicos** (Grupo, `Registro.Dados`), os mesmos das configurações do EF. No banco, desde o V013, as
+tabelas ficam no schema **`cat`** com os nomes do padrão da CAIXA; o de-para completo, coluna a coluna, está no
+[`V013`](../database/scripts/V013__padrao_caixa.sql) e em `NomesBanco` (Infrastructure). As colunas seguem o prefixo de tipo
+(`NU_` número/identificador, `CO_` código, `NO_` nome, `DE_` descrição, `DH_`/`DT_` data, `IC_` indicador, `VR_` valor).
+
+| Lógica | Física | Lógica | Física |
+|---|---|---|---|
+| `Grupo` | `cat.CATTB001_GRUPO` | `RegistroReferencia` | `cat.CATTB012_REGISTRO_REFERENCIA` |
+| `Entidade` | `cat.CATTB002_ENTIDADE` | `RegistroChaveUnica` | `cat.CATTB013_REGISTRO_CHAVE_UNICA` |
+| `Campo` | `cat.CATTB003_CAMPO` | `RegistroValor` | `cat.CATTB014_REGISTRO_VALOR` |
+| `CampoDependencia` | `cat.CATTB004_CAMPO_DEPENDENCIA` | `HistoricoAlteracao` | `cat.CATTB015_HISTORICO_ALTERACAO` |
+| `RestricaoUnica` | `cat.CATTB005_RESTRICAO_UNICA` | `ConfiguracaoEntidadeEquipe` | `cat.CATTB016_CONFIG_ENTIDADE_EQUIPE` |
+| `RestricaoUnicaCampo` | `cat.CATTB006_RESTRICAO_UNICA_CAMPO` | `ModeloAvaliacao` | `cat.CATTB017_MODELO_AVALIACAO` |
+| `Equipe` | `cat.CATTB007_EQUIPE` | `CriterioAvaliacao` | `cat.CATTB018_CRITERIO_AVALIACAO` |
+| `Usuario` | `cat.CATTB008_USUARIO` | `Avaliacao` | `cat.CATTB019_AVALIACAO` |
+| `UsuarioEquipe` | `cat.CATTB009_USUARIO_EQUIPE` | `AvaliacaoResposta` | `cat.CATTB020_AVALIACAO_RESPOSTA` |
+| `GrupoEquipe` | `cat.CATTB010_GRUPO_EQUIPE` | `Importacao` | `cat.CATTB021_IMPORTACAO` |
+| `Registro` | `cat.CATTB011_REGISTRO` | `ImportacaoArquivo` | `cat.CATTB022_IMPORTACAO_ARQUIVO` |
+| | | `__VersaoSchema` | `cat.CATTB023_VERSAO_SCHEMA` |
+
+- Os nomes de constraints e índices (`PK_Grupo`, `UQ_RegistroChaveUnica_Valor`, `FK_...`) não mudaram.
+- O banco da CAIXA é **SQL Server 2014** (nível 120): os CHECKs com `ISJSON` saíram (o JSON é sempre gerado pela aplicação) e o EF
+  usa `UseCompatibilityLevel(120)`.
+- A aplicação acessa pelo papel `catalogo_aplicacao`, agora no schema `cat`. O schema é configurável (`Banco:Schema`): os testes
+  de integração usam `cat_testes`.
+
+## Schema `catalogo` (V012, substituído pelo V013)
 
 **Todas as tabelas do Catálogo ficam no schema `catalogo`**, em todos os ambientes (desenvolvimento, testes e produção). O banco de
 produção é compartilhado com outros sistemas, que têm tabelas de nomes genéricos em `dbo` (`Usuario`, `Equipe`, `Registro`): com
