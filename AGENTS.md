@@ -38,6 +38,12 @@ contrato (`openapi/v1.json`).
    `docs/guias/criar-uma-listagem.md` no repositório do front-end) ou pela API, pelo administrador
    ([`docs/api/administracao-de-metadados.md`](docs/api/administracao-de-metadados.md)); **o schema do banco só muda por script** em `database/scripts/` ([ADR 0003](docs/adr/0003-schema-por-scripts-sql.md)), sempre no schema `cat` com os nomes do padrão da CAIXA ([ADR 0052](docs/adr/0052-padrao-de-nomes-caixa-e-sql-server-2014.md)), e chega à produção como um **pacote de entrega** para os DBAs (`database/entrega/`, [ADR 0049](docs/adr/0049-schema-catalogo-e-pacotes-de-entrega.md)).
    Uma área de gestão nova só aparece para as equipes que o administrador habilitar nela (RN90 a RN93, [ADR 0046](docs/adr/0046-listagens-habilitadas-por-equipe.md)).
+   **Tabela nova já nasce no padrão de nomes da CAIXA**: `cat.CATTB<próximo número de 3 dígitos>_<NOME_EM_MAIÚSCULAS>`
+   (hoje o próximo é `CATTB024`); chave primária `NU_NSU_<TABELA>`; chave estrangeira `NU_NSU_CE_<TABELA_REFERENCIADA>_<SIGLA>`;
+   demais colunas com prefixo de tipo (`NU_` número, `CO_` código, `NO_` nome, `DE_` descrição/texto, `DH_`/`DT_` data, `IC_`
+   indicador `bit`, `VR_` valor) e sigla da tabela no fim quando o nome for genérico (`IC_ATIVO_USR`, `DH_CRIADO_IMP`). Constraints e
+   índices mantêm o nome lógico (`PK_`, `FK_`, `UQ_`, `CK_`, `DF_`, `IX_`). Tabela ou coluna nova entra também no `NomesBanco`.
+   Regras completas em [`database/AGENTS.md`](database/AGENTS.md).
 4. **Nunca coloque segredos em arquivos versionados**: senhas e connection strings ficam em
    user-secrets, em `database/.env` (fora do git) ou em variáveis de ambiente nos servidores.
 5. **Domínio em português**: nomes, mensagens, documentação e testes.

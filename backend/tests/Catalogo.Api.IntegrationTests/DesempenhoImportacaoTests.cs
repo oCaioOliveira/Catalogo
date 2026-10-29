@@ -33,14 +33,14 @@ public sealed class DesempenhoImportacaoTests(BancoDeTestesFixture banco, ITestO
         await Criar("status_resultado", new JsonObject { ["descricao"] = "Aprovado" });
 
         var relatorios = Xlsx(
-            ["Projeto *", "RTC *", "Ambiente *", "Status *", "Data de execução *", "bateria_testes", "tipo_teste", "executado_por"],
+            ["titulo", "Projeto *", "RTC", "Ambiente *", "Status *", "Data de execução *", "bateria_testes", "tipo_teste", "executado_por"],
             Enumerable.Range(1, Linhas)
-                .Select(i => new object?[] { "transferencias alfa", $"RTC-{(i % 20) + 1}", "homologacao", "Aprovado",
-                    new DateTime(2026, 10, 1).AddMinutes(i), $"Bateria {i:D5}", "Carga", "Ana" })
+                .Select(i => new object?[] { $"Bateria {i:D5}", "transferencias alfa", $"RTC-{(i % 20) + 1}", "homologacao", "Aprovado",
+                    new DateTime(2026, 10, 1).AddMinutes(i), 1, "API", "Ana" })
                 .ToArray());
         await MedirAsync("relatórios", Relatorios, relatorios);
 
-        // Os cenários apontam todos para o mesmo relatório (unicidade relatório + número, 5.000 números diferentes).
+        // Os cenários apontam todos para o mesmo relatório (unicidade relatório + número + endpoint, 5.000 números diferentes).
         var cenarios = Xlsx(
             ["relatorio_teste", "endpoint_servico", "numero_cenario", "usuarios_virtuais", "tempo_medio_resposta_ms", "percentil_95_ms",
              "vazao_media_tps", "taxa_erro_percentual"],

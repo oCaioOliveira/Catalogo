@@ -67,15 +67,16 @@ Legenda: **\*** = obrigatório. Referências: R = RESTRINGIR, C = CASCATA. O cam
 | `comunidade` | **`nome`**\* TEXTO(100) |
 | `sigla` | `comunidade`\* → comunidade (R) · **`codigo_sigla`**\* TEXTO(20) |
 | `projeto` | `sigla`\* → sigla (R) · **`nome`**\* TEXTO(150) · `url_projeto` URL |
-| `endpoint_servico` | `projeto`\* → projeto (R) · **`nome_servico`**\* TEXTO(150) · `metodo`\* TEXTO(50) · `endpoint_url_fila`\* TEXTO(255) · `ativo`\* BOOLEANO |
-| `rtc` | **`rtc_externo_id`**\* TEXTO(20) |
+| `endpoint_servico` | `projeto`\* → projeto (R) · **`nome_servico`**\* TEXTO(500) · `metodo` TEXTO(50) · `endpoint_url_fila`\* TEXTO(500) · `ativo`\* BOOLEANO |
+| `rtc` | **`rtc_externo_id`**\* TEXTO(20) · `url` URL |
 | `ambiente` | **`nome`**\* TEXTO(50) · `servidor_gerenciador_filas` TEXTO(255) · `configuracoes_infraestrutura` TEXTO_LONGO |
 | `status_resultado` | **`descricao`**\* TEXTO(30) |
-| `relatorio_teste` | `projeto`\* → projeto (R) · `rtc`\* → rtc (R) · `ambiente`\* → ambiente (R) · `status_resultado`\* → status_resultado (R) · `data_execucao`\* DATA_HORA · **`bateria_testes`**\* TEXTO(50) · `tipo_teste`\* TEXTO(50) · `executado_por`\* TEXTO(150) · `contexto` · `objetivo` · `apontamentos` · `conclusao` (TEXTO_LONGO) |
-| `cenario_teste` | `relatorio_teste`\* → relatorio_teste (C) · `endpoint_servico`\* → endpoint_servico (R) · **`numero_cenario`**\* · `usuarios_virtuais`\* · `tempo_medio_resposta_ms`\* · `percentil_95_ms`\* (INTEIRO) · `vazao_media_tps`\* DECIMAL(18,2) · `taxa_erro_percentual`\* DECIMAL(5,2) |
+| `relatorio_teste` | **`titulo`**\* TEXTO(200) · `projeto`\* → projeto (R) · `rtc` → rtc (R) · `ambiente`\* → ambiente (R) · `status_resultado`\* → status_resultado (R) · `data_execucao`\* DATA_HORA · `bateria_testes`\* INTEIRO ("Nº da bateria") · `tipo_teste`\* LISTA ("Tecnologia": API, WEB, Fila MQ) · `executado_por`\* TEXTO(150) · `comunidade_na_execucao` TEXTO(100) · `host_gerenciador_filas` TEXTO(255) · `endpoints_testados` · `contexto` · `objetivo` · `apontamentos` · `observacoes_cenarios` · `conclusao` (TEXTO_LONGO) · `script` URL · `configuracoes_ambiente` TEXTO_LONGO · `infraestrutura` TEXTO(500) · `dados_originais` TEXTO_LONGO (**inativo**: a linha original do SharePoint, oculta nas telas) |
+| `cenario_teste` | `relatorio_teste`\* → relatorio_teste (C) · `endpoint_servico`\* → endpoint_servico (R) · **`numero_cenario`**\* INTEIRO · `descricao_cenario` TEXTO(150) · `usuarios_virtuais`\* INTEIRO · `tempo_medio_resposta_ms`\* · `percentil_95_ms` · `vazao_media_tps`\* (DECIMAL(18,2)) · `taxa_erro_percentual`\* DECIMAL(5,2) · `amostras` INTEIRO |
 | `link` | `relatorio_teste`\* → relatorio_teste (C) · `rtc` → rtc (R) · **`texto_exibicao`**\* TEXTO(100) · `url`\* URL |
 
-São 10 entidades e 40 campos.
+São 10 entidades e 52 campos. A configuração atual vem do `V016` (reconfiguração para a migração do SharePoint, feita pela API;
+ver [`docs/migracao-sharepoint.md`](../migracao-sharepoint.md)).
 
 ## Unicidades (RN09)
 
@@ -87,7 +88,7 @@ São 10 entidades e 40 campos.
 | `uq_rtc_externo_id` | rtc | `rtc_externo_id` |
 | `uq_ambiente_nome` | ambiente | `nome` |
 | `uq_status_descricao` | status_resultado | `descricao` |
-| `uq_cenario_relatorio_numero` | cenario_teste | `relatorio_teste`, `numero_cenario` (composta) |
+| `uq_cenario_relatorio_numero_endpoint` | cenario_teste | `relatorio_teste`, `numero_cenario`, `endpoint_servico` (composta: um cenário tem uma linha por endpoint) |
 | `uq_link_rtc` | link | `rtc`: um RTC tem no máximo um link. Link sem RTC não conflita (RN10) |
 
 Como os textos são normalizados, `"Comunidade Ágil"` e `"comunidade agil"` são o mesmo nome.
@@ -110,14 +111,14 @@ Cada passo usa o `id` devolvido pelos anteriores:
 3. `POST .../projeto/registros` `{ "sigla": "<id 2>", "nome": "Portal" }`
 4. `POST .../endpoint_servico/registros` `{ "projeto": "<id 3>", "nome_servico": "consulta", "metodo": "POST", "endpoint_url_fila": "/api/consulta", "ativo": true }`
 5. `rtc`, `ambiente` e `status_resultado`: um campo texto cada
-6. `POST .../relatorio_teste/registros` com `projeto`, `rtc`, `ambiente`, `status_resultado`, `data_execucao` (ex.: `"2026-10-21T14:30:00-03:00"`), `bateria_testes`, `tipo_teste` e `executado_por`
+6. `POST .../relatorio_teste/registros` com `projeto`, `rtc` (opcional), `ambiente`, `status_resultado`, `titulo`, `data_execucao` (ex.: `"2026-10-21T14:30:00-03:00"`), `bateria_testes` (número), `tipo_teste` (API, WEB ou Fila MQ) e `executado_por`
 7. `POST .../cenario_teste/registros`: ver o exemplo completo em [modelo-de-dados.md](../modelo-de-dados.md#exemplo-um-cenário-de-teste-salvo)
 
 ## Exclusão (RN16)
 
 | Excluir... | Resultado |
 |---|---|
-| `relatorio_teste` | exclui junto os seus `cenario_teste` e `link` (CASCATA). `rtc`, `projeto` e `endpoint_servico` ficam |
+| `relatorio_teste` | **`titulo`**\* TEXTO(200) · `projeto`\* → projeto (R) · `rtc` → rtc (R) · `ambiente`\* → ambiente (R) · `status_resultado`\* → status_resultado (R) · `data_execucao`\* DATA_HORA · `bateria_testes`\* INTEIRO ("Nº da bateria") · `tipo_teste`\* LISTA ("Tecnologia": API, WEB, Fila MQ) · `executado_por`\* TEXTO(150) · `comunidade_na_execucao` TEXTO(100) · `host_gerenciador_filas` TEXTO(255) · `endpoints_testados` · `contexto` · `objetivo` · `apontamentos` · `observacoes_cenarios` · `conclusao` (TEXTO_LONGO) · `script` URL · `configuracoes_ambiente` TEXTO_LONGO · `infraestrutura` TEXTO(500) · `dados_originais` TEXTO_LONGO (**inativo**: a linha original do SharePoint, oculta nas telas) |
 | `projeto` com `endpoint_servico` ou `relatorio_teste` | **409**: eles apontam para o projeto com RESTRINGIR |
 | `rtc` usado por um `link` ou `relatorio_teste` | **409** (RESTRINGIR) |
 | `endpoint_servico` usado por um `cenario_teste` | **409** (RESTRINGIR) |

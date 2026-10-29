@@ -272,15 +272,16 @@ public class AprovacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         return corpo["id"]!.GetValue<string>();
     }
 
-    private JsonObject Relatorio(string projeto, string rtc, string bateria) => new()
+    private JsonObject Relatorio(string projeto, string rtc, string titulo) => new()
     {
         ["projeto"] = projeto,
         ["rtc"] = rtc,
         ["ambiente"] = _ambiente,
         ["status_resultado"] = _status,
+        ["titulo"] = titulo,
         ["data_execucao"] = "2026-10-21T14:30:00-03:00",
-        ["bateria_testes"] = bateria,
-        ["tipo_teste"] = "Carga",
+        ["bateria_testes"] = 1,
+        ["tipo_teste"] = "API",
         ["executado_por"] = "Equipe externa",
     };
 

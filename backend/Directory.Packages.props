@@ -19,6 +19,10 @@
     <!-- Exportação em XLSX (licença MIT). Só a Infrastructure usa; os testes de integração leem o arquivo gerado. -->
     <PackageVersion Include="ClosedXML" Version="0.105.1" />
   </ItemGroup>
+  <ItemGroup Label="Ferramentas">
+    <!-- Só a ferramenta de migração do SharePoint (tools/Catalogo.Migracao): leitura do HTML das colunas da lista (licença MIT). -->
+    <PackageVersion Include="AngleSharp" Version="1.8.6" />
+  </ItemGroup>
   <ItemGroup Label="Testes">
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.11.0" />
     <PackageVersion Include="xunit" Version="2.9.3" />

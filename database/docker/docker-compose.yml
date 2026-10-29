@@ -32,7 +32,8 @@ services:
       start_period: 20s
     restart: unless-stopped
 
-  # Roda uma vez e encerra: cria banco/login (init/) e aplica database/scripts/ pendentes.
+  # Roda uma vez e encerra: cria banco/login (init/) e aplica database/scripts/ pendentes (estrutura no schema cat, V014;
+  # as tabelas antigas do schema catalogo não são alteradas).
   db-init:
     image: *mssql-image
     depends_on:
@@ -62,6 +63,9 @@ services:
               -v DB_NAME="$$DB_NAME" APP_DB_PASSWORD="$$APP_DB_PASSWORD" -i "$$f"
           done
           DB_NAME="$$DB_NAME" bash /aplicar_scripts.sh
+          # O papel catalogo_aplicacao nasce no V014: num banco novo, o vínculo do listagem_app só existe depois dele.
+          /opt/mssql-tools18/bin/sqlcmd -C -b -S "$$DB_HOST" -U sa -P "$$MSSQL_SA_PASSWORD" \
+            -v DB_NAME="$$DB_NAME" APP_DB_PASSWORD="$$APP_DB_PASSWORD" -i /init/01_criar_login_app.sql
         done
     restart: "no"
 

@@ -30,17 +30,17 @@ public class ExportacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
 
         var linhas = LerCsv(bytes);
         Assert.Equal(
-            ["Relatório", "Endpoint", "Nº do cenário", "Usuários virtuais", "Tempo médio (ms)", "Percentil 95 (ms)", "Vazão média (TPS)",
-             "Taxa de erro (%)", "Equipe", "Criado por", "Criado em", "Atualizado em"],
+            ["Relatório", "Endpoint", "Nº do cenário", "Descrição do cenário", "Usuários virtuais", "Tempo médio (ms)", "Percentil 95 (ms)",
+             "Vazão média (TPS)", "Taxa de erro (%)", "Amostras", "Equipe", "Criado por", "Criado em", "Atualizado em"],
             linhas[0]);
         Assert.Equal(["3", "2"], linhas.Skip(1).Select(l => l[2]));
         var cenario = linhas[1];
         Assert.Equal("Bateria Ação Çã", cenario[0]);                  // referência pelo rótulo, com os acentos certos
         Assert.Equal("consulta", cenario[1]);
-        Assert.Equal("35,50", cenario[6]);                             // vírgula decimal, com a escala do campo
-        Assert.Equal(EquipePadrao.Nome, cenario[8]);
-        Assert.Matches(@"^\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}$", cenario[10]);
-        Assert.Equal("", cenario[11]);
+        Assert.Equal("35,50", cenario[7]);                             // vírgula decimal, com a escala do campo
+        Assert.Equal(EquipePadrao.Nome, cenario[10]);
+        Assert.Matches(@"^\d{2}/\d{2}/\d{4} \d{2}:\d{2}:\d{2}$", cenario[12]);
+        Assert.Equal("", cenario[13]);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public class ExportacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
             await Criar("cenario_teste", DadosDoCenario(relatorio, endpoint, numero));
 
         var cenarios = await ExportarXlsx("cenario_teste", "numero_cenario.ate=2&ordenacao=numero_cenario");
-        var relatorios = await ExportarXlsx("relatorio_teste", "bateria_testes=Bateria 1");
+        var relatorios = await ExportarXlsx("relatorio_teste", "titulo=Bateria 1");
 
         using (cenarios)
         using (relatorios)
@@ -63,8 +63,10 @@ public class ExportacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
             Assert.Equal(3, aba.LastRowUsed()!.RowNumber());   // cabeçalho + 2 cenários
             Assert.Equal(XLDataType.Number, aba.Cell(2, 3).DataType);
             Assert.Equal([1d, 2d], new[] { aba.Cell(2, 3).GetDouble(), aba.Cell(3, 3).GetDouble() });
-            Assert.Equal(35.5, aba.Cell(2, 7).GetDouble());
-            Assert.Equal(XLDataType.DateTime, aba.Cell(2, 11).DataType);   // Criado em
+            int Coluna(IXLWorksheet planilha, string cabecalho) =>
+                planilha.Row(1).CellsUsed().Single(c => c.GetString() == cabecalho).Address.ColumnNumber;
+            Assert.Equal(35.5, aba.Cell(2, Coluna(aba, "Vazão média (TPS)")).GetDouble());
+            Assert.Equal(XLDataType.DateTime, aba.Cell(2, Coluna(aba, "Criado em")).DataType);
 
             // DATA_HORA: 14:30 em -03:00 sai como 14:30 no fuso da exportação (America/Sao_Paulo).
             var abaRelatorios = relatorios.Worksheet(1);
@@ -107,19 +109,19 @@ public class ExportacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         var pendente = await Postar(autor, "relatorio_teste", new JsonObject
         {
             ["projeto"] = projeto, ["rtc"] = rtc, ["ambiente"] = ambiente, ["status_resultado"] = status,
-            ["data_execucao"] = "2026-10-21T14:30:00-03:00", ["bateria_testes"] = "Pendente do autor", ["tipo_teste"] = "Carga",
+            ["titulo"] = "Pendente do autor", ["data_execucao"] = "2026-10-21T14:30:00-03:00", ["bateria_testes"] = 1, ["tipo_teste"] = "API",
             ["executado_por"] = "Fornecedor",
         });
         Assert.Equal(HttpStatusCode.Created, pendente.StatusCode);
-        await CriarRelatorio(projeto, bateria: "Aprovado");
+        await CriarRelatorio(projeto, titulo: "Aprovado");
 
         var doOutro = LerCsv(await (await outro.GetAsync($"{UrlRegistros("relatorio_teste")}/exportar?formato=csv")).Content.ReadAsByteArrayAsync());
-        var doAutor = LerCsv(await (await autor.GetAsync($"{UrlRegistros("relatorio_teste")}/exportar?formato=csv&ordenacao=bateria_testes")).Content.ReadAsByteArrayAsync());
+        var doAutor = LerCsv(await (await autor.GetAsync($"{UrlRegistros("relatorio_teste")}/exportar?formato=csv&ordenacao=titulo")).Content.ReadAsByteArrayAsync());
 
-        var bateria = Array.IndexOf(doOutro[0], "Bateria de testes");
-        Assert.Equal(["Aprovado"], doOutro.Skip(1).Select(l => l[bateria]));
+        var titulo = Array.IndexOf(doOutro[0], "Título");
+        Assert.Equal(["Aprovado"], doOutro.Skip(1).Select(l => l[titulo]));
         var situacao = Array.IndexOf(doAutor[0], "Situação de aprovação");
-        Assert.Equal([("Aprovado", "APROVADO"), ("Pendente do autor", "PENDENTE")], doAutor.Skip(1).Select(l => (l[bateria], l[situacao])));
+        Assert.Equal([("Aprovado", "APROVADO"), ("Pendente do autor", "PENDENTE")], doAutor.Skip(1).Select(l => (l[titulo], l[situacao])));
     }
 
     [Fact]
@@ -199,10 +201,10 @@ public class ExportacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         Assert.True((await LerJson(resposta))["errors"]!.AsObject().ContainsKey("formato"));
     }
 
-    private async Task<(string Relatorio, string Endpoint)> CriarRelatorioEEndpointAsync(string bateria)
+    private async Task<(string Relatorio, string Endpoint)> CriarRelatorioEEndpointAsync(string titulo)
     {
         var projeto = await CriarProjeto("Projeto");
-        return (await CriarRelatorio(projeto, bateria: bateria), await CriarEndpoint(projeto, "consulta"));
+        return (await CriarRelatorio(projeto, titulo: titulo), await CriarEndpoint(projeto, "consulta"));
     }
 
     private async Task<XLWorkbook> ExportarXlsx(string entidade, string filtros)

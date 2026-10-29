@@ -57,8 +57,8 @@ public class OpcoesApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
     {
         var projetoA = await CriarProjeto("A");
         var projetoB = await CriarProjeto("B");
-        await CriarRelatorio(projetoA, bateria: "Bateria B");
-        await CriarRelatorio(projetoB, bateria: "Bateria A");
+        await CriarRelatorio(projetoA, titulo: "Bateria B");
+        await CriarRelatorio(projetoB, titulo: "Bateria A");
 
         var opcoes = await OpcoesOk("cenario_teste", "relatorio_teste");
 

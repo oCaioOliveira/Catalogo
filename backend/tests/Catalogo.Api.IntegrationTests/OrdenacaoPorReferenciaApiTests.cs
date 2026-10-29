@@ -12,7 +12,7 @@ public class OrdenacaoPorReferenciaApiTests(BancoDeTestesFixture banco) : TesteD
     public async Task Get_RelatoriosOrdenadosPorProjeto_PeloNomeDoProjetoNosDoisSentidos()
     {
         foreach (var nome in new[] { "Gama", "Alfa", "Beta" })
-            await CriarRelatorio(await CriarProjeto(nome), bateria: $"Bateria {nome}");
+            await CriarRelatorio(await CriarProjeto(nome), titulo: $"Bateria {nome}");
 
         var crescente = await ListarOk("relatorio_teste", "ordenacao=projeto");
         var decrescente = await ListarOk("relatorio_teste", "ordenacao=-projeto");

@@ -148,7 +148,7 @@ public class AvaliacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         var pendente = await LerJson(await Postar(_externoA, "relatorio_teste", new JsonObject
         {
             ["projeto"] = _projetoA, ["rtc"] = rtc, ["ambiente"] = ambiente, ["status_resultado"] = status,
-            ["data_execucao"] = "2026-10-21T14:30:00-03:00", ["bateria_testes"] = "Externa", ["tipo_teste"] = "Carga",
+            ["titulo"] = "Externa", ["data_execucao"] = "2026-10-21T14:30:00-03:00", ["bateria_testes"] = 1, ["tipo_teste"] = "API",
             ["executado_por"] = "Fornecedor",
         }));
         var id = pendente["id"]!.GetValue<string>();
@@ -276,9 +276,9 @@ public class AvaliacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
     public async Task Listagem_OrdenaPelaMediaComNaoAvaliadosPorUltimo_EFiltraPelaMedia()
     {
         await PrepararComModeloAsync();
-        var nota3 = await CriarRelatorio(_projetoA, bateria: "Nota 3");
-        var semNota = await CriarRelatorio(_projetoA, bateria: "Sem nota");
-        var nota45 = await CriarRelatorio(_projetoA, bateria: "Nota 4.5");
+        var nota3 = await CriarRelatorio(_projetoA, titulo: "Nota 3");
+        var semNota = await CriarRelatorio(_projetoA, titulo: "Sem nota");
+        var nota45 = await CriarRelatorio(_projetoA, titulo: "Nota 4.5");
         await Avaliar(_internoA, nota3, Nota(3));
         await Avaliar(_internoA, nota45, Nota(4));
         await Avaliar(_interno2A, nota45, Nota(5));
@@ -387,7 +387,7 @@ public class AvaliacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         Assert.True(criado.StatusCode == HttpStatusCode.Created, await criado.Content.ReadAsStringAsync());
     }
 
-    private Task<string> CriarRelatorio(string projeto, string bateria = "Bateria 1") => CriarRelatorio(projeto, bateria: bateria, rtc: null);
+    private Task<string> CriarRelatorio(string projeto, string titulo = "Bateria 1") => CriarRelatorio(projeto, titulo: titulo, rtc: null);
 
     private static string UrlModelo(Equipe equipe) =>
         $"/api/v1/equipes/{equipe.Id}/configuracoes/grupos/testes_desempenho/entidades/relatorio_teste/avaliacao";

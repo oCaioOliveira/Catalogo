@@ -6,14 +6,15 @@ namespace Catalogo.Api.IntegrationTests;
 public class EntidadesApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
 {
     [Fact]
-    public async Task Get_GrupoTestesDesempenho_DevolveAs10EntidadesEOs40CamposDoSeed()
+    public async Task Get_GrupoTestesDesempenho_DevolveAs10EntidadesEOs51CamposAtivosDoSeed()
     {
         var resposta = await Cliente.GetAsync($"{UrlGrupo}/entidades");
 
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
         var entidades = (await LerJson(resposta)).AsArray();
         Assert.Equal(10, entidades.Count);
-        Assert.Equal(40, entidades.Sum(e => e!["campos"]!.AsArray().Count));
+        // V015 + V016: 52 campos, 51 ativos (dados_originais, do relatório, fica inativo: oculto nas telas).
+        Assert.Equal(51, entidades.Sum(e => e!["campos"]!.AsArray().Count));
     }
 
     [Fact]
@@ -29,8 +30,8 @@ public class EntidadesApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         Assert.Equal("projeto", endpoint["dependencia"]!["campoAlvo"]!.GetValue<string>());
 
         var restricao = Assert.Single(cenario["restricoesUnicas"]!.AsArray())!;
-        Assert.Equal("uq_cenario_relatorio_numero", restricao["nome"]!.GetValue<string>());
-        Assert.Equal(["relatorio_teste", "numero_cenario"], restricao["campos"]!.AsArray().Select(c => c!.GetValue<string>()));
+        Assert.Equal("uq_cenario_relatorio_numero_endpoint", restricao["nome"]!.GetValue<string>());
+        Assert.Equal(["relatorio_teste", "endpoint_servico", "numero_cenario"], restricao["campos"]!.AsArray().Select(c => c!.GetValue<string>()));
     }
 
     [Fact]

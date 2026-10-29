@@ -34,7 +34,7 @@ public sealed class DesempenhoPainelTests(BancoDeTestesFixture banco, ITestOutpu
 
         await Medir("relatorio_teste", "agruparPor=ambiente,data_execucao:mes&metricas=contagem,media_avaliacao:qualidade");
         await Medir("cenario_teste", "agruparPor=relatorio_teste.ambiente,relatorio_teste.data_execucao:mes&metricas=media:vazao_media_tps,maximo:percentil_95_ms");
-        await Medir("relatorio_teste", "agruparPor=status_resultado,criadoEm:mes&metricas=contagem&bateria_testes.contem=1");
+        await Medir("relatorio_teste", "agruparPor=status_resultado,criadoEm:mes&metricas=contagem&titulo.contem=1");
     }
 
     private async Task Medir(string entidade, string consulta)
@@ -108,8 +108,9 @@ public sealed class DesempenhoPainelTests(BancoDeTestesFixture banco, ITestOutpu
                 Referencia(r, relatorio, "ambiente", ambientes[aleatorio.Next(ambientes.Count)], ambienteDe["ambiente"]);
                 Referencia(r, relatorio, "status_resultado", status[aleatorio.Next(status.Count)], ambienteDe["status_resultado"]);
                 Valor(r, relatorio, "data_execucao", data: execucao);
-                Valor(r, relatorio, "bateria_testes", texto: $"Bateria {i % 200}");
-                Valor(r, relatorio, "tipo_teste", texto: "Carga");
+                Valor(r, relatorio, "titulo", texto: $"Bateria {i % 200}");
+                Valor(r, relatorio, "bateria_testes", numero: i % 200 + 1);
+                Valor(r, relatorio, "tipo_teste", texto: "API");
                 Valor(r, relatorio, "executado_por", texto: "Gerador");
 
                 var c = NovoRegistro(cenario, criadoEm);

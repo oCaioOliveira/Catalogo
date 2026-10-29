@@ -254,8 +254,9 @@ public abstract class TesteDeApi(BancoDeTestesFixture banco) : IAsyncLifetime
         ["ativo"] = true,
     });
 
+    /// <param name="titulo">O título do relatório (campo de exibição): é por ele que os testes reconhecem cada relatório.</param>
     protected async Task<string> CriarRelatorio(
-        string projeto, string dataExecucao = "2026-10-21T14:30:00-03:00", string bateria = "Bateria 1", string? rtc = null)
+        string projeto, string dataExecucao = "2026-10-21T14:30:00-03:00", string titulo = "Bateria 1", string? rtc = null)
     {
         rtc ??= await CriarRtc();
         var ambiente = await Criar("ambiente", new JsonObject { ["nome"] = "Homologação " + Guid.NewGuid().ToString("N")[..6] });
@@ -267,9 +268,10 @@ public abstract class TesteDeApi(BancoDeTestesFixture banco) : IAsyncLifetime
             ["rtc"] = rtc,
             ["ambiente"] = ambiente,
             ["status_resultado"] = status,
+            ["titulo"] = titulo,
             ["data_execucao"] = dataExecucao,
-            ["bateria_testes"] = bateria,
-            ["tipo_teste"] = "Carga",
+            ["bateria_testes"] = 1,
+            ["tipo_teste"] = "API",
             ["executado_por"] = "Equipe de Desempenho",
         });
     }

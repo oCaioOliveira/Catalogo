@@ -12,11 +12,24 @@ conectar) está em [`database/README.md`](README.md). A decisão está em
   Os nomes de constraints e índices (`PK_Grupo`, `UQ_RegistroChaveUnica_Valor`...) não mudaram.
 - **Scripts novos (V014 em diante) usam os nomes físicos**: `cat.CATTB011_REGISTRO`, `NU_NSU_REGISTRO`. Tabela ou coluna nova entra
   também no `NomesBanco` (senão o modelo do EF falha ao subir).
+- **Regra de nomes para tabela ou coluna NOVA** (o padrão da casa, igual ao das 23 existentes):
+  - tabela `cat.CATTB<NNN>_<NOME>`: próximo número livre com 3 dígitos (hoje `CATTB024`), nome em maiúsculas com `_`, sem acento;
+  - chave primária `NU_NSU_<TABELA>` (`uniqueidentifier`); chave estrangeira `NU_NSU_CE_<TABELA_REFERENCIADA>_<SIGLA>` (ex.:
+    `NU_NSU_CE_ENTIDADE_IMP`); outras referências a usuário/registro sem FK, `NU_<PAPEL>` (ex.: `NU_USUARIO_DECISAO`);
+  - demais colunas pelo tipo: `NU_` número, `CO_` código/chave, `NO_` nome, `DE_` descrição/texto/JSON, `DH_` data e hora, `DT_` data,
+    `IC_` indicador (`bit`), `VR_` valor; nome genérico leva a sigla da tabela no fim (`IC_ATIVO_USR`, `DH_CRIADO_IMP`, `NU_VERSAO_REG`);
+  - textos `nvarchar ... COLLATE Latin1_General_CI_AI`; constraints e índices com nome lógico (`PK_Tabela`, `FK_Tabela_Outra`...);
+  - toda tabela e coluna nova entra no `NomesBanco` (e no de-para do `docs/modelo-de-dados.md`) no mesmo PR.
+- **No Docker local, a estrutura do schema cat nasce do `V014`** (vazia, ao lado das tabelas antigas): o `aplicar_scripts.sh` usa só
+  `cat.CATTB023_VERSAO_SCHEMA` e, se ela não existir, roda o `V014` primeiro (que registra 1 a 13 como consolidadas). O `V001` a
+  `V013` não rodam mais aqui; as tabelas antigas do schema `catalogo` e os dados delas ficam intactos.
 - **SQL Server 2014 (nível 120)** no banco da CAIXA (`CATDB001`): nada de `ISJSON`, `OPENJSON`, `STRING_AGG`, `CREATE OR ALTER`,
   `DROP ... IF EXISTS`, `TRIM`. O `sp_rename` não renomeia coluna usada em CHECK: remova e recrie o CHECK (como o V013).
 - **Testes de integração no banco da CAIXA**: o login não cria outro banco, então os testes usam o schema `cat_testes` no `CATDB001`,
   montado por `./ferramentas/estrutura_padrao_caixa.ps1 -Modo SchemaTestes` (com a carga da área testes_desempenho). Rode de novo depois
-  de cada `V0xx` novo.
+  de cada `V0xx` novo. **No Docker local**, os testes usam o banco `ListagemGenerica_Testes`, schema `cat` (sem `SchemaTestes`), criado
+  pelo `V014`, com a área testes_desempenho carregada pelo `V015` (os testes de integração contam com ela: `TesteDeApi.InitializeAsync`
+  habilita o grupo do seed para a equipe padrão).
 - `./ferramentas/executar_script_sql.ps1` executa um `.sql` como o SSMS (lotes por `GO`, mesma sessão), para quem não tem SSMS.
 
 ## Schema `catalogo` (V012, substituído pelo V013)
@@ -122,10 +135,13 @@ conectar) está em [`database/README.md`](README.md). A decisão está em
 ## Ferramentas (`ferramentas/`)
 
 - `gerar_carga_area.sh <area> <saida.sql> [banco]`: lê a configuração de UMA área de gestão (só metadados, mesmos GUIDs) e escreve
-  um script de carga para o SSMS, que confere a versão da estrutura, para se a área já existir e se autoconfere (quantidades e
-  impressão digital) antes do `COMMIT`. É o caminho para levar **outras áreas** para produção. Nunca edite a carga gerada: gere de novo.
-  A área nasce sem equipes.
-- `impressao_digital_area.sql`: trecho que descreve a configuração de uma área em linhas canônicas e calcula o SHA-256. É copiado
-  para a carga gerada (autoconferência) e usado pelo `comparar_bancos.sh`; mudou o trecho, gere a carga de novo.
+  um script de carga **no padrão da CAIXA** (schema `cat`, nomes físicos, SQL Server 2014) para o SSMS, que confere a estrutura
+  (versão 13 ou maior), para se a área já existir e se autoconfere (quantidades e impressão digital) antes do `COMMIT`. A origem é o
+  schema `cat` (`ler_area_cat.sql`) ou, com `ORIGEM=catalogo`, as tabelas antigas do banco local (`ler_area_catalogo.sql`). É o
+  caminho para levar áreas para produção (ex.: `V015` e `entrega/2026-10-28-area-testes-desempenho/`). Nunca edite a carga gerada:
+  gere de novo. A área nasce sem equipes.
+- `impressao_digital_area.sql`: trecho que descreve a configuração de uma área (lida para as tabelas `#Area*`) em linhas canônicas e
+  calcula o SHA-256 em partes (o `HASHBYTES` do 2014 aceita até 8000 bytes). É copiado para a carga gerada (autoconferência); mudou
+  o trecho, gere a carga de novo.
 - `descrever_estrutura.sql` e `comparar_bancos.sh <banco_a> <banco_b> [area]`: comparam a estrutura do schema (pelos catálogos do
   sistema, por nome) e a configuração de uma área entre dois bancos do container local. Saem com 0 só sem nenhuma diferença.

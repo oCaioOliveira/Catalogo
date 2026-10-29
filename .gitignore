@@ -11,3 +11,8 @@ TestResults/
 
 # Estado local de tarefas longas (progresso, retomadas)
 database/.estado/
+
+# Dados de produção da migração do SharePoint (origem e saídas)
+database/migracao/origem/
+database/migracao/saida/
+database/entrega/2026-10-28-migracao-sharepoint/02_migracao_parte_*.sql

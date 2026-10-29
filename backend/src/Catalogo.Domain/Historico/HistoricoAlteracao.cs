@@ -46,6 +46,12 @@ public enum OrigemHistorico
 {
     /// <summary>Gravado por uma importação de planilha (RN97); o CorrelacaoId é o da importação.</summary>
     Importacao,
+
+    /// <summary>
+    /// Gravado pela migração dos relatórios de testes de desempenho do SharePoint (V017, docs/migracao-sharepoint.md); o
+    /// CorrelacaoId é um só para toda a migração.
+    /// </summary>
+    MigracaoSharePoint,
 }
 
 /// <summary>Conversores para o texto do banco ("REGISTRO", "CRIACAO"...).</summary>
@@ -98,12 +104,14 @@ public static class HistoricoConversor
     public static string ParaTexto(OrigemHistorico origem) => origem switch
     {
         OrigemHistorico.Importacao => "IMPORTACAO",
+        OrigemHistorico.MigracaoSharePoint => "MIGRACAO_SHAREPOINT",
         _ => throw new ArgumentOutOfRangeException(nameof(origem), origem, null),
     };
 
     public static OrigemHistorico OrigemDeTexto(string texto) => texto switch
     {
         "IMPORTACAO" => OrigemHistorico.Importacao,
+        "MIGRACAO_SHAREPOINT" => OrigemHistorico.MigracaoSharePoint,
         _ => throw new ArgumentOutOfRangeException(nameof(texto), texto, null),
     };
 }

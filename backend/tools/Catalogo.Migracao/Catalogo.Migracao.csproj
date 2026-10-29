@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Gerador dos scripts da migração dos relatórios de testes de desempenho do SharePoint (docs/migracao-sharepoint.md).
+    Reaproveita o código da aplicação (validadores, conversão das células, sincronização de Dados/valores/referências, chaves
+    únicas, histórico e nomes físicos) para que os dados gravados sejam os mesmos que o sistema gravaria pela tela.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Catalogo.Domain\Catalogo.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Catalogo.Application\Catalogo.Application.csproj" />
+    <ProjectReference Include="..\..\src\Catalogo.Infrastructure\Catalogo.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AngleSharp" />
+    <!-- Configuração (user-secrets da API), injeção de dependência e logging, sem pacotes a mais. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Catalogo.Migracao.Tests" />
+  </ItemGroup>
+
+</Project>

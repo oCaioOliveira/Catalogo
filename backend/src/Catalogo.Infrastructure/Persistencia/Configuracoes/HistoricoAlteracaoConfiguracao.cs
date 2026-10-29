@@ -21,8 +21,8 @@ internal sealed class HistoricoAlteracaoConfiguracao : IEntityTypeConfiguration<
                 "AlvoTipo IN ('REGISTRO','USUARIO','EQUIPE','CONFIGURACAO','MODELO_AVALIACAO','AVALIACAO','METADADO')");
             tabela.HasCheckConstraint("CK_HistoricoAlteracao_Operacao", "Operacao IN ('CRIACAO','ALTERACAO','EXCLUSAO','APROVACAO','REJEICAO')");
             // V013: sem os CHECKs de ISJSON (SQL Server 2014); o JSON é sempre gerado pela aplicação.
-            // V011: a origem da gravação (nula = cadastro manual).
-            tabela.HasCheckConstraint("CK_HistoricoAlteracao_Origem", "Origem IS NULL OR Origem IN ('IMPORTACAO')");
+            // V011 e V017: a origem da gravação (nula = cadastro manual).
+            tabela.HasCheckConstraint("CK_HistoricoAlteracao_Origem", "Origem IS NULL OR Origem IN ('IMPORTACAO', 'MIGRACAO_SHAREPOINT')");
         });
 
         builder.HasKey(h => h.Id).HasName("PK_HistoricoAlteracao");

@@ -20,7 +20,7 @@ public class ImportacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
     private static readonly string Comunidades = UrlEntidade(BancoDeTestesFixture.GrupoDoSeed, "comunidade");
 
     private static readonly string[] CabecalhosRelatorio =
-        ["projeto", "rtc", "ambiente", "status_resultado", "data_execucao", "bateria_testes", "tipo_teste", "executado_por"];
+        ["titulo", "projeto", "rtc", "ambiente", "status_resultado", "data_execucao", "bateria_testes", "tipo_teste", "executado_por"];
 
     /// <summary>Projeto "Transferências Alfa", RTC "RTC-100", ambiente "Homologação" e status "Aprovado", na equipe dos atalhos.</summary>
     private async Task<string> CriarApoioAsync(string projeto = "Transferências Alfa")
@@ -32,8 +32,8 @@ public class ImportacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         return id;
     }
 
-    private static object?[] LinhaRelatorio(string bateria, string projeto = "transferencias alfa", object? data = null) =>
-        [projeto, "RTC-100", "HOMOLOGACAO", "Aprovado", data ?? "21/10/2026 14:30", bateria, "Carga", "Ana"];
+    private static object?[] LinhaRelatorio(string titulo, string projeto = "transferencias alfa", object? data = null) =>
+        [titulo, projeto, "RTC-100", "HOMOLOGACAO", "Aprovado", data ?? "21/10/2026 14:30", 1, "API", "Ana"];
 
     // ---- Modelo ----
 
@@ -49,12 +49,13 @@ public class ImportacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         using var pasta = new XLWorkbook(await resposta.Content.ReadAsStreamAsync());
         var dados = pasta.Worksheet(1);
         var cabecalhos = dados.Row(1).CellsUsed().Select(c => c.GetString()).ToList();
-        Assert.Equal(12, cabecalhos.Count);
-        Assert.All(cabecalhos.Take(8), c => Assert.EndsWith(" *", c));           // os 8 obrigatórios, na ordem do formulário
+        Assert.Equal(20, cabecalhos.Count);                                      // os 20 campos ativos (dados_originais é inativo)
+        Assert.Equal(8, cabecalhos.Count(c => c.EndsWith(" *")));                // os 8 obrigatórios marcados, na ordem do formulário
+        Assert.Equal("Título *", cabecalhos[0]);
         Assert.DoesNotContain(cabecalhos, c => c.StartsWith("Equipe"));          // o administrador tem uma equipe habilitada só
-        Assert.Contains(dados.DataValidations, v => v.Ranges.Any(r => r.FirstColumn().ColumnNumber() == 3)); // Ambiente: lista suspensa
+        Assert.Contains(dados.DataValidations, v => v.Ranges.Any(r => r.FirstColumn().ColumnNumber() == 4)); // Ambiente: lista suspensa
         Assert.Equal(XLWorksheetVisibility.Hidden, pasta.Worksheet("Listas").Visibility);
-        Assert.Equal("dd/mm/yyyy hh:mm", dados.Cell(2, 5).Style.DateFormat.Format); // data de execução
+        Assert.Equal("dd/mm/yyyy hh:mm", dados.Cell(2, 6).Style.DateFormat.Format); // data de execução
         var instrucoes = pasta.Worksheet("Instruções");
         Assert.Contains(instrucoes.CellsUsed(), c => c.GetString().Contains("pelo NOME do item"));
     }
@@ -91,16 +92,16 @@ public class ImportacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         var referencia = Linha(previa, 2)["referencias"]!.AsArray().First(r => r!["campo"]!.GetValue<string>() == "projeto")!;
         Assert.Equal(projeto, referencia["id"]!.GetValue<string>());
         Assert.Equal("Transferências Alfa", referencia["nome"]!.GetValue<string>()); // resolvido sem diferenciar maiúsculas e acentos
-        Assert.Equal([0], ColunasComErro(previa, 3));                               // o erro está na célula do projeto
+        Assert.Equal([1], ColunasComErro(previa, 3));                               // o erro está na célula do projeto
         Assert.Contains("Projeto que não existe", Mensagens(previa, 3)[0]);
-        Assert.Equal([4], ColunasComErro(previa, 4));                               // data inválida
+        Assert.Equal([5], ColunasComErro(previa, 4));                               // data inválida
         Assert.Equal(0, (await ListarOk("relatorio_teste"))["total"]!.GetValue<int>()); // a prévia não grava nada
 
         var resumo = await OkAsync(await ExecutarAsync(Cliente, Relatorios, id));
 
         Assert.Equal("CONCLUIDA", resumo["situacao"]!.GetValue<string>());
-        var lista = await ListarOk("relatorio_teste", "ordenacao=bateria_testes");
-        Assert.Equal(["Bateria 1", "Bateria 4"], lista["itens"]!.AsArray().Select(i => i!["dados"]!["bateria_testes"]!.GetValue<string>()));
+        var lista = await ListarOk("relatorio_teste", "ordenacao=titulo");
+        Assert.Equal(["Bateria 1", "Bateria 4"], lista["itens"]!.AsArray().Select(i => i!["dados"]!["titulo"]!.GetValue<string>()));
         Assert.Equal("2026-10-22T12:15:00Z", lista["itens"]![1]!["dados"]!["data_execucao"]!.GetValue<string>()); // data do Excel, fuso de negócio
 
         var item = lista["itens"]![0]!["id"]!.GetValue<string>();
@@ -157,12 +158,12 @@ public class ImportacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
         using var pasta = new XLWorkbook(await resposta.Content.ReadAsStreamAsync());
         var aba = pasta.Worksheet(1);
-        Assert.Equal("Resultado", aba.Cell(1, 9).GetString());
-        Assert.Equal("Mensagens", aba.Cell(1, 10).GetString());
-        Assert.Equal("B1", aba.Cell(2, 6).GetString());
-        Assert.Equal("Criado", aba.Cell(2, 9).GetString());
-        Assert.Equal("Erro", aba.Cell(3, 9).GetString());
-        Assert.StartsWith("projeto: ", aba.Cell(3, 10).GetString());
+        Assert.Equal("Resultado", aba.Cell(1, 10).GetString());
+        Assert.Equal("Mensagens", aba.Cell(1, 11).GetString());
+        Assert.Equal("B1", aba.Cell(2, 1).GetString());
+        Assert.Equal("Criado", aba.Cell(2, 10).GetString());
+        Assert.Equal("Erro", aba.Cell(3, 10).GetString());
+        Assert.StartsWith("projeto: ", aba.Cell(3, 11).GetString());
     }
 
     // ---- Referências (RN99) ----
@@ -213,7 +214,7 @@ public class ImportacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         var (_, previa) = await Previa(interno, Relatorios, Xlsx(cabecalhos, [.. LinhaRelatorio("B1", projeto: ""), projetoBeta]));
 
         Assert.Equal("ERRO", Situacao(previa, 2));
-        Assert.Equal([8], ColunasComErro(previa, 2));
+        Assert.Equal([9], ColunasComErro(previa, 2));
         Assert.DoesNotContain(Linha(previa, 2)["referencias"]!.AsArray(), r => r!["id"]!.GetValue<string>() == projetoBeta);
     }
 
@@ -284,9 +285,10 @@ public class ImportacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         await OkAsync(await ExecutarAsync(Cliente, Cenarios, idPrimeira));
         var antes = (await ListarOk("cenario_teste"))["itens"]![0]!["dados"]!;
 
-        // Só as colunas da chave (Relatório + Nº do cenário) e a vazão: o endpoint (uma referência) e os outros números ficam.
+        // Só as colunas da chave (Relatório + Nº do cenário + Endpoint) e a vazão: os outros números ficam.
         var (id, previa) = await Previa(Cliente, Cenarios,
-            Xlsx(["relatorio_teste", "numero_cenario", "vazao_media_tps"], ["Relatório A", 1, 77.25]), duplicados: "ATUALIZAR");
+            Xlsx(["relatorio_teste", "numero_cenario", "endpoint_servico", "vazao_media_tps"], ["Relatório A", 1, "consulta", 77.25]),
+            duplicados: "ATUALIZAR");
         await OkAsync(await ExecutarAsync(Cliente, Cenarios, id));
 
         Assert.Equal("ATUALIZACAO", Situacao(previa, 2));
@@ -453,7 +455,7 @@ public class ImportacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         var item = (await ListarOk("relatorio_teste"))["itens"]![0]!;
         var lido = await Ler("relatorio_teste", item["id"]!.GetValue<string>());
         var dados = lido["dados"]!.AsObject().ToDictionary(p => p.Key, p => p.Value is JsonObject r ? r["id"]!.DeepClone() : p.Value?.DeepClone());
-        dados["tipo_teste"] = "Estresse";
+        dados["tipo_teste"] = "WEB";
         Assert.Equal(HttpStatusCode.OK, (await Atualizar("relatorio_teste", item["id"]!.GetValue<string>(), ComVersao(lido, new JsonObject(dados)))).StatusCode);
 
         var resposta = await DesfazerAsync(Cliente, Relatorios, id);
@@ -613,7 +615,7 @@ public class ImportacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         return (await CriarRelatorioNomeado(projeto, "Relatório A"), CabecalhosCenario);
     }
 
-    private async Task<string> CriarRelatorioNomeado(string projeto, string bateria)
+    private async Task<string> CriarRelatorioNomeado(string projeto, string titulo)
     {
         var rtc = (await ListarOk("rtc"))["itens"]![0]!["id"]!.GetValue<string>();
         var ambiente = (await ListarOk("ambiente"))["itens"]![0]!["id"]!.GetValue<string>();
@@ -621,7 +623,7 @@ public class ImportacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         return await Criar("relatorio_teste", new JsonObject
         {
             ["projeto"] = projeto, ["rtc"] = rtc, ["ambiente"] = ambiente, ["status_resultado"] = status,
-            ["data_execucao"] = "2026-10-21T14:30:00-03:00", ["bateria_testes"] = bateria, ["tipo_teste"] = "Carga", ["executado_por"] = "Ana",
+            ["titulo"] = titulo, ["data_execucao"] = "2026-10-21T14:30:00-03:00", ["bateria_testes"] = 1, ["tipo_teste"] = "API", ["executado_por"] = "Ana",
         });
     }
 

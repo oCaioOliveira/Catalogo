@@ -60,7 +60,7 @@ public class ListarRegistrosApiTests(BancoDeTestesFixture banco) : TesteDeApi(ba
 
         var outubro = await ListarOk("relatorio_teste", "data_execucao.de=2026-10-01&data_execucao.ate=2026-10-31&ordenacao=data_execucao");
 
-        Assert.Equal(["Primeiro dia", "Último dia"], Valores(outubro, "bateria_testes"));
+        Assert.Equal(["Primeiro dia", "Último dia"], Valores(outubro, "titulo"));
     }
 
     [Fact]

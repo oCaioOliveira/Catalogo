@@ -36,11 +36,11 @@ public class RelacionadosApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco
     public async Task Projeto_RelatoriosEEndpoints_ComAQuantidade_EZeroTambemVem()
     {
         var projeto = await CriarProjeto("P1");
-        await CriarRelatorio(projeto, bateria: "B1");
-        await CriarRelatorio(projeto, bateria: "B2");
+        await CriarRelatorio(projeto, titulo: "B1");
+        await CriarRelatorio(projeto, titulo: "B2");
         await CriarEndpoint(projeto, "consulta");
         var outro = await CriarProjeto("P2");
-        await CriarRelatorio(outro, bateria: "B3");
+        await CriarRelatorio(outro, titulo: "B3");
 
         var resposta = await LerJson(await Cliente.GetAsync(UrlRelacionados("projeto", projeto)));
         var relacionados = await Relacionados(Cliente, "projeto", projeto);
@@ -192,15 +192,16 @@ public class RelacionadosApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco
         Assert.Contains($"[{NomesBanco.Coluna("Registro", "SituacaoAprovacao")}]", sql);
     }
 
-    private static JsonObject Relatorio(string projeto, string rtc, string ambiente, string status, string bateria) => new()
+    private static JsonObject Relatorio(string projeto, string rtc, string ambiente, string status, string titulo) => new()
     {
         ["projeto"] = projeto,
         ["rtc"] = rtc,
         ["ambiente"] = ambiente,
         ["status_resultado"] = status,
+        ["titulo"] = titulo,
         ["data_execucao"] = "2026-10-21T14:30:00-03:00",
-        ["bateria_testes"] = bateria,
-        ["tipo_teste"] = "Carga",
+        ["bateria_testes"] = 1,
+        ["tipo_teste"] = "API",
         ["executado_por"] = "Equipe",
     };
 }

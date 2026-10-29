@@ -36,8 +36,8 @@ public sealed class PainelApiTests(BancoDeTestesFixture banco) : TesteDeApi(banc
     /// Equipe A (aprovação e modelo "qualidade" ativos em relatorio_teste):
     ///   r1 Homologação, Sucesso, 2026-03 (admin; aprovado)  notas 5, 4, 3 → média 4,0
     ///   r2 Homologação, Falha,   2026-04 (admin; aprovado)  notas 2, 2, 2 → média 2,0
-    ///   r3 Produção,    Sucesso, 2026-03 (admin; aprovado)  notas 5, 5    → média 5,0 (só 2 notas: fora do ranking); tipo Estresse
-    ///      (os demais são do tipo Carga)
+    ///   r3 Produção,    Sucesso, 2026-03 (admin; aprovado)  notas 5, 5    → média 5,0 (só 2 notas: fora do ranking); tecnologia WEB
+    ///      (os demais são da tecnologia API)
     ///   r4 Produção,    Falha,   2026-04 (EXTERNO; aprovado 2 h depois de criado)
     ///   r5 Produção,    Falha,   2026-04 (EXTERNO; rejeitado 4 h depois de criado)
     ///   r6 Produção,    Falha,   2026-04 (EXTERNO; pendente, criado há 10 dias)
@@ -78,7 +78,7 @@ public sealed class PainelApiTests(BancoDeTestesFixture banco) : TesteDeApi(banc
 
         _r1 = await Criar("relatorio_teste", Relatorio(_projetoA, _rtcA, _homologacao, _sucesso, "2026-03-10T10:00:00-03:00", "Bateria 1"));
         _r2 = await Criar("relatorio_teste", Relatorio(_projetoA, _rtcA, _homologacao, _falha, "2026-04-05T10:00:00-03:00", "Bateria 2"));
-        _r3 = await Criar("relatorio_teste", Relatorio(_projetoA, _rtcA, _producao, _sucesso, "2026-03-20T10:00:00-03:00", "Bateria 3", "Estresse"));
+        _r3 = await Criar("relatorio_teste", Relatorio(_projetoA, _rtcA, _producao, _sucesso, "2026-03-20T10:00:00-03:00", "Bateria 3", "WEB"));
         _r4 = await CriarComo(_externoA, Relatorio(_projetoA, _rtcA, _producao, _falha, "2026-04-10T10:00:00-03:00", "Bateria 4"));
         _r5 = await CriarComo(_externoA, Relatorio(_projetoA, _rtcA, _producao, _falha, "2026-04-11T10:00:00-03:00", "Bateria 5"));
         _r6 = await CriarComo(_externoA, Relatorio(_projetoA, _rtcA, _producao, _falha, "2026-04-12T10:00:00-03:00", "Bateria 6"));
@@ -254,7 +254,7 @@ public sealed class PainelApiTests(BancoDeTestesFixture banco) : TesteDeApi(banc
         Assert.Equal(0, abril["criadosNoPeriodo"]!.GetValue<int>());
         Assert.Equal("""[{"mes":"2026-03","quantidade":1}]""", serie.ToJsonString());
 
-        var porMes = await Indicadores(_gestorA, "relatorio_teste", "bateria_testes=Fuso&agruparPor=criadoEm:mes");
+        var porMes = await Indicadores(_gestorA, "relatorio_teste", "titulo=Fuso&agruparPor=criadoEm:mes");
         Assert.Equal("2026-03", porMes["linhas"]![0]!["criadoEm:mes"]!.GetValue<string>());
     }
 
@@ -333,7 +333,7 @@ public sealed class PainelApiTests(BancoDeTestesFixture banco) : TesteDeApi(banc
     {
         await PrepararAsync();
 
-        Assert.Equal(1, Total(await Indicadores(_gestorA, "relatorio_teste", "bateria_testes=Bateria 1")));
+        Assert.Equal(1, Total(await Indicadores(_gestorA, "relatorio_teste", "titulo=Bateria 1")));
         Assert.Equal(1, Total(await Indicadores(_gestorA, "relatorio_teste", "situacaoAprovacao=PENDENTE")));
         Assert.Equal(4, Total(await Indicadores(_gestorA, "relatorio_teste", $"status_resultado={_falha}")));
         Assert.Equal(1, Total(await Indicadores(_gestorA, "relatorio_teste", "avaliacao.qualidade.de=4.5")));
@@ -403,9 +403,9 @@ public sealed class PainelApiTests(BancoDeTestesFixture banco) : TesteDeApi(banc
         await PrepararAsync();
 
         var resultado = await Indicadores(_gestorA, "cenario_teste",
-            "agruparPor=relatorio_teste.ambiente&metricas=media:vazao_media_tps&relatorio_teste.tipo_teste=Carga");
+            "agruparPor=relatorio_teste.ambiente&metricas=media:vazao_media_tps&relatorio_teste.tipo_teste=API");
 
-        // Cenários de relatórios do tipo Carga: r1 (10, 20) e r2 (30), ambos em Homologação. O de r3 (Estresse, 100) fica fora.
+        // Cenários de relatórios da tecnologia API: r1 (10, 20) e r2 (30), ambos em Homologação. O de r3 (WEB, 100) fica fora.
         var linha = Assert.Single(resultado["linhas"]!.AsArray())!;
         Assert.Equal("Homologação", linha["relatorio_teste.ambiente"]!["rotulo"]!.GetValue<string>());
         Assert.Equal(3, linha["contagem"]!.GetValue<int>());
@@ -432,8 +432,8 @@ public sealed class PainelApiTests(BancoDeTestesFixture banco) : TesteDeApi(banc
     {
         await PrepararAsync();
 
-        // 1 salto: cenários de relatórios do tipo Estresse (só o de r3).
-        var porTipo = await ListarOk("cenario_teste", "relatorio_teste.tipo_teste=Estresse");
+        // 1 salto: cenários de relatórios da tecnologia WEB (só o de r3).
+        var porTipo = await ListarOk("cenario_teste", "relatorio_teste.tipo_teste=WEB");
         Assert.Equal(100m, Assert.Single(porTipo["itens"]!.AsArray())!["dados"]!["vazao_media_tps"]!.GetValue<decimal>());
 
         // 2 saltos: cenários cujo relatório está num ambiente de nome "Produção" (o mesmo cenário).
@@ -447,7 +447,7 @@ public sealed class PainelApiTests(BancoDeTestesFixture banco) : TesteDeApi(banc
     public async Task Caminho_NuncaExpoeDadosDeOutraEquipe()
     {
         await PrepararAsync();
-        // Equipe B: um relatório em Produção, do tipo Carga, com um cenário de vazão 999.
+        // Equipe B: um relatório em Produção, da tecnologia API, com um cenário de vazão 999.
         EquipeDosAtalhos = _equipeB;
         var endpointB = await CriarEndpoint(_projetoB, "consulta");
         var relatorioB = await Criar("relatorio_teste", Relatorio(_projetoB, _rtcB, _producao, _sucesso, "2026-03-01T10:00:00-03:00", "Bateria B2"));
@@ -458,7 +458,7 @@ public sealed class PainelApiTests(BancoDeTestesFixture banco) : TesteDeApi(banc
         Assert.Equal(4, porAmbiente["linhas"]!.AsArray().Sum(l => l!["contagem"]!.GetValue<int>()));
         Assert.DoesNotContain(porAmbiente["linhas"]!.AsArray(), l => l!["maximo:vazao_media_tps"]!.GetValue<decimal>() == 999m);
         Assert.Equal(0, Total(await Indicadores(_gestorA, "cenario_teste", $"relatorio_teste.projeto={_projetoB}")));
-        Assert.Equal(0, Total(await Indicadores(_gestorA, "cenario_teste", "relatorio_teste.bateria_testes=Bateria B2")));
+        Assert.Equal(0, Total(await Indicadores(_gestorA, "cenario_teste", "relatorio_teste.titulo=Bateria B2")));
         Assert.Equal(0, (await Ler(await _gestorA.GetAsync($"{UrlRegistros("cenario_teste")}?relatorio_teste.projeto={_projetoB}")))["total"]!.GetValue<int>());
 
         // E o gestor da Equipe B vê só o dele, pelos mesmos caminhos.
@@ -566,14 +566,15 @@ public sealed class PainelApiTests(BancoDeTestesFixture banco) : TesteDeApi(banc
         $"/api/v1/equipes/{_equipeA.Id}/configuracoes/grupos/testes_desempenho/entidades/relatorio_teste/{recurso}";
 
     private static JsonObject Relatorio(
-        string projeto, string rtc, string ambiente, string status, string dataExecucao, string bateria, string tipo = "Carga") => new()
+        string projeto, string rtc, string ambiente, string status, string dataExecucao, string titulo, string tipo = "API") => new()
     {
         ["projeto"] = projeto,
         ["rtc"] = rtc,
         ["ambiente"] = ambiente,
         ["status_resultado"] = status,
+        ["titulo"] = titulo,
         ["data_execucao"] = dataExecucao,
-        ["bateria_testes"] = bateria,
+        ["bateria_testes"] = 1,
         ["tipo_teste"] = tipo,
         ["executado_por"] = "Equipe de Desempenho",
     };
