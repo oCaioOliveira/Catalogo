@@ -59,13 +59,7 @@ public sealed class ImportacoesController(
     public async Task<ActionResult<ImportacaoEnviadaDto>> Enviar(
         string grupo, string entidade, IFormFile? arquivo, CancellationToken cancellationToken)
     {
-        byte[]? conteudo = null;
-        if (arquivo is not null)
-        {
-            using var memoria = new MemoryStream();
-            await arquivo.CopyToAsync(memoria, cancellationToken);
-            conteudo = memoria.ToArray();
-        }
+        var conteudo = await LerConteudoAsync(arquivo, cancellationToken);
 
         var enviada = await enviar.ExecutarAsync(grupo, entidade, arquivo?.FileName, conteudo, cancellationToken);
         logger.LogInformation("Importação {ImportacaoId} enviada em {Grupo}/{Entidade}: {Linhas} linhas", enviada.Id, grupo, entidade, enviada.TotalLinhas);
@@ -159,5 +153,17 @@ public sealed class ImportacoesController(
         var resumo = await desfazer.ExecutarAsync(grupo, entidade, id, cancellationToken);
         logger.LogInformation("Importação {ImportacaoId} desfeita em {Grupo}/{Entidade}", id, grupo, entidade);
         return Ok(resumo);
+    }
+
+    private static Task<byte[]?> LerConteudoAsync(IFormFile? arquivo, CancellationToken cancellationToken) =>
+        arquivo is null
+            ? Task.FromResult<byte[]?>(null)
+            : LerConteudoDeArquivoAsync(arquivo, cancellationToken);
+
+    private static async Task<byte[]?> LerConteudoDeArquivoAsync(IFormFile arquivo, CancellationToken cancellationToken)
+    {
+        using var memoria = new MemoryStream();
+        await arquivo.CopyToAsync(memoria, cancellationToken);
+        return memoria.ToArray();
     }
 }

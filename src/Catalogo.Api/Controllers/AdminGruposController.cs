@@ -52,11 +52,9 @@ public sealed class AdminGruposController(
         [FromBody] GrupoEntrada entrada, [FromQuery] bool simular, CancellationToken cancellationToken)
     {
         var resultado = await criarGrupo.ExecutarAsync(entrada, simular, cancellationToken);
-        if (resultado.Simulado)
-            return Ok(resultado);
-
-        logger.LogInformation("Grupo {Grupo} criado", resultado.Grupo!.Chave);
-        return CreatedAtAction(nameof(Obter), new { grupo = resultado.Grupo.Chave }, resultado);
+        return resultado.Simulado
+            ? Ok(resultado)
+            : Criado(resultado);
     }
 
     /// <summary>Altera nome e descrição, com a "versao" do grupo (RN52). A chave, se vier, tem de ser a mesma (RN51).</summary>
@@ -122,9 +120,20 @@ public sealed class AdminGruposController(
         string grupo, [FromBody] EquipesListagemEntrada entrada, [FromQuery] bool simular, CancellationToken cancellationToken)
     {
         var resultado = await definirEquipes.ExecutarAsync(grupo, entrada, simular, cancellationToken);
-        if (!resultado.Simulado)
-            logger.LogInformation("Equipes habilitadas na listagem {Grupo} alteradas", grupo);
+        _ = resultado.Simulado ? 0 : RegistrarAlteracaoEquipes(grupo);
         return Ok(resultado);
+    }
+
+    private CreatedAtActionResult Criado(ResultadoAdministracaoDto resultado)
+    {
+        logger.LogInformation("Grupo {Grupo} criado", resultado.Grupo!.Chave);
+        return CreatedAtAction(nameof(Obter), new { grupo = resultado.Grupo.Chave }, resultado);
+    }
+
+    private int RegistrarAlteracaoEquipes(string grupo)
+    {
+        logger.LogInformation("Equipes habilitadas na listagem {Grupo} alteradas", grupo);
+        return 0;
     }
 
     /// <summary>

@@ -35,11 +35,9 @@ public sealed class AdminEntidadesController(
         string grupo, [FromBody] EntidadeEntrada entrada, [FromQuery] bool simular, CancellationToken cancellationToken)
     {
         var resultado = await criarEntidade.ExecutarAsync(grupo, entrada, simular, cancellationToken);
-        if (resultado.Simulado)
-            return Ok(resultado);
-
-        logger.LogInformation("Entidade {Entidade} criada no grupo {Grupo}", entrada.Chave, grupo);
-        return CreatedAtAction(nameof(AdminGruposController.Obter), "AdminGrupos", new { grupo }, resultado);
+        return resultado.Simulado
+            ? Ok(resultado)
+            : Criada(grupo, entrada.Chave ?? string.Empty, resultado);
     }
 
     /// <summary>
@@ -89,6 +87,12 @@ public sealed class AdminEntidadesController(
     {
         var resultado = await criarRestricao.ExecutarAsync(grupo, entidade, entrada, simular, cancellationToken);
         return resultado.Simulado ? Ok(resultado) : CreatedAtAction(nameof(AdminGruposController.Obter), "AdminGrupos", new { grupo }, resultado);
+    }
+
+    private CreatedAtActionResult Criada(string grupo, string chaveEntidade, ResultadoAdministracaoDto resultado)
+    {
+        logger.LogInformation("Entidade {Entidade} criada no grupo {Grupo}", chaveEntidade, grupo);
+        return CreatedAtAction(nameof(AdminGruposController.Obter), "AdminGrupos", new { grupo }, resultado);
     }
 
     /// <summary>Remove a restrição única e as chaves dela (RN72).</summary>
