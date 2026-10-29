@@ -7,7 +7,7 @@
             "type": "process",
             "args": [
                 "build",
-                "${workspaceFolder}/backend/src/Catalogo.Api/Catalogo.Api.csproj",
+                "${workspaceFolder}/src/Catalogo.Api/Catalogo.Api.csproj",
                 "/property:GenerateFullPaths=true",
                 "/consoleloggerparameters:NoSummary"
             ],
@@ -19,7 +19,7 @@
             "type": "process",
             "args": [
                 "publish",
-                "${workspaceFolder}/backend/src/Catalogo.Api/Catalogo.Api.csproj",
+                "${workspaceFolder}/src/Catalogo.Api/Catalogo.Api.csproj",
                 "--configuration",
                 "Release",
                 "/property:GenerateFullPaths=true",
@@ -34,7 +34,7 @@
             "args": [
                 "watch",
                 "--project",
-                "${workspaceFolder}/backend/src/Catalogo.Api/Catalogo.Api.csproj",
+                "${workspaceFolder}/src/Catalogo.Api/Catalogo.Api.csproj",
                 "run",
                 "--launch-profile",
                 "Development"
@@ -46,10 +46,10 @@
             "type": "process",
             "command": "dotnet",
             "args": [
-                "${workspaceFolder}/backend/src/Catalogo.Api/bin/Debug/net8.0/Catalogo.Api.dll"
+                "${workspaceFolder}/src/Catalogo.Api/bin/Debug/net8.0/Catalogo.Api.dll"
             ],
             "options": {
-                "cwd": "${workspaceFolder}/backend/src/Catalogo.Api/bin/Debug/net8.0",
+                "cwd": "${workspaceFolder}/src/Catalogo.Api/bin/Debug/net8.0",
                 "env": {
                     "ASPNETCORE_ENVIRONMENT": "Development",
                     "ASPNETCORE_URLS": "http://localhost:5080"
