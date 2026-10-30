@@ -27,12 +27,24 @@ public class ConfiguracaoDeployTests
     };
 
     [Fact]
-    public void AppsettingsVersionado_TemAsSeisChavesNaRaizComOMarcadorDoDeploy_ESemSegredos()
+    public void AppsettingsVersionado_TemAsSeisChavesNaRaiz_EValoresNaoVazios_ESemSegredos()
     {
         var json = JsonNode.Parse(File.ReadAllText(Path.Combine(PastaDaApi(), "appsettings.json")))!.AsObject();
 
         foreach (var chave in ChavesDoDeploy)
-            Assert.Equal($"__{chave}__", json[chave]!.GetValue<string>());
+        {
+            Assert.True(json.ContainsKey(chave), $"{chave} faltando no appsettings.json");
+            var valor = json[chave];
+            if (valor is JsonArray array)
+            {
+                Assert.NotEmpty(array);
+                Assert.All(array, item => Assert.False(string.IsNullOrWhiteSpace(item?.GetValue<string>())));
+                continue;
+            }
+
+            Assert.False(string.IsNullOrWhiteSpace(valor?.GetValue<string>()));
+        }
+
         Assert.False(json.ContainsKey("ConnectionStrings"));
         Assert.False(json.ContainsKey("Cors"));
         Assert.False(json["Jwt"]!.AsObject().ContainsKey("ChaveAssinatura"));
@@ -71,6 +83,23 @@ public class ConfiguracaoDeployTests
         Assert.Contains("ENVIRONMENT, CORS_ALLOW, DB_USER, DB_PASSWORD", erro.Message);
         Assert.DoesNotContain("DB_SERVER", erro.Message);
         Assert.DoesNotContain("DB_DATABASE", erro.Message);
+    }
+
+    [Fact]
+    public void Validar_CorsEmArray_NaoFalha()
+    {
+        var configuracao = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["ENVIRONMENT"] = "PRD",
+            ["CORS_ALLOW:0"] = "http://localhost:4200",
+            ["CORS_ALLOW:1"] = "https://catalogo.caixa",
+            ["DB_DATABASE"] = "CATDB001",
+            ["DB_SERVER"] = "servidor\\instancia,1433",
+            ["DB_USER"] = "usuario_app",
+            ["DB_PASSWORD"] = "S3nha;com=caracteres",
+        }).Build();
+
+        ConfiguracaoDeploy.Validar(configuracao, ConfiguracaoInfraestrutura.ChavesBanco);
     }
 
     [Theory]
@@ -169,6 +198,21 @@ public class ConfiguracaoDeployTests
     }
 
     [Fact]
+    public void LerOrigens_Array_DevolveCadaOrigem()
+    {
+        var configuracao = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>
+        {
+            ["CORS_ALLOW:0"] = "http://localhost:4200",
+            ["CORS_ALLOW:1"] = "https://catalogo.caixa",
+        }).Build();
+
+        var origens = ConfiguracaoCors.LerOrigens(configuracao);
+
+        Assert.False(origens.Todas);
+        Assert.Equal(["http://localhost:4200", "https://catalogo.caixa"], origens.Lista);
+    }
+
+    [Fact]
     public void ArquivoLocal_ValeLogoDepoisDoAppsettings_EAntesDoQueVemDepois()
     {
         var pasta = Directory.CreateTempSubdirectory("catalogo-config-");
@@ -210,7 +254,8 @@ public class ConfiguracaoDeployTests
         var erro = Assert.ThrowsAny<Exception>(() => fabrica.CreateClient());
 
         var mensagem = MensagemCompleta(erro);
-        Assert.Contains("CORS_ALLOW, DB_PASSWORD", mensagem);
+        Assert.Contains("CORS_ALLOW", mensagem);
+        Assert.Contains("DB_PASSWORD", mensagem);
         Assert.Contains("A API não subiu", mensagem);
     }
 

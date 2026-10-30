@@ -45,15 +45,17 @@ public static class ConfiguracaoCors
     /// </summary>
     public static OrigensCors LerOrigens(IConfiguration configuracao)
     {
-        var origens = (configuracao[ChaveOrigens] ?? "")
+        var valor = ConfiguracaoDeploy.LerValor(configuracao, ChaveOrigens) ?? "";
+        var origens = valor
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
         if (origens.Length == 0)
             throw new InvalidOperationException($"{ChaveOrigens} vazio. Liste as origens do front separadas por vírgula, ou \"*\" para liberar todas.");
 
         if (origens.Contains(TodasAsOrigens))
         {
             if (origens.Length > 1)
-                throw new InvalidOperationException($"{ChaveOrigens}: \"*\" libera todas as origens e não pode vir junto de outras ('{configuracao[ChaveOrigens]}').");
+                throw new InvalidOperationException($"{ChaveOrigens}: \"*\" libera todas as origens e não pode vir junto de outras ('{valor}').");
             return new OrigensCors(true, []);
         }
 
