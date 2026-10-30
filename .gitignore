@@ -16,3 +16,6 @@ database/.estado/
 database/migracao/origem/
 database/migracao/saida/
 database/entrega/2026-10-28-migracao-sharepoint/02_migracao_parte_*.sql
+
+# Configuração local da API (DB_PASSWORD...): copie do appsettings.Development.json.exemplo (docs/adr/0053)
+src/Catalogo.Api/appsettings.Development.json

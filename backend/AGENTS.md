@@ -39,7 +39,7 @@ dotnet test --filter "FullyQualifiedName!~IntegrationTests"
 RODAR_TESTES_LENTOS=1 dotnet test --filter "FullyQualifiedName~DesempenhoPainelTests" --logger "console;verbosity=detailed"
 
 # Rodar a API (Swagger UI em http://localhost:5080/swagger)
-dotnet run --project src/Catalogo.Api --launch-profile Development
+dotnet run --project src/Catalogo.Api --launch-profile Local
 ```
 
 ## Regras do back-end
@@ -56,9 +56,10 @@ dotnet run --project src/Catalogo.Api --launch-profile Development
    ([ADR 0003](../docs/adr/0003-schema-por-scripts-sql.md)). Garantido por `SemMigrationsTests`.
 4. **Toda consulta ao banco é EF Core em LINQ**: proibido `SqlQueryRaw`, `FromSql*`, `ExecuteSql*` e
    Dapper ([ADR 0011](../docs/adr/0011-consultas-somente-linq.md)). Garantido por `SemSqlManualTests`.
-5. **Segredos**: connection string (`ConnectionStrings:Catalogo`) e chave do JWT (`Jwt:ChaveAssinatura`)
-   ficam vazias nos `appsettings*.json`. O valor vem do user-secrets (desenvolvimento) ou de variáveis de
-   ambiente (servidores). Ver [`docs/seguranca.md`](../docs/seguranca.md).
+5. **Configuração e segredos** ([ADR 0053](../docs/adr/0053-configuracao-do-deploy-caixa-e-chave-jwt-no-banco.md)): a API sobe só com
+   `ENVIRONMENT`, `CORS_ALLOW`, `DB_DATABASE`, `DB_SERVER`, `DB_USER` e `DB_PASSWORD`, na raiz do `appsettings.json` com o marcador
+   `__NOME__` (o deploy substitui). Localmente, no `src/Catalogo.Api/appsettings.Development.json` (fora do git, modelo no `.exemplo`).
+   A chave do JWT fica no banco (`cat.CATTB025_CHAVE_JWT`), gerada pela própria API na primeira subida. Ver [`docs/seguranca.md`](../docs/seguranca.md).
 6. **Permissão e histórico**: toda regra de "quem pode" está na `PoliticaPermissao` (Domain), inclusive as de
    aprovação (RN33 a RN38), de avaliação (RN40, RN44, RN47) e de áreas de gestão por equipe (quem vê a área e "as equipes do usuário
    nesta área", RN90 a RN93), e todo caso de uso que altera dados grava histórico (RN26, RN32). Detalhes no AGENTS.md da Application.

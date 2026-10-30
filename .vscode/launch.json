@@ -9,17 +9,17 @@
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/backend/src/Catalogo.Api/bin/Debug/net8.0/Catalogo.Api.dll",
+            "program": "${workspaceFolder}/src/Catalogo.Api/bin/Debug/net8.0/Catalogo.Api.dll",
             "args": [],
-            "cwd": "${workspaceFolder}/backend/src/Catalogo.Api/bin/Debug/net8.0",
+            "cwd": "${workspaceFolder}/src/Catalogo.Api",
             "stopAtEntry": false,
             "serverReadyAction": {
                 "action": "openExternally",
                 "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
                 "uriFormat": "%s/swagger"
             },
+            // Configuração local em src/Catalogo.Api/appsettings.Development.json (copie do .exemplo); o ambiente é o ENVIRONMENT de lá.
             "env": {
-                "ASPNETCORE_ENVIRONMENT": "Development",
                 "ASPNETCORE_URLS": "http://localhost:5080"
             },
             "console": "integratedTerminal"

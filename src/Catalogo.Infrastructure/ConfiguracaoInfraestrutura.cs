@@ -6,6 +6,7 @@ using Catalogo.Infrastructure.Metadados;
 using Catalogo.Infrastructure.Painel;
 using Catalogo.Infrastructure.Persistencia;
 using Catalogo.Infrastructure.Repositorios;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
@@ -16,8 +17,14 @@ namespace Catalogo.Infrastructure;
 /// <summary>Registro da Infrastructure na injeção de dependência. Chamado só pelo Program.cs da Api.</summary>
 public static class ConfiguracaoInfraestrutura
 {
-    /// <summary>Nome em ConnectionStrings. Em desenvolvimento vem do user-secrets (ver README.md).</summary>
-    public const string NomeConnectionString = "Catalogo";
+    // Chaves do banco na raiz do appsettings.json, substituídas pelo deploy (__DB_SERVER__...). Local: appsettings.Development.json.
+    public const string ChaveServidor = "DB_SERVER";
+    public const string ChaveBanco = "DB_DATABASE";
+    public const string ChaveUsuario = "DB_USER";
+    public const string ChaveSenha = "DB_PASSWORD";
+
+    /// <summary>As chaves de que a connection string é montada (conferidas na subida da API, junto com as outras do deploy).</summary>
+    public static readonly IReadOnlyList<string> ChavesBanco = [ChaveBanco, ChaveServidor, ChaveUsuario, ChaveSenha];
 
     public static IServiceCollection AdicionarInfraestrutura(this IServiceCollection services)
     {
@@ -67,18 +74,43 @@ public static class ConfiguracaoInfraestrutura
         return services;
     }
 
+    /// <summary>
+    /// Monta a connection string a partir de DB_SERVER, DB_DATABASE, DB_USER e DB_PASSWORD, com TrustServerCertificate (o certificado
+    /// do SQL Server 2014 da CAIXA não é de uma autoridade conhecida). Falha com mensagem clara se alguma faltar.
+    /// </summary>
     public static string ObterConnectionString(IConfiguration configuracao)
     {
-        var connectionString = configuracao.GetConnectionString(NomeConnectionString);
-        if (string.IsNullOrWhiteSpace(connectionString))
+        var faltando = ChavesBanco.Where(chave => ValorAusente(configuracao[chave])).ToList();
+        if (faltando.Count > 0)
         {
             throw new InvalidOperationException(
-                $"Connection string 'ConnectionStrings:{NomeConnectionString}' não configurada. " +
-                "Em desenvolvimento use o user-secrets; nos servidores, a variável de ambiente " +
-                $"ConnectionStrings__{NomeConnectionString}. Ver README.md.");
+                $"Configuração do banco incompleta: {string.Join(", ", faltando)} vazia(s) ou com o marcador do deploy (__...__). " +
+                "Preencha na raiz do appsettings.json (servidores) ou no appsettings.Development.json (local). Ver README.md.");
         }
 
-        return connectionString;
+        return new SqlConnectionStringBuilder
+        {
+            DataSource = configuracao[ChaveServidor],
+            InitialCatalog = configuracao[ChaveBanco],
+            UserID = configuracao[ChaveUsuario],
+            Password = configuracao[ChaveSenha],
+            TrustServerCertificate = true,
+        }.ConnectionString;
+    }
+
+    /// <summary>Vazio ou ainda com o marcador que o deploy deveria ter substituído (ex.: "__DB_PASSWORD__").</summary>
+    public static bool ValorAusente(string? valor) =>
+        string.IsNullOrWhiteSpace(valor) || (valor.Length >= 4 && valor.StartsWith("__", StringComparison.Ordinal) && valor.EndsWith("__", StringComparison.Ordinal));
+
+    /// <summary>
+    /// A chave de assinatura do JWT guardada no banco (cat.CATTB025_CHAVE_JWT). Se ainda não houver, grava a de
+    /// <paramref name="gerarNova"/> e devolve a que ficou no banco (docs/adr/0053). Chamado uma vez, na subida da API.
+    /// </summary>
+    public static async Task<string> ObterOuCriarChaveJwtAsync(IServiceProvider servicos, Func<string> gerarNova, CancellationToken cancellationToken = default)
+    {
+        using var escopo = servicos.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<CatalogoDbContext>();
+        return await ArmazemChaveJwt.ObterOuCriarAsync(contexto, gerarNova, cancellationToken);
     }
 
     /// <summary>O schema do banco (<see cref="SchemaBanco.ChaveConfiguracao"/>), ou "cat". Só letras, números e "_".</summary>

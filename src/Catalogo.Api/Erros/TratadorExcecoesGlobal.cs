@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Catalogo.Api.Configuracao;
 using Catalogo.Domain.Excecoes;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +15,7 @@ namespace Catalogo.Api.Erros;
 /// </summary>
 internal sealed class TratadorExcecoesGlobal(
     IProblemDetailsService problemDetailsService,
-    IHostEnvironment ambiente,
+    AmbienteCatalogo ambiente,
     ILogger<TratadorExcecoesGlobal> logger) : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
@@ -100,8 +101,8 @@ internal sealed class TratadorExcecoesGlobal(
         var problema = Problema(StatusCodes.Status500InternalServerError, "Erro interno.",
             "Ocorreu um erro inesperado. Informe o traceId ao suporte.");
 
-        // Detalhes técnicos SÓ em Development: fora dele podem expor informação interna.
-        if (ambiente.IsDevelopment())
+        // Detalhes técnicos SÓ em LOCAL (ENVIRONMENT): fora dele podem expor informação interna.
+        if (ambiente.MostraDetalhesDeErro)
         {
             problema.Detail = exception.Message;
             problema.Extensions["excecao"] = exception.ToString();

@@ -31,6 +31,7 @@ tabelas ficam no schema **`cat`** com os nomes do padrão da CAIXA; o de-para co
 | `GrupoEquipe` | `cat.CATTB010_GRUPO_EQUIPE` | `Importacao` | `cat.CATTB021_IMPORTACAO` |
 | `Registro` | `cat.CATTB011_REGISTRO` | `ImportacaoArquivo` | `cat.CATTB022_IMPORTACAO_ARQUIVO` |
 | | | `__VersaoSchema` | `cat.CATTB023_VERSAO_SCHEMA` |
+| | | `ChaveJwt` (V018) | `cat.CATTB025_CHAVE_JWT` |
 
 - Os nomes de constraints e índices (`PK_Grupo`, `UQ_RegistroChaveUnica_Valor`, `FK_...`) não mudaram.
 - O banco da CAIXA é **SQL Server 2014** (nível 120): os CHECKs com `ISJSON` saíram (o JSON é sempre gerado pela aplicação) e o EF
@@ -213,6 +214,7 @@ As colunas de sistema ficam fora de `dados` para não colidir com um campo cuja 
 |---|---|---|
 | `Equipe` | uma equipe | `Nome` único, `Ativa`. Nunca é excluída (RN31) |
 | `Usuario` | uma pessoa que acessa o sistema | `Matricula` única, `SenhaHash` (PBKDF2, nunca sai do banco), `Perfil` (CHECK: EXTERNO, INTERNO, GESTOR, ADMINISTRADOR), `Ativo`, `DeveTrocarSenha`, `TentativasFalhas`, `BloqueadoAte`, `UltimoAcessoEm`. Nunca é excluído (RN31) |
+| `ChaveJwt` (V018, `cat.CATTB025_CHAVE_JWT`) | a chave de assinatura do JWT (no máximo uma linha, id fixo) | `NU_NSU_CHAVE_JWT` (PK), `CO_CHAVE_JWT` (`varchar(200)`, Base64, **segredo**, CHECK de 32 caracteres ou mais), `DH_CRIADO_CJ`. Gravada pela API na primeira subida ([ADR 0053](adr/0053-configuracao-do-deploy-caixa-e-chave-jwt-no-banco.md)) |
 | `UsuarioEquipe` | um vínculo usuário ↔ equipe | PK (`UsuarioId`, `EquipeId`). Um usuário pode ter várias equipes. Vínculo com equipe inativa não dá permissão |
 | `HistoricoAlteracao` | uma alteração de um alvo | `AlvoTipo` (REGISTRO, USUARIO, EQUIPE, CONFIGURACAO desde a V004, e MODELO_AVALIACAO e AVALIACAO desde a V005), `AlvoId` (**sem FK**, sobrevive à exclusão), `EntidadeId`, `EquipeId`, `Operacao`, `UsuarioId` + `UsuarioMatricula`, `OcorridoEm`, `CorrelacaoId`, `DadosAntes`/`DadosDepois` (JSON, CHECK `ISJSON`) e, desde a V011, `Origem` (nula = cadastro manual; `IMPORTACAO` = gravado por uma importação de planilha, RN97) |
 

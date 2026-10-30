@@ -168,35 +168,25 @@ Depois do reset não existe nenhum usuário: crie o primeiro administrador (ver
 
 ## 5. Connection string da aplicação
 
-A connection string **não fica em arquivo versionado**. Em desenvolvimento ela fica no
-**user-secrets** do .NET, um arquivo guardado no seu perfil de usuário, fora do repositório.
-Rode **de dentro de `backend/`**, trocando `<senha>` pelo `APP_DB_PASSWORD` do seu `.env`
-(e `1433` pela sua porta, se mudou):
+A senha do banco **não fica em arquivo versionado**. A API monta a connection string a partir de `DB_SERVER`, `DB_DATABASE`,
+`DB_USER` e `DB_PASSWORD`, que localmente ficam no `src/Catalogo.Api/appsettings.Development.json` (fora do git; copie do `.exemplo`
+e troque `__DB_PASSWORD__` pelo `APP_DB_PASSWORD` do seu `.env`). Os testes de integração usam o user-secrets do projeto de testes:
 
 ```bash
-# API (banco de desenvolvimento)
-dotnet user-secrets set "ConnectionStrings:Catalogo" \
-  "Server=localhost,1433;Database=ListagemGenerica;User Id=listagem_app;Password=<senha>;Encrypt=True;TrustServerCertificate=True" \
-  --project src/Catalogo.Api
-
-# Testes de integração (banco de testes)
 dotnet user-secrets set "ConnectionStrings:CatalogoTestes" \
   "Server=localhost,1433;Database=ListagemGenerica_Testes;User Id=listagem_app;Password=<senha>;Encrypt=True;TrustServerCertificate=True" \
   --project tests/Catalogo.Api.IntegrationTests
-# Só para o teste OutroSistemaNoMesmoBancoTests, que cria dbo.Usuario "de outro sistema" no banco de TESTES (o listagem_app
-# não tem DDL nem enxerga dbo). <senha_sa> = MSSQL_SA_PASSWORD do database/.env. Nunca aponte para outro banco.
+# Só para o teste OutroSistemaNoMesmoBancoTests (ver backend/README.md). <senha_sa> = MSSQL_SA_PASSWORD do database/.env.
 dotnet user-secrets set "ConnectionStrings:CatalogoTestesAdmin" \
   "Server=localhost,1433;Database=ListagemGenerica_Testes;User Id=sa;Password=<senha_sa>;Encrypt=True;TrustServerCertificate=True" \
   --project tests/Catalogo.Api.IntegrationTests
 ```
 
-Para conferir (de dentro de `backend/`): `dotnet user-secrets list --project src/Catalogo.Api`.
 Mais detalhes em [`backend/README.md`](../backend/README.md).
 
-> ⚠️ **`TrustServerCertificate=True` é só para desenvolvimento.** Ele faz a aplicação aceitar
-> qualquer certificado, e é necessário aqui porque o container usa um certificado
-> autoassinado. Em produção, use um certificado válido no servidor e
-> `TrustServerCertificate=False`. Nunca versione senhas reais em `appsettings`.
+> ⚠️ A API monta a connection string **sempre** com `TrustServerCertificate=True`: o container local usa um certificado autoassinado,
+> e o SQL Server 2014 da CAIXA, um certificado que não é de autoridade conhecida ([ADR 0053](../docs/adr/0053-configuracao-do-deploy-caixa-e-chave-jwt-no-banco.md)).
+> A conexão continua criptografada; só a cadeia do certificado não é conferida. Nunca versione senhas reais em `appsettings`.
 
 ## 6. Criar um script novo (mudança de schema)
 

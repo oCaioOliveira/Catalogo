@@ -49,7 +49,7 @@ sequenceDiagram
 - **As equipes não vão no token.** Perfil, equipes ativas e situação são lidos do banco a cada requisição
   (`ISituacaoUsuarios`, cache de `Seguranca:CacheUsuarioSegundos`, padrão 60). Os casos de uso de administração
   descartam o cache na hora; mudanças feitas direto no banco valem em até 1 minuto.
-- O front envia `Authorization: Bearer <token>` em todas as chamadas. No Swagger UI (Development), use o botão **Authorize**.
+- O front envia `Authorization: Bearer <token>` em todas as chamadas. No Swagger UI (LOCAL e DES), use o botão **Authorize**.
 
 ## Senhas
 
@@ -63,44 +63,56 @@ sequenceDiagram
 
 ## Configuração por ambiente
 
+A API sobe só com as seis chaves que o deploy da CAIXA substitui na raiz do `appsettings.json` ([ADR 0053](adr/0053-configuracao-do-deploy-caixa-e-chave-jwt-no-banco.md)):
+
+| Chave | O que é |
+|---|---|
+| `ENVIRONMENT` | `LOCAL`, `DES`, `TQS`, `HMP` ou `PRD`. Substitui o `ASPNETCORE_ENVIRONMENT`: Swagger só em LOCAL e DES; detalhes da exceção no 500 só em LOCAL |
+| `CORS_ALLOW` | origens do front, separadas por vírgula; `*` libera todas (ver [CORS](#cors)) |
+| `DB_SERVER`, `DB_DATABASE`, `DB_USER`, `DB_PASSWORD` | o banco; a connection string é montada com `TrustServerCertificate=true` |
+
+Se alguma estiver vazia ou ainda com o marcador (`__DB_PASSWORD__`), a API **não sobe** e diz quais faltam. No computador do
+desenvolvedor, os valores ficam no `src/Catalogo.Api/appsettings.Development.json` (fora do git; modelo no `.exemplo`).
+
+O resto é fixo no `appsettings.json`:
+
 | Chave | O que é | Padrão |
 |---|---|---|
-| `Jwt:ChaveAssinatura` | **segredo** para assinar os tokens, com pelo menos 32 caracteres aleatórios | — (obrigatória) |
 | `Jwt:Emissor` / `Jwt:Audiencia` | `iss` e `aud` do token | `catalogo-api` / `catalogo` |
 | `Jwt:ValidadeHoras` | validade do token | 8 |
 | `Seguranca:LoginLimitePorMinuto` | tentativas de login por minuto por IP | 10 |
 | `Seguranca:CacheUsuarioSegundos` | cache da situação do usuário | 60 |
 
-Onde configurar a **chave de assinatura** (nunca em arquivo versionado):
+### Chave de assinatura do JWT
 
-| Ambiente | Onde |
-|---|---|
-| Development | user-secrets, de dentro de `backend/`: `dotnet user-secrets set "Jwt:ChaveAssinatura" "$(openssl rand -base64 48)" --project src/Catalogo.Api` |
-| Homologacao / Production | variável de ambiente **`Jwt__ChaveAssinatura`** no servidor, com dois sublinhados. Use uma chave diferente por ambiente |
-| Testes de integração | gerada aleatoriamente a cada execução pela `BancoDeTestesFixture` |
+A chave **não fica em arquivo nem em variável**: fica no banco, em `cat.CATTB025_CHAVE_JWT` (V018). Na primeira subida, a API gera
+64 bytes aleatórios (Base64) e grava; nas próximas, lê a mesma. Todas as instâncias usam a mesma chave, e duas instâncias subindo
+juntas não gravam duas (a chave primária barra a segunda, que passa a ler a da primeira). Sem a tabela, a API não sobe e diz qual
+script aplicar. Nos testes de integração, a chave é a do banco de testes.
 
-Sem a chave, a API não sobe e explica o que falta. **Trocar a chave invalida todos os tokens emitidos**
-(todo mundo precisa logar de novo): é o jeito de "derrubar" todas as sessões se a chave vazar.
+A coluna é um **segredo**: quem a lê consegue emitir tokens. **Trocar a chave invalida todos os tokens emitidos** (todo mundo precisa
+logar de novo): apague a linha (`DELETE FROM cat.CATTB025_CHAVE_JWT`) e reinicie **todas** as instâncias, que geram e passam a usar
+uma chave nova. É o jeito de "derrubar" todas as sessões se a chave vazar.
 
 ## CORS
 
 O front-end roda em outra origem (outro servidor ou porta), e o navegador só deixa ele chamar a API se ela autorizar
 essa origem (CORS). A configuração fica em `ConfiguracaoCors` (Api):
 
-- **Origens**: só as listadas em **`Cors:OrigensPermitidas`**. Lista vazia = nenhuma origem de outro site é aceita
-  (chamadas do mesmo site e de fora do navegador, como scripts, não são afetadas).
+- **Origens**: as de **`CORS_ALLOW`**, separadas por vírgula (`https://a.caixa,https://b.caixa`). **`*` sozinho libera qualquer
+  origem** (`AllowAnyOrigin`), o que é seguro aqui porque não há credenciais de navegador (cookies): o token vai no cabeçalho.
 - **Métodos**: GET, POST, PUT, PATCH e DELETE. **Cabeçalhos aceitos**: `Authorization` e `Content-Type`.
 - **Cabeçalhos expostos**: `Location` (criação, 201) e `Content-Disposition` (nome do arquivo da exportação).
 - **Sem credenciais** (`AllowCredentials`): a autenticação é o JWT no cabeçalho `Authorization`, sem cookies.
-- **Nunca `AllowAnyOrigin`**: "*" (ou uma origem com curinga, ou sem `http://`/`https://`) em `Cors:OrigensPermitidas`
-  faz a API **não subir**, com mensagem clara.
+- `CORS_ALLOW` vazio, uma origem com curinga parcial (`https://*.caixa`), sem `http://`/`https://`, com caminho, ou `*` junto de
+  outras origens fazem a API **não subir**, com mensagem clara.
 - O CORS vem antes da autenticação: o *preflight* (`OPTIONS`) não leva token, e os erros (401, 403...) também levam os
   cabeçalhos de CORS, para o front conseguir ler o `codigo`.
 
-| Ambiente | `Cors:OrigensPermitidas` |
+| Ambiente | `CORS_ALLOW` |
 |---|---|
-| Development | `http://localhost:5173` e `http://localhost:4200` (servidores de desenvolvimento mais comuns), em `appsettings.Development.json` |
-| Homologacao / Production | **vazia** no arquivo versionado. Preencha no servidor, por variável de ambiente: `Cors__OrigensPermitidas__0=https://catalogo.empresa.com.br` (e `__1`, `__2`... para outras) |
+| LOCAL | `http://localhost:4200,http://localhost:5173`, no `appsettings.Development.json` |
+| DES / TQS / HMP / PRD | o marcador `__CORS_ALLOW__` no arquivo versionado, substituído pelo deploy |
 
 ## Primeiro administrador
 

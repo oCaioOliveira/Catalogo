@@ -14,12 +14,28 @@ public class OperacaoTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         Assert.Equal("Healthy", await resposta.Content.ReadAsStringAsync());
     }
 
-    [Fact]
-    public async Task Swagger_ForaDeDevelopment_NaoEhPublicado()
+    [Theory]
+    [InlineData("TQS")]
+    [InlineData("HMP")]
+    [InlineData("PRD")]
+    public async Task Swagger_ForaDeLocalEDes_NaoEhPublicado(string ambiente)
     {
-        // Os testes rodam no ambiente "Testes".
-        var resposta = await Cliente.GetAsync("/swagger/v1/swagger.json");
+        var fabrica = FabricaCom(new Dictionary<string, string> { ["ENVIRONMENT"] = ambiente });
+
+        var resposta = await fabrica.CreateClient().GetAsync("/swagger/v1/swagger.json");
 
         Assert.Equal(HttpStatusCode.NotFound, resposta.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("LOCAL")]
+    [InlineData("DES")]
+    public async Task Swagger_EmLocalEDes_EhPublicado(string ambiente)
+    {
+        var fabrica = FabricaCom(new Dictionary<string, string> { ["ENVIRONMENT"] = ambiente });
+
+        var resposta = await fabrica.CreateClient().GetAsync("/swagger/v1/swagger.json");
+
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
     }
 }

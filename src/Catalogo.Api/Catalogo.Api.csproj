@@ -1,7 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
-    <!-- Identifica o "cofre" local do user-secrets (connection string em desenvolvimento). -->
-    <UserSecretsId>catalogo-api-0b6c1e2a-5d3f-4c8e-9a71-2f4e8d9c6b10</UserSecretsId>
     <!-- Os <summary> dos controllers viram as descrições do OpenAPI (ConfiguracaoSwagger). -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- CS1591: nem todo tipo público da Api precisa de comentário XML (só o que aparece no contrato). -->
@@ -11,6 +9,11 @@
     <PackageReference Include="Swashbuckle.AspNetCore" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
     <PackageReference Include="Biblioteca.HealthCheck" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- O arquivo local do desenvolvedor (fora do git) nunca vai para o pacote: no servidor vale só o appsettings.json (docs/adr/0053). -->
+    <Content Update="appsettings.Development.json" CopyToPublishDirectory="Never" />
+    <None Update="appsettings.Development.json.exemplo" CopyToOutputDirectory="Never" CopyToPublishDirectory="Never" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Catalogo.Application\Catalogo.Application.csproj" />

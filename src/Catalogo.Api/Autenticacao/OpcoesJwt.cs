@@ -4,8 +4,8 @@ using Microsoft.IdentityModel.Tokens;
 namespace Catalogo.Api.Autenticacao;
 
 /// <summary>
-/// Configuração do JWT (seção "Jwt"). A chave de assinatura NUNCA fica em arquivo versionado:
-/// user-secrets em desenvolvimento, variável de ambiente Jwt__ChaveAssinatura nos servidores (docs/seguranca.md).
+/// Configuração do JWT: emissor, audiência e validade da seção "Jwt" (fixos no appsettings.json) e a chave de assinatura, que
+/// NUNCA fica em arquivo nem em variável: vem do banco, pela <see cref="ChaveAssinaturaJwt"/> (docs/adr/0053, docs/seguranca.md).
 /// </summary>
 public sealed class OpcoesJwt
 {
@@ -18,17 +18,12 @@ public sealed class OpcoesJwt
 
     public SymmetricSecurityKey Chave => new(Encoding.UTF8.GetBytes(ChaveAssinatura));
 
-    /// <summary>Lê e valida a seção "Jwt". Falha com mensagem clara se a chave faltar ou for curta.</summary>
-    public static OpcoesJwt Ler(IConfiguration configuracao)
+    /// <summary>Lê a seção "Jwt" e junta a chave do banco. Falha com mensagem clara se a chave for curta.</summary>
+    public static OpcoesJwt Ler(IConfiguration configuracao, string chave)
     {
         var secao = configuracao.GetSection("Jwt");
-        var chave = secao["ChaveAssinatura"];
         if (string.IsNullOrWhiteSpace(chave) || chave.Length < TamanhoMinimoChave)
-        {
-            throw new InvalidOperationException(
-                $"Configure 'Jwt:ChaveAssinatura' com pelo menos {TamanhoMinimoChave} caracteres aleatórios. " +
-                "Em desenvolvimento use o user-secrets; nos servidores, a variável de ambiente Jwt__ChaveAssinatura. Ver docs/seguranca.md.");
-        }
+            throw new InvalidOperationException($"A chave do JWT precisa ter pelo menos {TamanhoMinimoChave} caracteres.");
 
         var horas = double.TryParse(secao["ValidadeHoras"], System.Globalization.CultureInfo.InvariantCulture, out var valor) && valor > 0
             ? valor

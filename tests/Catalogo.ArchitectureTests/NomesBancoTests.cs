@@ -21,12 +21,40 @@ public class NomesBancoTests
             .ToList();
 
         Assert.Equal(23, tabelas.Count);
-        Assert.Equal(tabelas.Keys.Order(), NomesBanco.TabelasLogicas.Order());
+        Assert.Empty(tabelas.Keys.Except(NomesBanco.TabelasLogicas));
         foreach (var (logica, fisica) in tabelas)
             Assert.Equal(fisica, NomesBanco.Tabela(logica));
 
-        Assert.Equal(colunas.Count, NomesBanco.TabelasLogicas.Sum(t => NomesBanco.Colunas(t).Count));
+        Assert.Equal(colunas.Count, tabelas.Keys.Sum(t => NomesBanco.Colunas(t).Count));
         foreach (var (tabela, antiga, nova) in colunas)
             Assert.Equal(nova, NomesBanco.Coluna(tabela, antiga));
+    }
+
+    /// <summary>
+    /// Tabelas criadas depois do V013 (ex.: CATTB025_CHAVE_JWT, V018) já nascem com o nome físico: cada uma do NomesBanco que não
+    /// está no V013 precisa ser criada por um script V014 em diante, com todas as colunas do mapeamento.
+    /// </summary>
+    [Fact]
+    public void NomesBanco_TabelasDepoisDoV013_CriadasPorUmScriptComAsMesmasColunas()
+    {
+        var pasta = Path.Combine(Repositorio.Raiz, "database", "scripts");
+        var v013 = File.ReadAllText(Path.Combine(pasta, "V013__padrao_caixa.sql"));
+        var doV013 = Regex.Matches(v013, @"\(N'(?<antiga>[A-Za-z_]+)',\s*N'CATTB\d{3}_[A-Z_]+'\)").Select(m => m.Groups["antiga"].Value).ToHashSet();
+        var posteriores = Directory.EnumerateFiles(pasta, "V*.sql")
+            .Where(f => int.Parse(Regex.Match(Path.GetFileName(f), @"^V(\d+)__").Groups[1].Value) > 13)
+            .Select(File.ReadAllText)
+            .ToList();
+
+        var novas = NomesBanco.TabelasLogicas.Where(t => !doV013.Contains(t)).ToList();
+        Assert.Contains("ChaveJwt", novas);
+        foreach (var logica in novas)
+        {
+            var fisica = NomesBanco.Tabela(logica);
+            Assert.Matches(@"^CATTB\d{3}_[A-Z_]+$", fisica);
+            var script = posteriores.SingleOrDefault(s => s.Contains($"CREATE TABLE cat.{fisica}", StringComparison.Ordinal));
+            Assert.True(script is not null, $"Nenhum script V014 em diante cria cat.{fisica} ({logica}).");
+            foreach (var coluna in NomesBanco.Colunas(logica).Values)
+                Assert.Matches($@"\b{coluna}\b", script);
+        }
     }
 }

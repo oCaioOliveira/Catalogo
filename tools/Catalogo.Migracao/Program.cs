@@ -14,15 +14,13 @@ using Microsoft.Extensions.DependencyInjection;
 //
 //   dotnet run --project backend/tools/Catalogo.Migracao -- gerar --csv <arquivo.csv> --scripts <pasta> --relatorios <pasta>
 //       [--base-sharepoint https://caixa.sharepoint.com] [--matricula C161587] [--equipe GEQTI]
-//     Lê a configuração da área testes_desempenho do banco LOCAL (ConnectionStrings:Catalogo, o user-secrets da API) e escreve os
+//     Lê a configuração da área testes_desempenho do banco LOCAL (DB_* do src/Catalogo.Api/appsettings.Development.json) e escreve os
 //     scripts 02_migracao_parte_NN.sql e 03_conferencia.sql, o relatorio_migracao.csv, o anomalias.md e o quantidades.md.
 //
 //   dotnet run --project backend/tools/Catalogo.Migracao -- conferir-banco --csv <arquivo.csv> --banco "<connection string>"
 //     Lê de volta, de um banco onde a migração foi aplicada, o JSON Dados de cada relatório e confere que a linha original do CSV
 //     está íntegra em dados_originais (0 perdas) e que as quantidades por tipo de item batem.
 Console.OutputEncoding = Encoding.UTF8;
-// O mesmo user-secrets da API (Catalogo.Api.csproj): a connection string do banco local de desenvolvimento.
-const string UserSecretsDaApi = "catalogo-api-0b6c1e2a-5d3f-4c8e-9a71-2f4e8d9c6b10";
 var argumentos = Argumentos.Ler(args);
 var raiz = Repositorio.Raiz();
 
@@ -56,7 +54,11 @@ static async Task<int> Gerar(Argumentos argumentos, string raiz)
     Console.WriteLine($"CSV: {linhas.Count} relatórios ({csv}).");
 
     // Configuração da área no banco local, pelo mesmo provedor de metadados da API.
-    var configuracao = new ConfigurationBuilder().AddUserSecrets(UserSecretsDaApi).AddEnvironmentVariables().Build();
+    // O mesmo arquivo local da API (fora do git): DB_SERVER, DB_DATABASE, DB_USER e DB_PASSWORD do banco de desenvolvimento.
+    var configuracao = new ConfigurationBuilder()
+        .AddJsonFile(Path.Combine(raiz, "src", "Catalogo.Api", "appsettings.Development.json"), optional: true)
+        .AddEnvironmentVariables()
+        .Build();
     var servicos = new ServiceCollection().AddSingleton<IConfiguration>(configuracao).AddLogging();
     servicos.AdicionarInfraestrutura();
     await using var provedor = servicos.BuildServiceProvider();

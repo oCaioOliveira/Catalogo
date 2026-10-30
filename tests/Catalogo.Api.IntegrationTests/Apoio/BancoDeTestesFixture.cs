@@ -43,8 +43,11 @@ public sealed class BancoDeTestesFixture : IAsyncLifetime
         "GrupoEquipe", "UsuarioEquipe", "Usuario", "Equipe",
     ];
 
-    /// <summary>Chave do JWT só dos testes (aleatória a cada execução).</summary>
-    private static readonly string ChaveJwtDosTestes = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(48));
+    /// <summary>
+    /// Origem do CORS_ALLOW dos testes: nenhum teste a usa (os de CORS configuram a própria). A chave não pode ficar vazia (a API
+    /// não sobe), e uma origem que não existe deixa os testes livres do que o desenvolvedor tiver no appsettings.Development.json.
+    /// </summary>
+    public const string OrigemCorsDosTestes = "https://catalogo-testes.invalid";
 
     private Respawner _respawner = null!;
 
@@ -65,11 +68,12 @@ public sealed class BancoDeTestesFixture : IAsyncLifetime
     {
         Fabrica = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
         {
-            // Ambiente próprio: não carrega o user-secrets da Api (que aponta para o banco de desenvolvimento).
+            // As seis chaves do deploy (docs/adr/0053), TODAS definidas aqui: elas valem por cima do appsettings.Development.json do
+            // desenvolvedor (que aponta para o banco de desenvolvimento). TQS: sem Swagger e sem detalhes internos no 500.
             builder.UseEnvironment("Testes");
-            builder.UseSetting("ConnectionStrings:Catalogo", ConnectionString);
+            foreach (var (chave, valor) in ConfiguracaoDaApi(ConnectionString))
+                builder.UseSetting(chave, valor);
             builder.UseSetting(SchemaBanco.ChaveConfiguracao, Schema);
-            builder.UseSetting("Jwt:ChaveAssinatura", ChaveJwtDosTestes);
             // Os testes fazem muitos logins seguidos do mesmo "endereço": o limite de produção atrapalharia.
             builder.UseSetting("Seguranca:LoginLimitePorMinuto", "100000");
             // A limpeza das importações (RN104) não roda sozinha nos testes: eles a chamam quando precisam.
@@ -127,6 +131,24 @@ public sealed class BancoDeTestesFixture : IAsyncLifetime
     }
 
     public async Task DisposeAsync() => await Fabrica.DisposeAsync();
+
+    /// <summary>
+    /// As chaves do deploy para a API dos testes: o banco vem da connection string de testes (desmontada em DB_SERVER, DB_DATABASE,
+    /// DB_USER e DB_PASSWORD, como o deploy preenche), ENVIRONMENT = TQS e o CORS_ALLOW dos testes. A chave do JWT vem do banco de testes.
+    /// </summary>
+    public static IReadOnlyDictionary<string, string> ConfiguracaoDaApi(string connectionString)
+    {
+        var conexao = new SqlConnectionStringBuilder(connectionString);
+        return new Dictionary<string, string>
+        {
+            ["ENVIRONMENT"] = "TQS",
+            ["CORS_ALLOW"] = OrigemCorsDosTestes,
+            ["DB_SERVER"] = conexao.DataSource,
+            ["DB_DATABASE"] = conexao.InitialCatalog,
+            ["DB_USER"] = conexao.UserID,
+            ["DB_PASSWORD"] = conexao.Password,
+        };
+    }
 
     private static IConfiguration Configuracao() => new ConfigurationBuilder()
         .AddUserSecrets<BancoDeTestesFixture>(optional: true)

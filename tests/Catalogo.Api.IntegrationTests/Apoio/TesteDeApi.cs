@@ -72,8 +72,8 @@ public abstract class TesteDeApi(BancoDeTestesFixture banco) : IAsyncLifetime
     }
 
     /// <summary>
-    /// Outra instância da API, sobre o MESMO banco e com a mesma chave do JWT, com configurações extras
-    /// (ex.: "Cors:OrigensPermitidas:0") e, se quiser, serviços trocados. Use com <see cref="ClienteDe(Usuario, WebApplicationFactory{Program})"/>.
+    /// Outra instância da API, sobre o MESMO banco e com a mesma chave do JWT (a do banco), com configurações extras
+    /// (ex.: "CORS_ALLOW", "ENVIRONMENT") e, se quiser, serviços trocados. Use com <see cref="ClienteDe(Usuario, WebApplicationFactory{Program})"/>.
     /// </summary>
     protected WebApplicationFactory<Program> FabricaCom(
         IReadOnlyDictionary<string, string> configuracoes, Action<IServiceCollection>? servicos = null)

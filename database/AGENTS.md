@@ -13,7 +13,7 @@ conectar) está em [`database/README.md`](README.md). A decisão está em
 - **Scripts novos (V014 em diante) usam os nomes físicos**: `cat.CATTB011_REGISTRO`, `NU_NSU_REGISTRO`. Tabela ou coluna nova entra
   também no `NomesBanco` (senão o modelo do EF falha ao subir).
 - **Regra de nomes para tabela ou coluna NOVA** (o padrão da casa, igual ao das 23 existentes):
-  - tabela `cat.CATTB<NNN>_<NOME>`: próximo número livre com 3 dígitos (hoje `CATTB024`), nome em maiúsculas com `_`, sem acento;
+  - tabela `cat.CATTB<NNN>_<NOME>`: próximo número livre com 3 dígitos (hoje `CATTB026`; `CATTB025_CHAVE_JWT` é do V018), nome em maiúsculas com `_`, sem acento;
   - chave primária `NU_NSU_<TABELA>` (`uniqueidentifier`); chave estrangeira `NU_NSU_CE_<TABELA_REFERENCIADA>_<SIGLA>` (ex.:
     `NU_NSU_CE_ENTIDADE_IMP`); outras referências a usuário/registro sem FK, `NU_<PAPEL>` (ex.: `NU_USUARIO_DECISAO`);
   - demais colunas pelo tipo: `NU_` número, `CO_` código/chave, `NO_` nome, `DE_` descrição/texto/JSON, `DH_` data e hora, `DT_` data,

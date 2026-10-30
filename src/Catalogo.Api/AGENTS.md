@@ -127,22 +127,28 @@ Feito **só** no `TratadorExcecoesGlobal` (um `IExceptionHandler`).
 | `NaoAutenticadoException` (e token ausente/inválido) | 401 | `NAO_AUTENTICADO` ou `CREDENCIAIS_INVALIDAS` (login) | `detail` |
 | `AcessoNegadoException` | 403 | `SEM_PERMISSAO` ou o da exceção (`TROCA_DE_SENHA_OBRIGATORIA`) | `detail` |
 | rate limiting do login | 429 | `MUITAS_TENTATIVAS` | `detail` |
-| qualquer outra | 500 | `ERRO_INTERNO` | mensagem genérica. `detail` e `excecao` (stack trace) **só em Development** |
+| qualquer outra | 500 | `ERRO_INTERNO` | mensagem genérica. `detail` e `excecao` (stack trace) **só com `ENVIRONMENT` = LOCAL** |
 
 Exceção de domínio nova? Ela herda `ExcecaoDominio` e recebe um código; adicione o `case` no tratador **e** a linha nesta tabela.
 
 ## Ambientes e configuração
 
-| Ambiente (`ASPNETCORE_ENVIRONMENT`) | Arquivo | Particularidades |
-|---|---|---|
-| `Development` | `appsettings.Development.json` | Swagger UI em `/swagger`, SQL do EF no log, connection string do **user-secrets** |
-| `Homologacao` | `appsettings.Homologacao.json` | log em JSON no console |
-| `Production` | `appsettings.Production.json` | log em JSON no console |
-| `Testes` | (nenhum) | usado só pelos testes de integração |
+A API sobe **só** com as seis chaves que o deploy da CAIXA substitui na raiz do `appsettings.json` (`__NOME__`), sem outras variáveis de
+ambiente ([ADR 0053](../../docs/adr/0053-configuracao-do-deploy-caixa-e-chave-jwt-no-banco.md), `Configuracao/ConfiguracaoDeploy.cs`).
+Vazia ou com o marcador → a API não sobe e lista todas as que faltam.
 
-- Chave do JWT: `Jwt:ChaveAssinatura` (user-secrets em dev; `Jwt__ChaveAssinatura` nos servidores). Sem ela, a API não sobe.
-- CORS: `Cors:OrigensPermitidas` (Development: `localhost:5173` e `localhost:4200`; servidores: vazia no arquivo, preenchida por
-  `Cors__OrigensPermitidas__0=...`). "*" faz a API não subir. Ver `Configuracao/ConfiguracaoCors.cs` e [`docs/seguranca.md`](../../../docs/seguranca.md#cors).
+| Chave | Uso | Lida em |
+|---|---|---|
+| `ENVIRONMENT` | `LOCAL`, `DES`, `TQS`, `HMP` ou `PRD`; **substitui o `ASPNETCORE_ENVIRONMENT`** (nunca use `IHostEnvironment` para decidir). Swagger só em LOCAL e DES; `detail`/`excecao` no 500 só em LOCAL | `Configuracao/AmbienteCatalogo.cs` |
+| `CORS_ALLOW` | origens separadas por vírgula; `*` sozinho libera todas ([`docs/seguranca.md`](../../docs/seguranca.md#cors)) | `Configuracao/ConfiguracaoCors.cs` |
+| `DB_SERVER`, `DB_DATABASE`, `DB_USER`, `DB_PASSWORD` | connection string montada com `TrustServerCertificate=true` | `ConfiguracaoInfraestrutura.ObterConnectionString` |
+
+- **Local**: `src/Catalogo.Api/appsettings.Development.json` (fora do git, copie do `.exemplo`), carregado logo depois do
+  `appsettings.json` mesmo sem `ASPNETCORE_ENVIRONMENT`, e nunca publicado. Não há mais `appsettings.Production/Homologacao.json` nem user-secrets na API.
+- **Testes de integração**: a `BancoDeTestesFixture` define as seis chaves (ENVIRONMENT = TQS) a partir de `ConnectionStrings:CatalogoTestes`.
+- **Chave do JWT**: no banco, `cat.CATTB025_CHAVE_JWT`. O `Program.cs` a lê (ou gera e grava, na primeira subida) antes do `app.Run`
+  e a guarda na `ChaveAssinaturaJwt` (singleton), usada pelo `GeradorTokenJwt` e pela validação do token. Sem a tabela, a API não sobe.
+- Fixo no `appsettings.json`: `Jwt` (emissor, audiência, validade), `Seguranca`, `Exportacao`, `Painel` e o log em JSON no console.
 - Exportação: `Exportacao:LimiteLinhas` (padrão 10.000) e `Exportacao:FusoHorario` (padrão `America/Sao_Paulo`), lidos em
   `ConfiguracaoAplicacao.LerOpcoesExportacao` (RN49).
 - Painel: `Painel:FusoHorario` (padrão `America/Sao_Paulo`), `Painel:DiasPendenteAntigo` (padrão 7) e `Painel:MinimoAvaliacoesRanking`
@@ -154,9 +160,6 @@ Exceção de domínio nova? Ela herda `ExcecaoDominio` e recebe um código; adic
 - Comando `criar-admin` (primeiro administrador): `Configuracao/ComandoCriarAdmin.cs`, chamado no início do `Program.cs`. Com
   `--gerar-sql --saida <arquivo>` ele não acessa o banco: escreve o script do administrador inicial do pacote de entrega
   (`GerarSqlAdministradorInicial`, só o hash). `--aceitar-senha-fora-da-politica` só vale nesse modo.
-- Connection string: chave `ConnectionStrings:Catalogo`. Em desenvolvimento vem do user-secrets
-  (ver [README](../../README.md)). Nos servidores vem da variável de ambiente
-  `ConnectionStrings__Catalogo`. **Nunca** em arquivo versionado. Sem ela, a API não sobe e mostra mensagem clara.
 - Logging: o logger padrão (`ILogger<T>`) com **message templates** (`"Registro {RegistroId} criado"`,
   nunca interpolação `$"..."`), para os campos virarem propriedades no log JSON.
 - Ficam desligadas no `appsettings.json` duas categorias de log que repetiam como erro o que o tratador

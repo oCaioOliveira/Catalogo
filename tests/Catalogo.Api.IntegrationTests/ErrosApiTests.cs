@@ -90,11 +90,15 @@ public class ErrosApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         Assert.Equal(["nome"], unicidade["detalhes"]!["campos"]!.AsArray().Select(c => c!.GetValue<string>()));
     }
 
-    [Fact]
-    public async Task ErroInesperado_ForaDeDevelopment_SoTrazCodigoETraceId()
+    [Theory]
+    [InlineData("DES")]
+    [InlineData("TQS")]
+    [InlineData("HMP")]
+    [InlineData("PRD")]
+    public async Task ErroInesperado_ForaDeLocal_SoTrazCodigoETraceId(string ambiente)
     {
-        // O ambiente dos testes é "Testes" (não é Development). Os metadados falham com uma mensagem "interna".
-        var fabrica = FabricaCom(new Dictionary<string, string>(),
+        // ENVIRONMENT diferente de LOCAL (docs/adr/0053). Os metadados falham com uma mensagem "interna".
+        var fabrica = FabricaCom(new Dictionary<string, string> { ["ENVIRONMENT"] = ambiente },
             servicos => servicos.AddScoped<IMetadadosProvider, MetadadosQueFalham>());
 
         var resposta = await ClienteDe(Administrador, fabrica).GetAsync("/api/v1/grupos");
@@ -107,6 +111,20 @@ public class ErrosApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         Assert.False(problema.ContainsKey("excecao"));
         Assert.DoesNotContain(MetadadosQueFalham.Mensagem, corpo);
         Assert.DoesNotContain(nameof(MetadadosQueFalham), corpo);   // nem stack trace
+    }
+
+    [Fact]
+    public async Task ErroInesperado_EmLocal_TrazAMensagemEAExcecao()
+    {
+        var fabrica = FabricaCom(new Dictionary<string, string> { ["ENVIRONMENT"] = "LOCAL" },
+            servicos => servicos.AddScoped<IMetadadosProvider, MetadadosQueFalham>());
+
+        var resposta = await ClienteDe(Administrador, fabrica).GetAsync("/api/v1/grupos");
+
+        Assert.Equal(HttpStatusCode.InternalServerError, resposta.StatusCode);
+        var problema = JsonNode.Parse(await resposta.Content.ReadAsStringAsync())!.AsObject();
+        Assert.Equal(MetadadosQueFalham.Mensagem, problema["detail"]!.GetValue<string>());
+        Assert.Contains(nameof(MetadadosQueFalham), problema["excecao"]!.GetValue<string>());
     }
 
     private sealed class MetadadosQueFalham : IMetadadosProvider

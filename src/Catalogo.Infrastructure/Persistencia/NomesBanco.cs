@@ -135,6 +135,11 @@ public static class NomesBanco
         {
             ["Versao"] = "NU_NSU_VERSAO", ["ArquivoNome"] = "DE_ARQUIVO_VS", ["AplicadoEm"] = "DH_APLICADO_VS", ["Observacao"] = "DE_OBSERVACAO_VS",
         }),
+        // Tabelas criadas depois do V013 (já nascem com o nome físico; CATTB024 é a de controle da migração, fora da aplicação).
+        ["ChaveJwt"] = ("CATTB025_CHAVE_JWT", new(StringComparer.Ordinal)
+        {
+            ["Id"] = "NU_NSU_CHAVE_JWT", ["Chave"] = "CO_CHAVE_JWT", ["CriadoEm"] = "DH_CRIADO_CJ",
+        }),
     };
 
     /// <summary>As tabelas lógicas (as do modelo de dados, docs/modelo-de-dados.md).</summary>

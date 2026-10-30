@@ -22,15 +22,31 @@ cp ../database/.env.example ../database/.env      # e troque as senhas
 Isso cria dois bancos com o schema e o seed: `ListagemGenerica` (para rodar a API) e
 `ListagemGenerica_Testes` (para os testes de integração).
 
-## 2. Configurar o user-secrets
+## 2. Configurar a API e os testes
 
-A connection string **nunca** vai para arquivo versionado. Troque `<senha>` pelo `APP_DB_PASSWORD` do `database/.env`:
+A API lê só as seis chaves do deploy ([ADR 0053](../docs/adr/0053-configuracao-do-deploy-caixa-e-chave-jwt-no-banco.md)). Localmente,
+elas ficam no `src/Catalogo.Api/appsettings.Development.json`, **fora do git**. Copie o modelo e troque `__DB_PASSWORD__` pelo
+`APP_DB_PASSWORD` do `database/.env`:
 
 ```bash
-dotnet user-secrets set "ConnectionStrings:Catalogo" \
-  "Server=localhost,1433;Database=ListagemGenerica;User Id=listagem_app;Password=<senha>;Encrypt=True;TrustServerCertificate=True" \
-  --project src/Catalogo.Api
+cp src/Catalogo.Api/appsettings.Development.json.exemplo src/Catalogo.Api/appsettings.Development.json
+```
 
+```json
+{
+  "ENVIRONMENT": "LOCAL",
+  "CORS_ALLOW": "http://localhost:4200,http://localhost:5173",
+  "DB_DATABASE": "ListagemGenerica",
+  "DB_SERVER": "localhost,1433",
+  "DB_USER": "listagem_app",
+  "DB_PASSWORD": "<senha>"
+}
+```
+
+Os testes de integração continuam com a connection string do banco de **testes** no user-secrets do projeto de testes (a
+`BancoDeTestesFixture` a desmonta nas chaves `DB_*` da API, com `ENVIRONMENT` = `TQS`):
+
+```bash
 dotnet user-secrets set "ConnectionStrings:CatalogoTestes" \
   "Server=localhost,1433;Database=ListagemGenerica_Testes;User Id=listagem_app;Password=<senha>;Encrypt=True;TrustServerCertificate=True" \
   --project tests/Catalogo.Api.IntegrationTests
@@ -41,38 +57,33 @@ dotnet user-secrets set "ConnectionStrings:CatalogoTestesAdmin" \
   --project tests/Catalogo.Api.IntegrationTests
 ```
 
-> `TrustServerCertificate=True` é só para desenvolvimento (o container usa um certificado autoassinado).
-
 ### No ambiente da CAIXA (banco `CATDB001`, sem Docker)
 
 O banco é o `CATDB001` (servidor `scthmdadnt0017`, SQL Server 2014), no schema `cat` ([ADR 0052](../docs/adr/0052-padrao-de-nomes-caixa-e-sql-server-2014.md)).
-O login não cria outro banco: os testes de integração usam o schema **`cat_testes`** do próprio `CATDB001` (só apagam dados num
-schema terminado em `_testes`). Em PowerShell, com `<usuario>`/`<senha>` passados pelo DBA:
+No `appsettings.Development.json`, use `DB_SERVER` = `scthmdadnt0017`, `DB_DATABASE` = `CATDB001` e o usuário e a senha passados pelo
+DBA. O login não cria outro banco: os testes de integração usam o schema **`cat_testes`** do próprio `CATDB001` (só apagam dados num
+schema terminado em `_testes`). Em PowerShell:
 
 ```powershell
 $cs = "Server=scthmdadnt0017;Database=CATDB001;User Id=<usuario>;Password=<senha>;Encrypt=True;TrustServerCertificate=True"
-dotnet user-secrets set "ConnectionStrings:Catalogo" $cs --project src/Catalogo.Api
 dotnet user-secrets set "ConnectionStrings:CatalogoTestes" $cs --project tests/Catalogo.Api.IntegrationTests
 dotnet user-secrets set "SchemaTestes" "cat_testes" --project tests/Catalogo.Api.IntegrationTests
 # Monta (ou recria, apagando os dados de teste) o schema cat_testes. Rode de novo depois de cada script V0xx novo.
 ../database/ferramentas/estrutura_padrao_caixa.ps1 -Modo SchemaTestes -ConnectionString $cs -Schema cat_testes
+# O schema de testes também precisa da tabela da chave do JWT: rode o V018 trocando "cat." por "cat_testes.".
 ```
 
 Sem a `CatalogoTestesAdmin`, o `OutroSistemaNoMesmoBancoTests` aparece como ignorado (ele só faz sentido no Docker local).
 
-Nos servidores (Homologação e Produção) a connection string vem da variável de ambiente
-`ConnectionStrings__Catalogo` (dois sublinhados). Sem ela, a API não sobe e explica o que falta.
+### Servidores (DES, TQS, HMP, PRD)
+
+O `appsettings.json` publicado tem as seis chaves com o marcador (`__DB_PASSWORD__`...), que o deploy substitui. Sem uma delas, a API
+não sobe e diz quais faltam. Antes do primeiro deploy desta versão, os DBAs aplicam o pacote `database/entrega/2026-10-30-chave-jwt`.
 
 ### Chave do JWT
 
-A API assina os tokens de login com uma chave secreta de pelo menos 32 caracteres. Em desenvolvimento:
-
-```bash
-dotnet user-secrets set "Jwt:ChaveAssinatura" "$(openssl rand -base64 48)" --project src/Catalogo.Api
-```
-
-Nos servidores, use a variável de ambiente `Jwt__ChaveAssinatura`, com uma chave diferente por ambiente.
-Sem ela, a API não sobe. Detalhes em [`docs/seguranca.md`](../docs/seguranca.md).
+Não há nada a configurar: na primeira subida, a API gera uma chave aleatória e grava no banco (`cat.CATTB025_CHAVE_JWT`, script
+`V018`); nas próximas, lê a mesma. Detalhes e como trocar a chave em [`docs/seguranca.md`](../docs/seguranca.md#chave-de-assinatura-do-jwt).
 
 ## Primeiro administrador
 
@@ -103,10 +114,10 @@ que é mostrada uma única vez.
 ## 3. Rodar a API
 
 ```bash
-dotnet run --project src/Catalogo.Api --launch-profile Development
+dotnet run --project src/Catalogo.Api --launch-profile Local
 ```
 
-- **Swagger UI**: <http://localhost:5080/swagger> (só no ambiente `Development`). Faça o login em
+- **Swagger UI**: <http://localhost:5080/swagger> (só com `ENVIRONMENT` = `LOCAL` ou `DES`). Faça o login em
   `POST /api/v1/auth/login` e cole o `token` no botão **Authorize**.
 - **Health check**: <http://localhost:5080/health> (inclui a conexão com o banco).
 
@@ -201,5 +212,5 @@ As versões ficam só em [`Directory.Packages.props`](Directory.Packages.props) 
 
 ## Ambientes
 
-`Development`, `Homologacao` e `Production`, cada um com o seu `appsettings.<Ambiente>.json` em
-`src/Catalogo.Api`. Detalhes em [`src/Catalogo.Api/AGENTS.md`](src/Catalogo.Api/AGENTS.md#ambientes-e-configuração).
+`LOCAL`, `DES`, `TQS`, `HMP` e `PRD`, pela chave `ENVIRONMENT` do `appsettings.json` (não pelo `ASPNETCORE_ENVIRONMENT`). Um
+`appsettings.json` só para todos os servidores; localmente, o `appsettings.Development.json`. Detalhes em [`src/Catalogo.Api/AGENTS.md`](src/Catalogo.Api/AGENTS.md#ambientes-e-configuração).

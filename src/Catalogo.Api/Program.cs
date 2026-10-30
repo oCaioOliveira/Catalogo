@@ -5,6 +5,11 @@ using Catalogo.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configuração do deploy (docs/adr/0053): as seis chaves na raiz do appsettings.json. No computador do desenvolvedor, o
+// appsettings.Development.json (fora do git) vale sem ASPNETCORE_ENVIRONMENT; quem decide o ambiente é ENVIRONMENT.
+ConfiguracaoDeploy.AdicionarArquivoLocal(builder.Configuration);
+builder.Services.AddSingleton(servicos => AmbienteCatalogo.Ler(servicos.GetRequiredService<IConfiguration>()));
+
 // Api. Contrato JSON (docs/api/README.md): camelCase, nulos explícitos, enums e datas como texto, datas em UTC com "Z".
 // As respostas comuns a todos os endpoints (401, 403, 500) são declaradas para o OpenAPI em ConfiguracaoSwagger.
 builder.Services.AddControllers(opcoes =>
@@ -23,7 +28,7 @@ builder.Services.AdicionarSwagger();
 
 // Autenticação (JWT), autorização padrão (tudo exige login) e rate limiting do login. Ver docs/seguranca.md.
 builder.Services.AdicionarSeguranca();
-// CORS para o front: origens de "Cors:OrigensPermitidas" (docs/seguranca.md#cors).
+// CORS para o front: origens de CORS_ALLOW, separadas por vírgula; "*" libera todas (docs/seguranca.md#cors).
 builder.Services.AdicionarCors();
 
 // Domain + Application
@@ -42,16 +47,22 @@ if (ComandoCriarAdmin.EhEsteComando(args))
         app.Services, args, Environment.GetEnvironmentVariable(ComandoCriarAdmin.VariavelSenha), Console.Out);
 }
 
-// Falha na inicialização, com mensagem clara, se a connection string ou a chave do JWT não foram configuradas.
-ConfiguracaoInfraestrutura.ObterConnectionString(app.Configuration);
-OpcoesJwt.Ler(app.Configuration);
+// Falha na inicialização, com mensagem clara, se alguma chave do deploy está vazia ou com o marcador __...__ (lista todas),
+// se ENVIRONMENT não é um dos cinco ambientes ou se CORS_ALLOW tem uma origem inválida.
+ConfiguracaoDeploy.Validar(app.Configuration, ConfiguracaoInfraestrutura.ChavesBanco);
+var ambiente = app.Services.GetRequiredService<AmbienteCatalogo>();
 ConfiguracaoCors.LerOrigens(app.Configuration);
+
+// Chave do JWT: do banco (cat.CATTB025_CHAVE_JWT). Na primeira subida, a API gera uma e grava; nas próximas, lê a mesma.
+var chaveJwt = await ConfiguracaoInfraestrutura.ObterOuCriarChaveJwtAsync(app.Services, ChaveAssinaturaJwt.GerarNova);
+app.Services.GetRequiredService<ChaveAssinaturaJwt>().Definir(chaveJwt);
 
 app.UseExceptionHandler();
 // Respostas de erro sem corpo (ex.: 401 sem token, 404 de rota inexistente) também viram ProblemDetails.
 app.UseStatusCodePages();
 
-if (app.Environment.IsDevelopment())
+// Swagger só em LOCAL e DES.
+if (ambiente.PublicaSwagger)
 {
     app.UseSwagger();
     app.UseSwaggerUI();

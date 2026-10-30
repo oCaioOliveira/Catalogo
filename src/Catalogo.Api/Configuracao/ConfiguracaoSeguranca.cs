@@ -25,15 +25,17 @@ public static class ConfiguracaoSeguranca
         services.AddHttpContextAccessor();
         services.AddScoped<IUsuarioAtual, UsuarioAtualHttp>();
         services.AddScoped<IGeradorToken, GeradorTokenJwt>();
+        // Preenchida pelo Program.cs com a chave do banco, antes de a API começar a atender (docs/adr/0053).
+        services.AddSingleton<ChaveAssinaturaJwt>();
 
         services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
 
         // Lido só quando a primeira requisição chega, depois de toda a configuração carregada
         // (inclusive a dos testes de integração).
         services.AddOptions<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme)
-            .Configure<IConfiguration>((opcoes, configuracao) =>
+            .Configure<IConfiguration, ChaveAssinaturaJwt>((opcoes, configuracao, chave) =>
             {
-                var jwt = OpcoesJwt.Ler(configuracao);
+                var jwt = OpcoesJwt.Ler(configuracao, chave.Valor);
                 // Mantém os nomes dos claims como estão no token ("sub", "matricula"...).
                 opcoes.MapInboundClaims = false;
                 opcoes.TokenValidationParameters = new TokenValidationParameters

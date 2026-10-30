@@ -1,11 +1,10 @@
 using System.Net;
 using Catalogo.Api.Configuracao;
 using Catalogo.Api.IntegrationTests.Apoio;
-using Microsoft.Extensions.Configuration;
 
 namespace Catalogo.Api.IntegrationTests;
 
-// CORS (docs/seguranca.md#cors): só as origens de "Cors:OrigensPermitidas" recebem os cabeçalhos.
+// CORS (docs/seguranca.md#cors): só as origens de CORS_ALLOW (separadas por vírgula) recebem os cabeçalhos; "*" libera todas.
 public class CorsApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
 {
     private const string OrigemDoFront = "http://localhost:5173";
@@ -54,28 +53,38 @@ public class CorsApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         Assert.Equal(OrigemDoFront, erro.Headers.GetValues("Access-Control-Allow-Origin").Single());
     }
 
-    [Theory]
-    [InlineData("*")]
-    [InlineData("https://*.empresa.com.br")]
-    [InlineData("localhost:5173")]
-    public void LerOrigens_CuringaOuOrigemIncompleta_FalhaNaInicializacao(string origem)
+    [Fact]
+    public async Task Preflight_SegundaOrigemDaLista_RecebeOsCabecalhos()
     {
-        var configuracao = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?> { [$"{ConfiguracaoCors.ChaveOrigens}:0"] = origem })
-            .Build();
+        var fabrica = FabricaCom(new Dictionary<string, string> { [ConfiguracaoCors.ChaveOrigens] = $"https://outro.example, {OrigemDoFront}/" });
 
-        Assert.Throws<InvalidOperationException>(() => ConfiguracaoCors.LerOrigens(configuracao));
+        var resposta = await Preflight(OrigemDoFront, "PUT", fabrica);
+
+        Assert.Equal(OrigemDoFront, Assert.Single(resposta.Headers.GetValues("Access-Control-Allow-Origin")));
+    }
+
+    [Fact]
+    public async Task Preflight_CorsAllowAsterisco_LiberaQualquerOrigem()
+    {
+        var fabrica = FabricaCom(new Dictionary<string, string> { [ConfiguracaoCors.ChaveOrigens] = "*" });
+
+        var resposta = await Preflight("https://site-qualquer.example", "DELETE", fabrica);
+
+        Assert.Equal(HttpStatusCode.NoContent, resposta.StatusCode);
+        Assert.Equal("*", Assert.Single(resposta.Headers.GetValues("Access-Control-Allow-Origin")));
+        Assert.False(resposta.Headers.Contains("Access-Control-Allow-Credentials"));
     }
 
     private Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program> FabricaComOrigem() =>
-        FabricaCom(new Dictionary<string, string> { [$"{ConfiguracaoCors.ChaveOrigens}:0"] = OrigemDoFront });
+        FabricaCom(new Dictionary<string, string> { [ConfiguracaoCors.ChaveOrigens] = OrigemDoFront });
 
-    private async Task<HttpResponseMessage> Preflight(string origem, string metodo)
+    private async Task<HttpResponseMessage> Preflight(
+        string origem, string metodo, Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program>? fabrica = null)
     {
         var requisicao = new HttpRequestMessage(HttpMethod.Options, $"{UrlRegistros("comunidade")}/{Guid.NewGuid()}");
         requisicao.Headers.Add("Origin", origem);
         requisicao.Headers.Add("Access-Control-Request-Method", metodo);
         requisicao.Headers.Add("Access-Control-Request-Headers", "authorization,content-type");
-        return await FabricaComOrigem().CreateClient().SendAsync(requisicao);
+        return await (fabrica ?? FabricaComOrigem()).CreateClient().SendAsync(requisicao);
     }
 }

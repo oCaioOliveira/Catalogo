@@ -1,0 +1,22 @@
+{
+  "ENVIRONMENT": "LOCAL",
+  "CORS_ALLOW": "http://localhost:4200,http://localhost:5173",
+  "DB_DATABASE": "ListagemGenerica",
+  "DB_SERVER": "localhost,1433",
+  "DB_USER": "listagem_app",
+  "DB_PASSWORD": "__DB_PASSWORD__",
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning",
+      "Microsoft.EntityFrameworkCore.Database.Command": "Information"
+    },
+    "Console": {
+      "FormatterName": "simple",
+      "FormatterOptions": {
+        "SingleLine": true,
+        "TimestampFormat": "HH:mm:ss "
+      }
+    }
+  }
+}

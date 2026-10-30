@@ -10,14 +10,14 @@ namespace Catalogo.Api.Autenticacao;
 /// Emite o JWT do login (RN23) com "sub" (id do usuário), "matricula" e "perfil". As equipes NÃO
 /// vão no token: são lidas a cada requisição (com cache curto), para mudanças valerem rápido.
 /// </summary>
-internal sealed class GeradorTokenJwt(IConfiguration configuracao, TimeProvider relogio) : IGeradorToken
+internal sealed class GeradorTokenJwt(IConfiguration configuracao, ChaveAssinaturaJwt chave, TimeProvider relogio) : IGeradorToken
 {
     public const string ClaimMatricula = "matricula";
     public const string ClaimPerfil = "perfil";
 
     public TokenAcesso Gerar(Usuario usuario)
     {
-        var opcoes = OpcoesJwt.Ler(configuracao);
+        var opcoes = OpcoesJwt.Ler(configuracao, chave.Valor);
         var agora = relogio.GetUtcNow().UtcDateTime;
         var expiraEm = agora + opcoes.Validade;
 

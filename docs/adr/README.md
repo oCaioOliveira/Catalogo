@@ -61,6 +61,8 @@ repositórios e use o próximo. Decisão que mexe nos dois lados fica aqui.
 | [0049](0049-schema-catalogo-e-pacotes-de-entrega.md) | Schema próprio `catalogo` em todos os ambientes e pacotes de entrega consolidados para os DBAs | Aceito (em parte substituído pelo 0050) |
 | [0050](0050-instalacao-inicial-so-estrutura-e-administrador.md) | Instalação inicial só com a estrutura e o administrador inicial, criado por script com o hash da senha | Aceito |
 | [0051](0051-repositorios-separados-back-e-front.md) | Repositórios separados para o back-end e o front-end, com cópia do contrato no front | Aceito |
+| [0052](0052-padrao-de-nomes-caixa-e-sql-server-2014.md) | Padrão de nomes da CAIXA no banco (schema `cat`, tabelas `CATTB0xx`) e SQL Server 2014 | Aceito |
+| [0053](0053-configuracao-do-deploy-caixa-e-chave-jwt-no-banco.md) | Configuração do deploy da CAIXA por seis chaves no `appsettings.json` e chave do JWT no banco | Aceito |
 
 Modelo para um ADR novo (`NNNN-titulo-curto.md`):
 

@@ -30,7 +30,11 @@ dependência, unicidade)? Teste na Application **e** cubra o caminho feliz e um 
 - Teste que precisa de outra configuração (CORS, limite da exportação) ou de um serviço trocado (ex.: um que falha, para o 500):
   `FabricaCom(configuracoes, servicos)` cria outra instância da API sobre o mesmo banco; use `ClienteDe(usuario, fabrica)`.
   A instância é descartada no fim do teste.
-- O ambiente dos testes de integração é `Testes`, **não** Development: o 500 sai sem detalhes internos, como em produção.
+- Os testes de integração rodam com `ENVIRONMENT` = `TQS` (a `BancoDeTestesFixture` define as seis chaves do deploy, por cima do
+  `appsettings.Development.json` do desenvolvedor): o 500 sai sem detalhes internos e sem Swagger, como em produção. Para testar outro
+  ambiente ou outro CORS, `FabricaCom(new Dictionary<string, string> { ["ENVIRONMENT"] = "LOCAL" })`.
+- A chave do JWT é a do banco de testes (`cat.CATTB025_CHAVE_JWT`): todas as fábricas leem a mesma. Teste que apaga a linha a devolve
+  no fim (`ChaveJwtApiTests`).
 
 ## Banco de testes e Respawn
 

@@ -55,6 +55,9 @@ public sealed class CatalogoDbContext(DbContextOptions<CatalogoDbContext> option
     public DbSet<Avaliacao> Avaliacoes => Set<Avaliacao>();
     public DbSet<AvaliacaoResposta> AvaliacoesRespostas => Set<AvaliacaoResposta>();
 
+    // Chave de assinatura do JWT (V018), lida na subida da API.
+    public DbSet<ChaveJwtTabela> ChavesJwt => Set<ChaveJwtTabela>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema(Schema);

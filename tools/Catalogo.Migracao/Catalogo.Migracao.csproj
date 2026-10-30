@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="AngleSharp" />
-    <!-- Configuração (user-secrets da API), injeção de dependência e logging, sem pacotes a mais. -->
+    <!-- Configuração (appsettings.Development.json da API), injeção de dependência e logging, sem pacotes a mais. -->
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
