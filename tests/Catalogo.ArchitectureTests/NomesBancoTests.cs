@@ -12,7 +12,7 @@ public class NomesBancoTests
     [Fact]
     public void NomesBanco_IgualAoDeParaDoV013()
     {
-        var v013 = File.ReadAllText(Path.Combine(Repositorio.Raiz, "..", "database", "scripts", "V013__padrao_caixa.sql"));
+        var v013 = File.ReadAllText(Path.Combine(Repositorio.Raiz, "database", "scripts", "V013__padrao_caixa.sql"));
 
         var tabelas = Regex.Matches(v013, @"\(N'(?<antiga>[A-Za-z_]+)',\s*N'(?<nova>CATTB\d{3}_[A-Z_]+)'\)")
             .ToDictionary(m => m.Groups["antiga"].Value, m => m.Groups["nova"].Value);

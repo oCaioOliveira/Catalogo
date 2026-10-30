@@ -37,10 +37,14 @@ public sealed class AdminCamposController(
         string grupo, string entidade, [FromBody] CampoEntrada entrada, [FromQuery] bool simular, CancellationToken cancellationToken)
     {
         var resultado = await criarCampo.ExecutarAsync(grupo, entidade, entrada, simular, cancellationToken);
-        if (resultado.Simulado)
-            return Ok(resultado);
+        return resultado.Simulado
+            ? Ok(resultado)
+            : Criado(grupo, entidade, entrada.Chave ?? string.Empty, resultado);
+    }
 
-        logger.LogInformation("Campo {Campo} criado em {Grupo}/{Entidade}", entrada.Chave, grupo, entidade);
+    private CreatedAtActionResult Criado(string grupo, string entidade, string chaveCampo, ResultadoAdministracaoDto resultado)
+    {
+        logger.LogInformation("Campo {Campo} criado em {Grupo}/{Entidade}", chaveCampo, grupo, entidade);
         return CreatedAtAction(nameof(AdminGruposController.Obter), "AdminGrupos", new { grupo }, resultado);
     }
 
