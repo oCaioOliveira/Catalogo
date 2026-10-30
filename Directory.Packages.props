@@ -18,6 +18,7 @@
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.32" />
     <!-- Exportação em XLSX (licença MIT). Só a Infrastructure usa; os testes de integração leem o arquivo gerado. -->
     <PackageVersion Include="ClosedXML" Version="0.105.1" />
+    <PackageVersion Include="Biblioteca.HealthCheck" Version="1.0.1" />
   </ItemGroup>
   <ItemGroup Label="Ferramentas">
     <!-- Só a ferramenta de migração do SharePoint (tools/Catalogo.Migracao): leitura do HTML das colunas da lista (licença MIT). -->
