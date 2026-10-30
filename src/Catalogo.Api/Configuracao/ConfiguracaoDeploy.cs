@@ -39,7 +39,7 @@ public static class ConfiguracaoDeploy
     public static void Validar(IConfiguration configuracao, IEnumerable<string> chavesBanco)
     {
         var faltando = new[] { ChaveAmbiente, ChaveCors }.Concat(chavesBanco)
-            .Where(chave => ValorAusente(configuracao[chave]))
+            .Where(chave => ValorAusente(LerValor(configuracao, chave)))
             .ToList();
 
         if (faltando.Count > 0)
@@ -49,6 +49,22 @@ public static class ConfiguracaoDeploy
                 "que o deploy deveria ter substituído). Preencha na raiz do appsettings.json (servidores) ou no " +
                 $"{ArquivoLocal} (local, a partir do {ArquivoLocal}.exemplo).");
         }
+    }
+
+    public static string? LerValor(IConfiguration configuracao, string chave)
+    {
+        var valor = configuracao[chave];
+        if (valor is not null)
+            return valor;
+
+        var valores = configuracao.AsEnumerable()
+            .Where(item => item.Key.StartsWith(chave + ":", StringComparison.OrdinalIgnoreCase))
+            .OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)
+            .Select(item => item.Value)
+            .Where(item => !string.IsNullOrWhiteSpace(item))
+            .ToArray();
+
+        return valores.Length == 0 ? null : string.Join(",", valores);
     }
 
     /// <summary>Vazio ou ainda com o marcador do deploy (começa e termina com "__").</summary>
