@@ -173,8 +173,9 @@ public class ConfiguracaoDeployTests
     [InlineData("localhost:5173")]
     [InlineData("http://localhost:5173/caminho")]
     [InlineData("*, http://localhost:5173")]
+    [InlineData(" * ")]
     [InlineData(" , ")]
-    public void LerOrigens_CuringaParcialOrigemIncompletaOuVazia_FalhaNaInicializacao(string origens)
+    public void LerOrigens_CuringaOrigemIncompletaOuVazia_FalhaNaInicializacao(string origens)
     {
         Assert.Throws<InvalidOperationException>(() => ConfiguracaoCors.LerOrigens(Configuracao(new(Completa) { ["CORS_ALLOW"] = origens })));
     }
@@ -184,17 +185,17 @@ public class ConfiguracaoDeployTests
     {
         var origens = ConfiguracaoCors.LerOrigens(Configuracao(new(Completa) { ["CORS_ALLOW"] = " http://localhost:4200/ ,https://catalogo.caixa" }));
 
-        Assert.False(origens.Todas);
-        Assert.Equal(["http://localhost:4200", "https://catalogo.caixa"], origens.Lista);
+        Assert.Equal(["http://localhost:4200", "https://catalogo.caixa"], origens);
     }
 
     [Fact]
-    public void LerOrigens_Asterisco_LiberaTodas()
+    public void LerOrigens_Asterisco_FalhaDizendoQueOLoginUsaCredenciais()
     {
-        var origens = ConfiguracaoCors.LerOrigens(Configuracao(new(Completa) { ["CORS_ALLOW"] = " * " }));
+        // O login pelo Windows usa credenciais (withCredentials): o navegador não as aceita com "*" (docs/adr/0054).
+        var erro = Assert.Throws<InvalidOperationException>(() =>
+            ConfiguracaoCors.LerOrigens(Configuracao(new(Completa) { ["CORS_ALLOW"] = "*" })));
 
-        Assert.True(origens.Todas);
-        Assert.Empty(origens.Lista);
+        Assert.Contains("credenciais", erro.Message);
     }
 
     [Fact]
@@ -208,8 +209,7 @@ public class ConfiguracaoDeployTests
 
         var origens = ConfiguracaoCors.LerOrigens(configuracao);
 
-        Assert.False(origens.Todas);
-        Assert.Equal(["http://localhost:4200", "https://catalogo.caixa"], origens.Lista);
+        Assert.Equal(["http://localhost:4200", "https://catalogo.caixa"], origens);
     }
 
     [Fact]

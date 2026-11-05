@@ -33,11 +33,10 @@ metadados (ex.: `testes_desempenho`, `cenario_teste`) e não diferenciam maiúsc
 | GET | `/api/v1/painel/grupos/{grupo}/visao-geral`, `.../entidades/{entidade}/indicadores`, `.../indicadores/exportar?formato=csv\|xlsx` | `PainelController` (só GESTOR e ADMINISTRADOR; parâmetros lidos por `ParametrosDaUrl`) | 200 (RN78 a RN88, [`docs/api/painel.md`](../../../docs/api/painel.md)) |
 | GET, POST | `.../entidades/{entidade}/importacao/modelo`, `.../importacoes` (multipart, campo `arquivo`), `.../importacoes/{id:guid}` (GET), `.../validar`, `.../executar`, `.../relatorio` (GET, XLSX), `.../desfazer` | `ImportacoesController` (RN97 a RN104, [`docs/api/importacao.md`](../../../docs/api/importacao.md)) | 201 no envio, 200 nos demais |
 | GET | `/api/v1/aprovacoes/pendentes` | `AprovacoesController.Pendentes` (filtros `grupo`, `entidade`, `equipeId`) | 200 (página, RN36) |
-| POST | `/api/v1/auth/login` | `AuthController.Login` (anônimo, com rate limiting) | 200 + token |
-| POST | `/api/v1/auth/trocar-senha` | `AuthController.TrocarSenha` | 204 |
+| POST | `/api/v1/auth/login` | `AuthController.Login` (usuário do Windows, política `PoliticaLoginWindows`; sem corpo) | 200 + token |
 | GET | `/api/v1/auth/eu` | `AuthController.Eu` | 200 |
 | GET, POST, PUT, PATCH `.../ativacao`, GET `.../historico` | `/api/v1/equipes` | `EquipesController` (só ADMINISTRADOR; GET paginado) | |
-| GET, POST, PUT, PATCH `.../ativacao`, POST `.../redefinir-senha`, GET `.../historico` | `/api/v1/usuarios` | `UsuariosController` (só ADMINISTRADOR) | |
+| GET, POST, PUT, PATCH `.../ativacao`, GET `.../historico` | `/api/v1/usuarios` | `UsuariosController` (só ADMINISTRADOR) | |
 | GET | `/health` | health check (inclui o banco, anônimo) | 200 `Healthy` |
 
 Rotas novas: substantivos no plural, em português, minúsculas (ex.: `/registros/{id}/historico`).
@@ -49,11 +48,12 @@ só metadados e configurações pequenas (grupos, entidades, modelos de avaliaç
 
 ## Todo endpoint exige autenticação
 
-- Há uma **política de fallback**: todo endpoint exige um usuário autenticado. Exceções documentadas:
-  `POST /api/v1/auth/login` (`[AllowAnonymous]`) e `/health`. Endpoint novo anônimo precisa de justificativa no PR
-  e de uma linha nesta seção.
-- Endpoints que funcionam com a troca de senha pendente levam `[PermitirSenhaProvisoria]` (hoje só
-  `trocar-senha` e `eu`). Os demais respondem 403 `TROCA_DE_SENHA_OBRIGATORIA` (RN25).
+- Há uma **política de fallback**: todo endpoint exige um usuário autenticado pelo JWT. Exceções documentadas:
+  `POST /api/v1/auth/login` (exige o usuário do Windows, política `ConfiguracaoSeguranca.PoliticaLoginWindows`, esquema Negotiate,
+  [ADR 0054](../../../docs/adr/0054-login-pela-autenticacao-integrada-do-windows.md)) e `/health` (`[AllowAnonymous]`). Endpoint novo
+  anônimo precisa de justificativa no PR e de uma linha nesta seção.
+- O `VerificacaoUsuarioMiddleware` confere a situação atual do usuário do JWT (desativado → 401); o login, que ainda não tem token,
+  fica de fora (quem confere o usuário nele é o caso de uso `Login`).
 - O controller **não** decide permissão: o caso de uso consulta a `PoliticaPermissao`. Nada de
   `[Authorize(Roles = ...)]` nem `User.IsInRole` aqui.
 - Nunca registre senha, token ou hash no log. Use a matrícula para identificar quem fez.
@@ -124,8 +124,8 @@ Feito **só** no `TratadorExcecoesGlobal` (um `IExceptionHandler`).
 | `ConflitoConcorrenciaException` | 409 | `CONFLITO_CONCORRENCIA` | `detail` |
 | `ExclusaoBloqueadaException` | 409 | `EXCLUSAO_BLOQUEADA` | `detalhes`: `{ dependencias: [{ entidade, campo, quantidade, exemplos }] }` |
 | `RegraDeNegocioException` | 409 | o da exceção (ex.: `ULTIMO_ADMINISTRADOR`, `APROVACOES_PENDENTES`) | `detalhes` = os `Dados` da exceção, se houver (ex.: `{ quantidade }`) |
-| `NaoAutenticadoException` (e token ausente/inválido) | 401 | `NAO_AUTENTICADO` ou `CREDENCIAIS_INVALIDAS` (login) | `detail` |
-| `AcessoNegadoException` | 403 | `SEM_PERMISSAO` ou o da exceção (`TROCA_DE_SENHA_OBRIGATORIA`) | `detail` |
+| `NaoAutenticadoException` (e token ausente/inválido, ou login sem Windows) | 401 | `NAO_AUTENTICADO` | `detail` |
+| `AcessoNegadoException` | 403 | `SEM_PERMISSAO` ou o da exceção (ex.: usuário desativado no login) | `detail` |
 | rate limiting do login | 429 | `MUITAS_TENTATIVAS` | `detail` |
 | qualquer outra | 500 | `ERRO_INTERNO` | mensagem genérica. `detail` e `excecao` (stack trace) **só com `ENVIRONMENT` = LOCAL** |
 
@@ -159,7 +159,7 @@ Vazia ou com o marcador → a API não sobe e lista todas as que faltam.
   (`[RequestSizeLimit]`); o limite do arquivo (5 MB) é conferido no caso de uso, com mensagem clara.
 - Comando `criar-admin` (primeiro administrador): `Configuracao/ComandoCriarAdmin.cs`, chamado no início do `Program.cs`. Com
   `--gerar-sql --saida <arquivo>` ele não acessa o banco: escreve o script do administrador inicial do pacote de entrega
-  (`GerarSqlAdministradorInicial`, só o hash). `--aceitar-senha-fora-da-politica` só vale nesse modo.
+  (`GerarSqlAdministradorInicial`). Não há senha: o administrador entra pelo Windows.
 - Logging: o logger padrão (`ILogger<T>`) com **message templates** (`"Registro {RegistroId} criado"`,
   nunca interpolação `$"..."`), para os campos virarem propriedades no log JSON.
 - Ficam desligadas no `appsettings.json` duas categorias de log que repetiam como erro o que o tratador

@@ -26,19 +26,10 @@ public static class CodigosErro
     /// <summary>Sem token, token inválido ou expirado, ou usuário desativado depois do login.</summary>
     public const string NaoAutenticado = "NAO_AUTENTICADO";
 
-    /// <summary>
-    /// Login recusado. Vale para matrícula inexistente, senha errada, usuário inativo OU bloqueado: o motivo
-    /// nunca é revelado (RN23). Por isso não existe um código de "usuário bloqueado".
-    /// </summary>
-    public const string CredenciaisInvalidas = "CREDENCIAIS_INVALIDAS";
-
     // ---- 403 ----
 
     /// <summary>O perfil não permite a operação (RN26).</summary>
     public const string SemPermissao = "SEM_PERMISSAO";
-
-    /// <summary>Senha provisória: só a troca de senha e o "eu" funcionam (RN25).</summary>
-    public const string TrocaDeSenhaObrigatoria = "TROCA_DE_SENHA_OBRIGATORIA";
 
     // ---- 404 ----
 
@@ -137,9 +128,6 @@ public static class CodigosErro
     public const string EntidadeInativa = "ENTIDADE_INATIVA";
 
     // ---- 429, 500 ----
-
-    /// <summary>Limite de tentativas de login por minuto (RN23).</summary>
-    public const string MuitasTentativas = "MUITAS_TENTATIVAS";
 
     /// <summary>Erro inesperado. Fora de Development, a resposta só traz o código e o traceId.</summary>
     public const string ErroInterno = "ERRO_INTERNO";

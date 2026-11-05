@@ -57,7 +57,6 @@ public static class ConfiguracaoInfraestrutura
 
         // Painel gerencial (agregações em LINQ, docs/adr/0031).
         services.AddScoped<IPainelRepository, PainelRepository>();
-        services.AddSingleton<IHasherSenha, HasherSenha>();
 
         // Exportação da listagem: um gerador por formato (o caso de uso escolhe pelo parâmetro "formato").
         services.AddSingleton<IGeradorArquivoExportacao, GeradorCsv>();

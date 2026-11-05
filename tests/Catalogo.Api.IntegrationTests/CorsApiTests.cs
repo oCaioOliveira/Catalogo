@@ -4,7 +4,8 @@ using Catalogo.Api.IntegrationTests.Apoio;
 
 namespace Catalogo.Api.IntegrationTests;
 
-// CORS (docs/seguranca.md#cors): só as origens de CORS_ALLOW (separadas por vírgula) recebem os cabeçalhos; "*" libera todas.
+// CORS (docs/seguranca.md#cors): só as origens exatas de CORS_ALLOW (separadas por vírgula) recebem os cabeçalhos, com credenciais
+// (o login pelo Windows é chamado com withCredentials, docs/adr/0054).
 public class CorsApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
 {
     private const string OrigemDoFront = "http://localhost:5173";
@@ -20,8 +21,8 @@ public class CorsApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         var cabecalhos = resposta.Headers.GetValues("Access-Control-Allow-Headers").Single().ToLowerInvariant();
         Assert.Contains("authorization", cabecalhos);
         Assert.Contains("content-type", cabecalhos);
-        // Sem cookies: a autenticação é o JWT no cabeçalho.
-        Assert.False(resposta.Headers.Contains("Access-Control-Allow-Credentials"));
+        // Com credenciais: o navegador manda o login do Windows no POST /auth/login.
+        Assert.Equal("true", Assert.Single(resposta.Headers.GetValues("Access-Control-Allow-Credentials")));
     }
 
     [Fact]
@@ -64,15 +65,22 @@ public class CorsApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
     }
 
     [Fact]
-    public async Task Preflight_CorsAllowAsterisco_LiberaQualquerOrigem()
+    public async Task LoginPeloWindows_OrigemConfigurada_RecebeCredenciaisEOToken()
     {
-        var fabrica = FabricaCom(new Dictionary<string, string> { [ConfiguracaoCors.ChaveOrigens] = "*" });
+        var fabrica = FabricaComOrigem();
+        var cliente = fabrica.CreateClient();
+        cliente.DefaultRequestHeaders.Add("Origin", OrigemDoFront);
+        await CriarUsuarioAsync("C161587", Domain.Acesso.Perfil.Externo, [EquipePadrao]);
 
-        var resposta = await Preflight("https://site-qualquer.example", "DELETE", fabrica);
+        var resposta = await LoginWindows(@"CORPCAIXA\c161587", cliente);
+        var semWindows = await cliente.PostAsync("/api/v1/auth/login", null);
 
-        Assert.Equal(HttpStatusCode.NoContent, resposta.StatusCode);
-        Assert.Equal("*", Assert.Single(resposta.Headers.GetValues("Access-Control-Allow-Origin")));
-        Assert.False(resposta.Headers.Contains("Access-Control-Allow-Credentials"));
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+        Assert.Equal(OrigemDoFront, Assert.Single(resposta.Headers.GetValues("Access-Control-Allow-Origin")));
+        Assert.Equal("true", Assert.Single(resposta.Headers.GetValues("Access-Control-Allow-Credentials")));
+        // O desafio (401) também leva os cabeçalhos: o navegador responde a ele com o login do Windows.
+        Assert.Equal(HttpStatusCode.Unauthorized, semWindows.StatusCode);
+        Assert.Equal(OrigemDoFront, Assert.Single(semWindows.Headers.GetValues("Access-Control-Allow-Origin")));
     }
 
     private Microsoft.AspNetCore.Mvc.Testing.WebApplicationFactory<Program> FabricaComOrigem() =>

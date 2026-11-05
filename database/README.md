@@ -240,9 +240,10 @@ recebem os `V00x` para rodar em sequência (os antigos criam objetos em `dbo`): 
 | Pacote | Conteúdo |
 |---|---|
 | [`entrega/2026-10-26-instalacao-inicial/`](entrega/2026-10-26-instalacao-inicial/README.md) | `01` schema `catalogo` e papel `catalogo_aplicacao`; `02` estrutura consolidada (o resultado de V001 a V012, versões 1 a 12 registradas); `03` administrador inicial (só o hash da senha, troca obrigatória no primeiro acesso); `README.md` para os DBAs |
+| [`entrega/2026-11-05-login-windows/`](entrega/2026-11-05-login-windows/README.md) | `01` remove as colunas de senha de `cat.CATTB008_USUARIO` (versão 19, `V019`): o login passa a ser o do Windows ([ADR 0054](../docs/adr/0054-login-pela-autenticacao-integrada-do-windows.md)) |
 | [`entrega/2026-10-28-migracao-sharepoint/`](entrega/2026-10-28-migracao-sharepoint/README.md) | Migração dos 687 relatórios do SharePoint ([`docs/migracao-sharepoint.md`](../docs/migracao-sharepoint.md)): `01` reconfiguração da área, `02` partes de até ~5 MB (geradas, fora do git), `03` conferência. A simulação local (`migracao/simular_migracao.sh`, banco `Simulacao_Migracao`) e como apontar a API para ela estão no README do pacote |
 
-- O primeiro administrador vem no `03`, com **só o hash** da senha provisória e troca obrigatória no primeiro acesso. O script é
+- O primeiro administrador vem no `03` (o de 2026-10-26 tinha o hash de uma senha provisória; desde a versão 19 não há senha). O script é
   gerado pela própria aplicação: `criar-admin --gerar-sql` ([`backend/README.md`](../backend/README.md#primeiro-administrador)).
 - **Mudança de estrutura futura = `V0xx` + novo pacote** (`entrega/<data>-<descricao>/`) com o script incremental e o `README.md`
   (o nome padrão do documento das entregas). Regras em [`AGENTS.md`](AGENTS.md#produção-pacotes-de-entrega-entrega).

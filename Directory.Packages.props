@@ -13,9 +13,9 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.32" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="8.0.32" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="10.3.1" />
-    <!-- Só o PasswordHasher (PBKDF2), sem o ASP.NET Core Identity completo (docs/adr/0016). -->
-    <PackageVersion Include="Microsoft.Extensions.Identity.Core" Version="8.0.32" />
     <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.32" />
+    <!-- Login pela autenticação integrada do Windows (AD), só no POST /auth/login; no IIS, repassa para o IIS (docs/adr/0054). -->
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.Negotiate" Version="8.0.32" />
     <!-- Exportação em XLSX (licença MIT). Só a Infrastructure usa; os testes de integração leem o arquivo gerado. -->
     <PackageVersion Include="ClosedXML" Version="0.105.1" />
     <PackageVersion Include="Biblioteca.HealthCheck" Version="1.0.1" />

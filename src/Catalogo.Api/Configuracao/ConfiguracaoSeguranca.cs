@@ -1,24 +1,24 @@
-using System.Threading.RateLimiting;
 using Catalogo.Api.Autenticacao;
-using Catalogo.Api.Erros;
 using Catalogo.Application.Abstracoes;
-using Catalogo.Domain.Excecoes;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.Negotiate;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 
 namespace Catalogo.Api.Configuracao;
 
 /// <summary>
-/// Autenticação JWT, autorização padrão (tudo exige login) e rate limiting do login.
-/// Detalhes e configuração por ambiente em docs/seguranca.md.
+/// Autenticação: o login é a autenticação integrada do Windows (Negotiate, só no POST /auth/login), que devolve o JWT; o resto da
+/// API usa o JWT. Autorização padrão: tudo exige um usuário autenticado pelo JWT. Detalhes em docs/seguranca.md e docs/adr/0054.
 /// </summary>
 public static class ConfiguracaoSeguranca
 {
-    /// <summary>Nome da política de rate limiting do login.</summary>
-    public const string PoliticaLogin = "login";
+    /// <summary>
+    /// Política do login: exige o usuário autenticado pelo Windows (esquema Negotiate). No IIS, o Negotiate repassa a autenticação
+    /// para o IIS (Autenticação do Windows ligada no site). Os testes de integração trocam esta política por um esquema de teste.
+    /// </summary>
+    public const string PoliticaLoginWindows = "login-windows";
 
     public static IServiceCollection AdicionarSeguranca(this IServiceCollection services)
     {
@@ -28,7 +28,7 @@ public static class ConfiguracaoSeguranca
         // Preenchida pelo Program.cs com a chave do banco, antes de a API começar a atender (docs/adr/0053).
         services.AddSingleton<ChaveAssinaturaJwt>();
 
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer().AddNegotiate();
 
         // Lido só quando a primeira requisição chega, depois de toda a configuração carregada
         // (inclusive a dos testes de integração).
@@ -52,43 +52,14 @@ public static class ConfiguracaoSeguranca
                 opcoes.TokenValidationParameters.ValidTypes = [JwtConstants.HeaderType];
             });
 
-        // Todo endpoint exige um usuário autenticado, a menos que tenha [AllowAnonymous].
+        // Todo endpoint exige um usuário autenticado pelo JWT, a menos que tenha [AllowAnonymous] ou outra política (o login).
         // O que cada perfil pode fazer NÃO fica aqui: está na PoliticaPermissao (Domain).
         services.AddAuthorizationBuilder()
-            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
-
-        // RN23: no máximo N tentativas de login por minuto por endereço IP ("Seguranca:LoginLimitePorMinuto", padrão 10).
-        services.AddRateLimiter(opcoes =>
-        {
-            opcoes.AddPolicy(PoliticaLogin, http => RateLimitPartition.GetFixedWindowLimiter(
-                http.Connection.RemoteIpAddress?.ToString() ?? "desconhecido",
-                _ => new FixedWindowRateLimiterOptions
-                {
-                    PermitLimit = LimiteLoginPorMinuto(http.RequestServices.GetRequiredService<IConfiguration>()),
-                    Window = TimeSpan.FromMinutes(1),
-                    QueueLimit = 0,
-                }));
-
-            opcoes.OnRejected = async (contexto, cancellationToken) =>
-            {
-                contexto.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
-                await contexto.HttpContext.RequestServices.GetRequiredService<IProblemDetailsService>().WriteAsync(new ProblemDetailsContext
-                {
-                    HttpContext = contexto.HttpContext,
-                    ProblemDetails = new ProblemDetails
-                    {
-                        Status = StatusCodes.Status429TooManyRequests,
-                        Title = "Muitas tentativas.",
-                        Detail = "Aguarde um minuto e tente de novo.",
-                        Extensions = { [ExtensoesProblema.Codigo] = CodigosErro.MuitasTentativas },
-                    },
-                });
-            };
-        });
+            .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build())
+            .AddPolicy(PoliticaLoginWindows, politica => politica
+                .AddAuthenticationSchemes(NegotiateDefaults.AuthenticationScheme)
+                .RequireAuthenticatedUser());
 
         return services;
     }
-
-    private static int LimiteLoginPorMinuto(IConfiguration configuracao) =>
-        int.TryParse(configuracao["Seguranca:LoginLimitePorMinuto"], out var limite) && limite > 0 ? limite : 10;
 }

@@ -23,7 +23,8 @@ public class ErrosApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
     public async Task PrincipaisCenariosDeErro_TodosTrazemCodigoETraceId()
     {
         var (_, interno) = await CriarUsuarioAsync("interno", Perfil.Interno, [EquipePadrao]);
-        var (_, senhaProvisoria) = await CriarUsuarioAsync("provisoria", Perfil.Interno, [EquipePadrao], deveTrocarSenha: true);
+        var (desativado, _) = await CriarUsuarioAsync("C000001", Perfil.Interno, [EquipePadrao]);
+        await Cliente.PatchAsJsonAsync($"/api/v1/usuarios/{desativado.Id}/ativacao", new { ativo = false });
         var comunidade = await Criar("comunidade", new JsonObject { ["nome"] = "Ágil" });
         await Criar("sigla", new JsonObject { ["comunidade"] = comunidade, ["codigo_sigla"] = "AG" });
         var lido = await Ler("comunidade", comunidade);
@@ -34,9 +35,8 @@ public class ErrosApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         [
             ("sem token", await ClienteAnonimo.GetAsync("/api/v1/grupos"), HttpStatusCode.Unauthorized, CodigosErro.NaoAutenticado),
             ("token inválido", await ClienteComToken("abc.def.ghi").GetAsync("/api/v1/grupos"), HttpStatusCode.Unauthorized, CodigosErro.NaoAutenticado),
-            ("login errado", await ClienteAnonimo.PostAsJsonAsync("/api/v1/auth/login", new { matricula = "interno", senha = "errada123456" }),
-                HttpStatusCode.Unauthorized, CodigosErro.CredenciaisInvalidas),
-            ("troca de senha", await senhaProvisoria.GetAsync("/api/v1/grupos"), HttpStatusCode.Forbidden, CodigosErro.TrocaDeSenhaObrigatoria),
+            ("login sem Windows", await ClienteAnonimo.PostAsync("/api/v1/auth/login", null), HttpStatusCode.Unauthorized, CodigosErro.NaoAutenticado),
+            ("login desativado", await LoginWindows(@"CORPCAIXA\c000001"), HttpStatusCode.Forbidden, CodigosErro.SemPermissao),
             ("perfil", await interno.DeleteAsync($"{UrlRegistros("comunidade")}/{comunidade}"), HttpStatusCode.Forbidden, CodigosErro.SemPermissao),
             ("registro", await Buscar("comunidade", Guid.NewGuid().ToString()), HttpStatusCode.NotFound, CodigosErro.RegistroNaoEncontrado),
             ("entidade", await Cliente.GetAsync($"{UrlGrupo}/entidades/nao_existe/registros"), HttpStatusCode.NotFound, CodigosErro.EntidadeNaoEncontrada),

@@ -10,7 +10,7 @@ namespace Catalogo.Application.CasosDeUso.Historico;
 
 /// <summary>
 /// Caso de uso: histórico de um usuário ou de uma equipe (só ADMINISTRADOR, RN32), do mais recente
-/// para o mais antigo. O histórico de usuário nunca contém senha nem hash.
+/// para o mais antigo.
 /// </summary>
 public sealed class ListarHistoricoAcesso(
     IUsuarioAtual usuarioAtual,

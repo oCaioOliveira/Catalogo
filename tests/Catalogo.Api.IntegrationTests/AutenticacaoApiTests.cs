@@ -2,64 +2,134 @@ using System.Net;
 using System.Net.Http.Json;
 using Catalogo.Api.IntegrationTests.Apoio;
 using Catalogo.Domain.Acesso;
-using Microsoft.AspNetCore.Hosting;
+using Catalogo.Infrastructure.Persistencia;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Catalogo.Api.IntegrationTests;
 
-// RN23 (login), RN24 (bloqueio) e RN25 (troca obrigatória de senha).
+// RN23 (login pelo Windows, docs/adr/0054) e RN105 (primeiro acesso). O usuário do AD é simulado por AutenticacaoWindowsDeTeste.
 public class AutenticacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
 {
     private const string UrlLogin = "/api/v1/auth/login";
 
     [Fact]
-    public async Task Login_Certo_DevolveTokenQueAbreAApi()
+    public async Task Login_UsuarioDoWindowsCadastrado_DevolveTokenQueAbreAApi()
     {
-        await CriarUsuarioAsync("maria", Perfil.Externo, [EquipePadrao]);
+        var (maria, _) = await CriarUsuarioAsync("C161587", Perfil.Externo, [EquipePadrao]);
 
-        var resposta = await ClienteAnonimo.PostAsJsonAsync(UrlLogin, new { matricula = "MARIA", senha = SenhaPadrao });
+        var resposta = await LoginWindows(@"CORPCAIXA\c161587");
 
         Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
         var corpo = await LerJson(resposta);
+        Assert.Equal(maria.Id.ToString(), corpo["usuario"]!["id"]!.GetValue<string>());
         Assert.Equal("EXTERNO", corpo["usuario"]!["perfil"]!.GetValue<string>());
         Assert.Equal(EquipePadrao.Nome, corpo["usuario"]!["equipes"]![0]!["nome"]!.GetValue<string>());
+        Assert.Null(corpo["deveTrocarSenha"]);
         using var cliente = ClienteComToken(corpo["token"]!.GetValue<string>());
         Assert.Equal(HttpStatusCode.OK, (await cliente.GetAsync($"{UrlGrupo}/entidades")).StatusCode);
+        Assert.Equal("C161587", (await LerJson(await cliente.GetAsync("/api/v1/auth/eu")))["matricula"]!.GetValue<string>());
     }
 
     [Fact]
-    public async Task Login_CincoSenhasErradas_BloqueiaInclusiveComASenhaCerta()
+    public async Task Login_RegistraOUltimoAcesso()
     {
-        // RN24
-        await CriarUsuarioAsync("maria", Perfil.Externo, [EquipePadrao]);
-        for (var i = 0; i < 5; i++)
-            Assert.Equal(HttpStatusCode.Unauthorized, (await Login("maria", "errada")).StatusCode);
+        var (maria, _) = await CriarUsuarioAsync("C161587", Perfil.Interno, [EquipePadrao]);
+        var antes = DateTime.UtcNow.AddSeconds(-5);
 
-        var comASenhaCerta = await Login("maria", SenhaPadrao);
+        await LoginWindows(@"CORPCAIXA\C161587");
 
-        Assert.Equal(HttpStatusCode.Unauthorized, comASenhaCerta.StatusCode);
-        Assert.Equal("Matrícula ou senha inválidas.", (await LerJson(comASenhaCerta))["detail"]!.GetValue<string>());
+        var usuario = await LerUsuarioAsync("C161587");
+        Assert.Equal(maria.Id, usuario.Id);
+        Assert.True(usuario.UltimoAcessoEm >= antes);
     }
 
     [Fact]
-    public async Task Login_MatriculaInexistenteESenhaErrada_TemAMesmaResposta()
+    public async Task Login_MatriculaNova_CriaUsuarioExternoSemEquipe()
     {
-        // RN23: não revela se a matrícula existe.
-        await CriarUsuarioAsync("maria", Perfil.Externo, [EquipePadrao]);
+        // RN105: perfis e equipes continuam com o administrador.
+        var resposta = await LoginWindows(@"CORPCAIXA\c999001");
 
-        var inexistente = await LerJson(await Login("ninguem", SenhaPadrao));
-        var senhaErrada = await LerJson(await Login("maria", "errada"));
+        Assert.Equal(HttpStatusCode.OK, resposta.StatusCode);
+        var corpo = await LerJson(resposta);
+        Assert.Equal("C999001", corpo["usuario"]!["matricula"]!.GetValue<string>());
+        Assert.Equal("EXTERNO", corpo["usuario"]!["perfil"]!.GetValue<string>());
+        Assert.Empty(corpo["usuario"]!["equipes"]!.AsArray());
 
-        Assert.Equal(inexistente["detail"]!.ToJsonString(), senhaErrada["detail"]!.ToJsonString());
-        Assert.Equal(inexistente["title"]!.ToJsonString(), senhaErrada["title"]!.ToJsonString());
+        var usuario = await LerUsuarioAsync("C999001");
+        Assert.Equal(Perfil.Externo, usuario.Perfil);
+        Assert.True(usuario.Ativo);
+        Assert.Empty(usuario.Equipes);
+
+        // O cadastro fica no histórico do usuário, feito por ele mesmo (RN32).
+        var historico = await LerJson(await Cliente.GetAsync($"/api/v1/usuarios/{usuario.Id}/historico"));
+        var linha = Assert.Single(historico["itens"]!.AsArray())!;
+        Assert.Equal("CRIACAO", linha["operacao"]!.GetValue<string>());
+        Assert.Equal("C999001", linha["usuario"]!["matricula"]!.GetValue<string>());
     }
 
     [Fact]
-    public async Task Login_UsuarioInativo_NaoEntra()
+    public async Task Login_MesmaMatriculaDeNovo_NaoCriaOutroUsuario()
     {
-        var (usuario, _) = await CriarUsuarioAsync("maria", Perfil.Externo, [EquipePadrao]);
+        var primeiro = await LerJson(await LoginWindows(@"CORPCAIXA\c999001"));
+        var segundo = await LerJson(await LoginWindows("c999001@corpcaixa.local"));
+
+        Assert.Equal(primeiro["usuario"]!["id"]!.GetValue<string>(), segundo["usuario"]!["id"]!.GetValue<string>());
+        using var escopo = Banco.Fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<CatalogoDbContext>();
+        Assert.Equal(1, await contexto.Usuarios.CountAsync(u => u.Matricula == "C999001"));
+    }
+
+    [Fact]
+    public async Task Login_UsuarioDesativado_Devolve403()
+    {
+        var (usuario, _) = await CriarUsuarioAsync("C161587", Perfil.Externo, [EquipePadrao]);
         await Cliente.PatchAsJsonAsync($"/api/v1/usuarios/{usuario.Id}/ativacao", new { ativo = false });
 
-        Assert.Equal(HttpStatusCode.Unauthorized, (await Login("maria", SenhaPadrao)).StatusCode);
+        var resposta = await LoginWindows(@"CORPCAIXA\c161587");
+
+        Assert.Equal(HttpStatusCode.Forbidden, resposta.StatusCode);
+        var problema = await LerJson(resposta);
+        Assert.Equal("SEM_PERMISSAO", problema["codigo"]!.GetValue<string>());
+        Assert.Null(problema["token"]);
+    }
+
+    [Fact]
+    public async Task Login_SemCredencialDoWindows_Devolve401ComDesafioNegotiate()
+    {
+        var resposta = await ClienteAnonimo.PostAsync(UrlLogin, null);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
+        Assert.Contains("Negotiate", resposta.Headers.WwwAuthenticate.ToString());
+        Assert.Equal("NAO_AUTENTICADO", (await LerJson(resposta))["codigo"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task Login_ComUmTokenEmVezDoWindows_Devolve401()
+    {
+        // O JWT abre o resto da API, mas não o login: só a autenticação do Windows emite token.
+        var resposta = await Cliente.PostAsync(UrlLogin, null);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
+    }
+
+    [Fact]
+    public async Task Login_NomeDoWindowsSemMatriculaValida_Devolve401()
+    {
+        var resposta = await LoginWindows(@"CORPCAIXA\" + new string('x', MatriculaWindows.TamanhoMaximo + 1));
+
+        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
+        Assert.Equal("NAO_AUTENTICADO", (await LerJson(resposta))["codigo"]!.GetValue<string>());
+    }
+
+    [Fact]
+    public async Task LoginPorSenha_NaoExisteMais()
+    {
+        // Matrícula e senha no corpo não autenticam: só vale o usuário do Windows. A troca de senha também saiu.
+        var resposta = await ClienteAnonimo.PostAsJsonAsync(UrlLogin, new { matricula = "admin.testes", senha = "SenhaDeTeste123" });
+
+        Assert.Equal(HttpStatusCode.Unauthorized, resposta.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await Cliente.PostAsJsonAsync("/api/v1/auth/trocar-senha", new { })).StatusCode);
     }
 
     [Fact]
@@ -72,36 +142,6 @@ public class AutenticacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco
         await Cliente.PatchAsJsonAsync($"/api/v1/usuarios/{usuario.Id}/ativacao", new { ativo = false });
 
         Assert.Equal(HttpStatusCode.Unauthorized, (await cliente.GetAsync($"{UrlGrupo}/entidades")).StatusCode);
-    }
-
-    [Fact]
-    public async Task SenhaProvisoria_OutrosEndpointsDevolvem403AteATroca()
-    {
-        // RN25
-        var (_, cliente) = await CriarUsuarioAsync("maria", Perfil.Interno, [EquipePadrao], deveTrocarSenha: true);
-
-        var bloqueado = await cliente.GetAsync($"{UrlGrupo}/entidades");
-        Assert.Equal(HttpStatusCode.Forbidden, bloqueado.StatusCode);
-        Assert.Equal("TROCA_DE_SENHA_OBRIGATORIA", (await LerJson(bloqueado))["codigo"]!.GetValue<string>());
-        Assert.Equal(HttpStatusCode.OK, (await cliente.GetAsync("/api/v1/auth/eu")).StatusCode);
-
-        var troca = await cliente.PostAsJsonAsync("/api/v1/auth/trocar-senha", new { senhaAtual = SenhaPadrao, novaSenha = "NovaSenha2026" });
-
-        Assert.Equal(HttpStatusCode.NoContent, troca.StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await cliente.GetAsync($"{UrlGrupo}/entidades")).StatusCode);
-        Assert.Equal(HttpStatusCode.OK, (await Login("maria", "NovaSenha2026")).StatusCode);
-    }
-
-    [Fact]
-    public async Task TrocarSenha_NovaFracaOuIgual_Devolve400()
-    {
-        // RN25
-        var (_, cliente) = await CriarUsuarioAsync("maria", Perfil.Interno, [EquipePadrao], deveTrocarSenha: true);
-
-        var resposta = await cliente.PostAsJsonAsync("/api/v1/auth/trocar-senha", new { senhaAtual = SenhaPadrao, novaSenha = SenhaPadrao });
-
-        Assert.Equal(HttpStatusCode.BadRequest, resposta.StatusCode);
-        Assert.NotNull((await LerJson(resposta))["errors"]!["novaSenha"]);
     }
 
     [Theory]
@@ -117,20 +157,10 @@ public class AutenticacaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco
         Assert.Equal("application/problem+json", resposta.Content.Headers.ContentType!.MediaType);
     }
 
-    [Fact]
-    public async Task Login_AcimaDoLimitePorMinuto_Devolve429()
+    private async Task<Usuario> LerUsuarioAsync(string matricula)
     {
-        // RN23: rate limiting do login (limite baixo só neste teste).
-        await using var fabrica = Banco.Fabrica.WithWebHostBuilder(b => b.UseSetting("Seguranca:LoginLimitePorMinuto", "2"));
-        using var cliente = fabrica.CreateClient();
-
-        var status = new List<HttpStatusCode>();
-        for (var i = 0; i < 3; i++)
-            status.Add((await cliente.PostAsJsonAsync(UrlLogin, new { matricula = "x", senha = "y" })).StatusCode);
-
-        Assert.Equal([HttpStatusCode.Unauthorized, HttpStatusCode.Unauthorized, HttpStatusCode.TooManyRequests], status);
+        using var escopo = Banco.Fabrica.Services.CreateScope();
+        var contexto = escopo.ServiceProvider.GetRequiredService<CatalogoDbContext>();
+        return await contexto.Usuarios.AsNoTracking().Include(u => u.Equipes).SingleAsync(u => u.Matricula == matricula);
     }
-
-    private Task<HttpResponseMessage> Login(string matricula, string senha) =>
-        ClienteAnonimo.PostAsJsonAsync(UrlLogin, new { matricula, senha });
 }

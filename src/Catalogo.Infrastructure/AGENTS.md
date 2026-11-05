@@ -25,7 +25,6 @@ Complementa o [`AGENTS.md` da raiz](../../AGENTS.md).
 | `Painel/ConsultaIndicadoresLinq.cs`, `MontadorLinhas.cs` | a agregação configurável em LINQ (RN85 a RN87, [ADR 0031](../../../docs/adr/0031-agregacao-no-banco-em-linq.md)): um método por tipo de dimensão e de métrica, LEFT JOIN com `RegistroValor`/`RegistroReferencia` e um `GROUP BY` |
 | `Repositorios/ImportacaoRepository.cs`, `ConsultasImportacao.cs` | as importações (RN97, RN104) e as consultas **em lote** da importação: itens pelo nome no escopo da listagem (uma por tipo de item, RN99), donos das chaves únicas (RN102), registros para alterar e alterações posteriores (RN103) |
 | `Importacoes/ArquivosImportacao.cs` | leitura (valores das células, nunca fórmulas; tipo real pelo conteúdo; limite descompactado contra "zip bomb") e geração (modelo com listas suspensas e "Instruções"; relatório) das planilhas, com o ClosedXML (RN98) |
-| `Acesso/HasherSenha.cs` | hash de senha com o `PasswordHasher` (PBKDF2), sem o Identity completo (ADR 0016) |
 | `Acesso/SituacaoUsuarios.cs` | perfil, equipes ATIVAS e situação de cada usuário, com cache curto (RN23) |
 | `ConfiguracaoInfraestrutura.cs` | `AdicionarInfraestrutura()`, chamado só pelo `Program.cs` |
 
@@ -106,7 +105,7 @@ As diferenças conscientes entre o script e o mapeamento estão em
 
 ## Cache da situação dos usuários
 
-- `SituacaoUsuarios` guarda por usuário (perfil, equipes **ativas**, ativo, troca de senha) por
+- `SituacaoUsuarios` guarda por usuário (perfil, equipes **ativas**, ativo) por
   `Seguranca:CacheUsuarioSegundos` (padrão 60 s). `Invalidar(id)` descarta um usuário; `InvalidarTodos()`
   descarta todos (ex.: equipe desativada), por meio de um sinal de cancelamento compartilhado.
 - O cache é por servidor. Com mais de um servidor, uma mudança vale na hora só no servidor que a fez;

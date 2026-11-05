@@ -87,29 +87,27 @@ Não há nada a configurar: na primeira subida, a API gera uma chave aleatória 
 
 ## Primeiro administrador
 
-Todo endpoint exige login. O primeiro usuário, um ADMINISTRADOR, é criado por um comando, que **só
-funciona se não houver nenhum administrador ativo**. A senha vem de uma variável de ambiente (nunca de
-argumento, que ficaria no histórico do terminal) e precisa ser trocada no primeiro acesso:
+Todo endpoint exige login, e o login é o do Windows (AD, [ADR 0054](../docs/adr/0054-login-pela-autenticacao-integrada-do-windows.md)).
+O primeiro ADMINISTRADOR é criado por um comando, que **só funciona se não houver nenhum administrador ativo** e não pede senha:
+use a **matrícula do AD** da pessoa, que depois entra pelo Windows. Se ela já tiver aberto o Catálogo (e virado EXTERNO, RN105), o
+comando a promove:
 
 ```bash
-CATALOGO_ADMIN_SENHA='UmaSenhaForte2026' \
-  dotnet run --project src/Catalogo.Api -- criar-admin --matricula admin --nome "Administrador"
+dotnet run --project src/Catalogo.Api -- criar-admin --matricula C161587 --nome "Administrador"
 ```
 
 Para um banco instalado pelos DBAs (pacote de `database/entrega/`), o mesmo comando **gera o script** do administrador inicial,
-sem acessar o banco, com **só o hash** da senha (use caminho absoluto em `--saida`: o `dotnet run` roda na pasta do projeto):
+sem acessar o banco (use caminho absoluto em `--saida`: o `dotnet run` roda na pasta do projeto). O script exige a estrutura na
+versão 19 (sem as colunas de senha):
 
 ```bash
-CATALOGO_ADMIN_SENHA='...' dotnet run --project src/Catalogo.Api -- criar-admin --gerar-sql \
+dotnet run --project src/Catalogo.Api -- criar-admin --gerar-sql \
   --matricula C161587 --nome "Caio" --saida "$PWD/../database/entrega/<pacote>/03_administrador_inicial.sql"
 ```
 
-A senha segue a política (RN25), a não ser com `--aceitar-senha-fora-da-politica`, exceção só deste modo e só para a senha
-provisória do administrador inicial: o usuário nasce com troca obrigatória, e a senha nova segue a política.
-
-Depois, faça login (`POST /api/v1/auth/login`), troque a senha (`POST /api/v1/auth/trocar-senha`) e crie as
-equipes e os usuários pela API (`/api/v1/equipes`, `/api/v1/usuarios`). Os usuários recebem uma senha provisória,
-que é mostrada uma única vez.
+Depois, o administrador entra pelo Windows e cria as equipes e os usuários (só pela matrícula) pela tela ou pela API
+(`/api/v1/equipes`, `/api/v1/usuarios`). Quem abrir o Catálogo sem estar cadastrado vira EXTERNO sem equipe (RN105).
+No Linux/WSL não há login do Windows: veja "Desenvolvimento e testes" em [`docs/seguranca.md`](../docs/seguranca.md#desenvolvimento-e-testes).
 
 ## 3. Rodar a API
 
@@ -147,8 +145,7 @@ códigos de erro estão em [`docs/api/codigos-de-erro.md`](../docs/api/codigos-d
 | PUT/DELETE | `.../{entidade}/registros/{id}/avaliacoes/minha` | cria/edita ou remove a sua avaliação (RN45) |
 | GET | `.../{entidade}/registros?ordenacao=-avaliacao.qualidade&avaliacao.qualidade.de=4` | listagem pela média de um critério (RN48) |
 | GET | `/api/v1/aprovacoes/pendentes?grupo=&entidade=&equipeId=` | fila de registros pendentes, do mais antigo para o mais novo (RN36) |
-| POST | `/api/v1/auth/login` | login com matrícula e senha, devolve o JWT (RN23) |
-| POST | `/api/v1/auth/trocar-senha` | troca a própria senha (RN25) |
+| POST | `/api/v1/auth/login` | login pelo Windows (Negotiate, sem corpo), devolve o JWT (RN23, RN105) |
 | GET | `/api/v1/auth/eu` | dados do usuário logado |
 | GET/POST/PUT/PATCH | `/api/v1/equipes`, `/api/v1/usuarios` | administração, só ADMINISTRADOR |
 | GET/POST/PUT/PATCH/DELETE | `/api/v1/admin/metadados/grupos/...` | administração de metadados: listagens, entidades, campos, restrições e dependências, com `?simular=true` (RN50 a RN77, [passo a passo](../docs/api/administracao-de-metadados.md)), só ADMINISTRADOR |
@@ -159,8 +156,9 @@ Todos exigem `Authorization: Bearer <token>`, exceto o login e o `/health`. Quem
 Experimente:
 
 ```bash
-TOKEN=$(curl -s -X POST http://localhost:5080/api/v1/auth/login -H "Content-Type: application/json" \
-  -d '{"matricula": "admin", "senha": "..."}' | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')
+# Com a API no Windows (no Linux/WSL não há Kerberos: use o token local do front, `node tools/token-local.mjs admin`).
+TOKEN=$(curl -s --negotiate -u : -X POST http://localhost:5080/api/v1/auth/login \
+  | python3 -c 'import sys,json; print(json.load(sys.stdin)["token"])')
 
 curl -H "Authorization: Bearer $TOKEN" http://localhost:5080/api/v1/grupos/testes_desempenho/entidades
 
@@ -202,9 +200,9 @@ As versões ficam só em [`Directory.Packages.props`](Directory.Packages.props) 
 
 - **Permitidos**: `Microsoft.EntityFrameworkCore.SqlServer` 8.x, `Swashbuckle.AspNetCore`,
   `FluentValidation`, xUnit (com asserts próprios ou Shouldly), `NetArchTest.Rules`, `Respawn`,
-  `Microsoft.AspNetCore.Mvc.Testing`, os health checks do EF Core, `Microsoft.Extensions.Identity.Core` 8.x
-  (só o `PasswordHasher`, [ADR 0016](../docs/adr/0016-passwordhasher-sem-identity.md)) e
-  `Microsoft.AspNetCore.Authentication.JwtBearer` 8.x e `ClosedXML` (licença MIT, só na Infrastructure e nos testes de
+  `Microsoft.AspNetCore.Mvc.Testing`, os health checks do EF Core,
+  `Microsoft.AspNetCore.Authentication.JwtBearer` 8.x, `Microsoft.AspNetCore.Authentication.Negotiate` 8.x (login pelo Windows,
+  [ADR 0054](../docs/adr/0054-login-pela-autenticacao-integrada-do-windows.md)) e `ClosedXML` (licença MIT, só na Infrastructure e nos testes de
   integração, para a exportação em XLSX).
 - **Proibidos**: MediatR, AutoMapper, MassTransit, FluentAssertions ≥ 8 ([ADR 0004](../docs/adr/0004-sem-mediatr-automapper-fluentassertions.md))
   e Dapper ([ADR 0011](../docs/adr/0011-consultas-somente-linq.md)).

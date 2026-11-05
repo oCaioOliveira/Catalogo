@@ -11,18 +11,17 @@ using Catalogo.Domain.Validacao;
 namespace Catalogo.Application.CasosDeUso.Administracao;
 
 /// <summary>
-/// Caso de uso: criar usuário (só ADMINISTRADOR). A senha é PROVISÓRIA, gerada pelo sistema e
-/// devolvida uma única vez; o usuário precisa trocá-la no primeiro acesso (RN25).
+/// Caso de uso: criar usuário (só ADMINISTRADOR), pela matrícula do AD. Não há senha: a pessoa entra pelo login do Windows
+/// (RN23), que acha o usuário pela matrícula.
 /// </summary>
 public sealed class CriarUsuario(
     IUsuarioAtual usuarioAtual,
     IUsuarioRepository usuarios,
     IEquipeRepository equipes,
-    IHasherSenha hasher,
     IUnidadeDeTrabalho unidadeDeTrabalho,
     ServicoHistorico historico)
 {
-    public async Task<UsuarioCriadoDto> ExecutarAsync(UsuarioEntrada entrada, CancellationToken cancellationToken)
+    public async Task<UsuarioDto> ExecutarAsync(UsuarioEntrada entrada, CancellationToken cancellationToken)
     {
         var autor = await usuarioAtual.ObterAsync(cancellationToken);
         Permissoes.ExigirAdministrador(autor);
@@ -37,9 +36,7 @@ public sealed class CriarUsuario(
         if (await usuarios.ExisteMatriculaAsync(matricula, cancellationToken))
             throw new ConflitoUnicidadeException("UQ_Usuario_Matricula", ["matricula"], $"Já existe um usuário com a matrícula '{matricula}'.");
 
-        var senhaProvisoria = PoliticaSenha.GerarProvisoria();
         var usuario = new Usuario { Matricula = matricula, Nome = entrada.Nome!.Trim(), Perfil = perfil!.Value };
-        usuario.DefinirSenha(hasher.GerarHash(senhaProvisoria), provisoria: true);
         usuarios.Adicionar(usuario);   // gera o Id
         ValidacaoUsuario.SincronizarEquipes(usuario, equipeIds);
 
@@ -54,7 +51,6 @@ public sealed class CriarUsuario(
             throw new ConflitoUnicidadeException("UQ_Usuario_Matricula", ["matricula"], $"Já existe um usuário com a matrícula '{matricula}'.");
         }
 
-        var dto = usuario.ParaDto(await ValidacaoUsuario.EquipesDosUsuariosAsync(equipes, [usuario], cancellationToken));
-        return new UsuarioCriadoDto(dto, senhaProvisoria);
+        return usuario.ParaDto(await ValidacaoUsuario.EquipesDosUsuariosAsync(equipes, [usuario], cancellationToken));
     }
 }

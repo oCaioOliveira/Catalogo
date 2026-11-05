@@ -43,7 +43,7 @@ public sealed class OutroSistemaNoMesmoBancoTests(BancoDeTestesFixture banco) : 
 
             // Login, cadastro, listagem e exclusão pelo Catálogo, com a mesma matrícula que o outro sistema tem em dbo.Usuario.
             await CriarUsuarioAsync("maria", Perfil.Interno, [EquipePadrao]);
-            var login = await ClienteAnonimo.PostAsJsonAsync("/api/v1/auth/login", new { matricula = "maria", senha = SenhaPadrao });
+            var login = await LoginWindows(@"CORPCAIXA\maria");
             Assert.Equal(HttpStatusCode.OK, login.StatusCode);
             Assert.Equal("Usuário maria", (await LerJson(login))["usuario"]!["nome"]!.GetValue<string>());
 

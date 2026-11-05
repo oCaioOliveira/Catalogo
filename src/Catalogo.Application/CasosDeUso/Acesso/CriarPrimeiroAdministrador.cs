@@ -10,29 +10,36 @@ using Catalogo.Domain.Validacao;
 namespace Catalogo.Application.CasosDeUso.Acesso;
 
 /// <summary>
-/// Caso de uso: criar o PRIMEIRO administrador (comando "criar-admin"). Só funciona se não houver
-/// nenhum administrador ativo (RN30). A senha vem de fora (variável de ambiente) e precisa ser trocada
-/// no primeiro acesso. No histórico, o autor é o próprio administrador criado.
+/// Caso de uso: criar o PRIMEIRO administrador (comando "criar-admin"). Só funciona se não houver nenhum administrador ativo
+/// (RN30). Não há senha: a pessoa entra pelo login do Windows (RN23), que a acha pela matrícula. Se a matrícula já existe (ex.:
+/// a pessoa abriu o Catálogo antes e virou EXTERNO, RN105), o usuário passa a ADMINISTRADOR e é ativado. No histórico, o autor é
+/// o próprio administrador.
 /// </summary>
 public sealed class CriarPrimeiroAdministrador(
     IUsuarioRepository usuarios,
-    IHasherSenha hasher,
     IUnidadeDeTrabalho unidadeDeTrabalho,
     ServicoHistorico historico)
 {
-    public async Task<UsuarioResumoDto> ExecutarAsync(string? matricula, string? nome, string? senha, CancellationToken cancellationToken)
+    public async Task<UsuarioResumoDto> ExecutarAsync(string? matricula, string? nome, CancellationToken cancellationToken)
     {
         if (await usuarios.ContarAdministradoresAtivosAsync(cancellationToken) > 0)
             throw new RegraDeNegocioException("Já existe um administrador ativo. Use a API para criar outros usuários.", CodigosErro.AdministradorJaExiste);
 
         var erros = new ErrosPorCampo();
         ValidarIdentificacao(matricula, nome, erros);
-        foreach (var erro in PoliticaSenha.Validar(senha))
-            erros.Adicionar("senha", erro);
         erros.LancarSeHouverErros();
 
-        if (await usuarios.ExisteMatriculaAsync(matricula!.Trim(), cancellationToken))
-            throw new ConflitoUnicidadeException("UQ_Usuario_Matricula", ["matricula"], $"Já existe um usuário com a matrícula '{matricula.Trim()}'.");
+        var existente = await usuarios.ObterPorMatriculaAsync(matricula!.Trim(), cancellationToken);
+        if (existente is not null)
+        {
+            var antes = existente.ParaJsonHistorico();
+            existente.Nome = nome!.Trim();
+            existente.Perfil = Perfil.Administrador;
+            existente.Ativo = true;
+            historico.RegistrarUsuario(OperacaoHistorico.Alteracao, existente.Id, existente.Id, existente.Matricula, antes, existente.ParaJsonHistorico());
+            await unidadeDeTrabalho.SalvarAlteracoesAsync(cancellationToken);
+            return new UsuarioResumoDto(existente.Id, existente.Matricula, existente.Nome);
+        }
 
         var usuario = new Usuario
         {
@@ -40,7 +47,6 @@ public sealed class CriarPrimeiroAdministrador(
             Nome = nome!.Trim(),
             Perfil = Perfil.Administrador,
         };
-        usuario.DefinirSenha(hasher.GerarHash(senha!), provisoria: true);
         usuarios.Adicionar(usuario);   // gera o Id, usado no histórico
 
         historico.RegistrarUsuario(OperacaoHistorico.Criacao, usuario.Id, usuario.Id, usuario.Matricula, null, usuario.ParaJsonHistorico());

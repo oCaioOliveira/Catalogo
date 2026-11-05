@@ -19,7 +19,7 @@ public sealed class ListagensAdministracaoApiTests(BancoDeTestesFixture banco) :
     {
         var resposta = await Cliente.PostAsJsonAsync("/api/v1/usuarios", new { matricula, nome, perfil = "INTERNO", equipes });
         Assert.Equal(HttpStatusCode.Created, resposta.StatusCode);
-        return (await LerJson(resposta))["usuario"]!["id"]!.GetValue<string>();
+        return (await LerJson(resposta))["id"]!.GetValue<string>();
     }
 
     private async Task<JsonNode> Listar(string url)

@@ -49,9 +49,8 @@ public static class NomesBanco
         }),
         ["Usuario"] = ("CATTB008_USUARIO", new(StringComparer.Ordinal)
         {
-            ["Id"] = "NU_NSU_USUARIO", ["Matricula"] = "CO_MATRICULA", ["Nome"] = "NO_USUARIO", ["SenhaHash"] = "CO_SENHA_HASH",
-            ["Perfil"] = "NO_PERFIL", ["Ativo"] = "IC_ATIVO_USR", ["DeveTrocarSenha"] = "IC_TROCAR_SENHA",
-            ["TentativasFalhas"] = "NU_TENTATIVA_FALHA", ["BloqueadoAte"] = "DH_BLOQUEADO", ["UltimoAcessoEm"] = "DH_ULTIMO_ACESSO",
+            ["Id"] = "NU_NSU_USUARIO", ["Matricula"] = "CO_MATRICULA", ["Nome"] = "NO_USUARIO",
+            ["Perfil"] = "NO_PERFIL", ["Ativo"] = "IC_ATIVO_USR", ["UltimoAcessoEm"] = "DH_ULTIMO_ACESSO",
             ["CriadoEm"] = "DH_CRIADO",
         }),
         ["UsuarioEquipe"] = ("CATTB009_USUARIO_EQUIPE", new(StringComparer.Ordinal)

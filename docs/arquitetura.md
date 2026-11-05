@@ -209,9 +209,10 @@ As **opções de campo** (`ListarOpcoes`, RN21) reaproveitam a mesma consulta: u
 Detalhes do login e do token em [seguranca.md](seguranca.md). Em resumo, para toda requisição:
 
 1. **JwtBearer** valida o token (401 se ausente ou inválido). O fallback de autorização exige login em
-   todo endpoint, salvo `[AllowAnonymous]` (só o login e o `/health`).
+   todo endpoint, salvo `[AllowAnonymous]` (só o `/health`). O login (`POST /auth/login`) exige o usuário do Windows
+   (Negotiate, [ADR 0054](adr/0054-login-pela-autenticacao-integrada-do-windows.md)) e é o único que emite o token.
 2. **`VerificacaoUsuarioMiddleware`** lê a situação atual do usuário (`ISituacaoUsuarios`, cache de 1 min):
-   desativado → 401; senha provisória pendente → 403 `TROCA_DE_SENHA_OBRIGATORIA`.
+   desativado → 401.
 3. O **caso de uso** obtém o `UsuarioAtual` (`IUsuarioAtual`). Sob uma listagem, entra nela pelo `ObterGrupoOuFalharAsync` /
    `ObterEntidadeOuFalharAsync`: 404 se o usuário não a vê (RN90) e, daí em diante, o **usuário na listagem**
    (`PoliticaPermissao.NaListagem`), cujas equipes são só as habilitadas nela (RN91, [ADR 0046](adr/0046-listagens-habilitadas-por-equipe.md)).
@@ -227,7 +228,7 @@ Detalhes do login e do token em [seguranca.md](seguranca.md). Em resumo, para to
 ```mermaid
 flowchart LR
     R["Requisição + JWT"] --> J["JwtBearer<br/>401"]
-    J --> M["VerificacaoUsuarioMiddleware<br/>401 / 403 troca de senha"]
+    J --> M["VerificacaoUsuarioMiddleware<br/>401 desativado"]
     M --> C["Controller"]
     C --> UC["Caso de uso"]
     UC --> P{"PoliticaPermissao<br/>(Domain)"}

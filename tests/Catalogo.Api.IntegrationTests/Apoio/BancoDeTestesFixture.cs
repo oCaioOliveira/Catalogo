@@ -1,6 +1,7 @@
 using Catalogo.Infrastructure.Persistencia;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -74,8 +75,8 @@ public sealed class BancoDeTestesFixture : IAsyncLifetime
             foreach (var (chave, valor) in ConfiguracaoDaApi(ConnectionString))
                 builder.UseSetting(chave, valor);
             builder.UseSetting(SchemaBanco.ChaveConfiguracao, Schema);
-            // Os testes fazem muitos logins seguidos do mesmo "endereço": o limite de produção atrapalharia.
-            builder.UseSetting("Seguranca:LoginLimitePorMinuto", "100000");
+            // O usuário do AD é simulado por um cabeçalho (AutenticacaoWindowsDeTeste): não há Windows nem Kerberos no TestServer.
+            builder.ConfigureTestServices(AutenticacaoWindowsDeTeste.Registrar);
             // A limpeza das importações (RN104) não roda sozinha nos testes: eles a chamam quando precisam.
             builder.UseSetting("Importacao:IntervaloLimpezaMinutos", "0");
         });

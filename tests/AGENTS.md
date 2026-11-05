@@ -13,7 +13,8 @@ Complementa o [`AGENTS.md` da raiz](../AGENTS.md). Rode `dotnet test` na raiz an
 
 Use os atalhos de `Apoio/TesteDeApi` (`Criar`, `Ler`, `Atualizar`, `Excluir`, `ListarOk`, `ComVersao`...)
 em vez de montar requisições à mão. Para outros perfis: `var (usuario, cliente) = await CriarUsuarioAsync("m", Perfil.Interno, [EquipePadrao]);`
-(token gerado direto, sem login). `EquipeDosAtalhos` define em que equipe os atalhos criam registros por equipe.
+(token gerado direto, sem login). O login pelo Windows é simulado pelo `Apoio/AutenticacaoWindowsDeTeste`: use
+`await LoginWindows(@"DOMINIO\c161587")` (o usuário do Windows vai num cabeçalho; sem ele, 401 com `WWW-Authenticate: Negotiate`). `EquipeDosAtalhos` define em que equipe os atalhos criam registros por equipe.
 Testes de permissão usam `Postar(cliente, entidade, corpo)`, que envia o corpo exatamente como está.
 Nos testes de Application, troque `_ambiente.Usuario` para testar outros perfis.
 
@@ -25,7 +26,7 @@ dependência, unicidade)? Teste na Application **e** cubra o caminho feliz e um 
 - `ContratoOpenApiTests` gera o OpenAPI e **falha se ele for diferente de `backend/openapi/v1.json`**. Mudou o contrato de
   propósito? Regenere e revise o diff: `ATUALIZAR_OPENAPI=1 dotnet test --filter "FullyQualifiedName~ContratoOpenApiTests"`.
   O mesmo teste confere que todo endpoint declara sucesso, 401, 500, 400 e 404 quando cabem ([ADR 0024](../../docs/adr/0024-contrato-openapi-versionado-e-verificado.md)).
-- `ErrosApiTests` percorre os principais erros (401, 403, 404, 400, 409, 405, 415, troca de senha) e confere `codigo` e
+- `ErrosApiTests` percorre os principais erros (401, 403, 404, 400, 409, 405, 415, login sem Windows e desativado) e confere `codigo` e
   `traceId` em todos. Endpoint novo com um erro novo? Inclua o cenário lá.
 - Teste que precisa de outra configuração (CORS, limite da exportação) ou de um serviço trocado (ex.: um que falha, para o 500):
   `FabricaCom(configuracoes, servicos)` cria outra instância da API sobre o mesmo banco; use `ClienteDe(usuario, fabrica)`.

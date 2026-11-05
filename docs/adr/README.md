@@ -25,7 +25,7 @@ repositórios e use o próximo. Decisão que mexe nos dois lados fica aqui.
 | [0013](0013-registro-valor.md) | Tabela de valores tipados `RegistroValor` | Aceito |
 | [0014](0014-perfil-unico-por-usuario.md) | Perfil único por usuário, válido em todas as equipes | Aceito |
 | [0015](0015-jwt-com-provedor-de-identidade-isolado.md) | JWT com matrícula e senha local, atrás de interface para SSO | Aceito |
-| [0016](0016-passwordhasher-sem-identity.md) | PasswordHasher sem o ASP.NET Core Identity completo | Aceito |
+| [0016](0016-passwordhasher-sem-identity.md) | PasswordHasher sem o ASP.NET Core Identity completo | Substituído por [0054](0054-login-pela-autenticacao-integrada-do-windows.md) |
 | [0017](0017-escopo-global-ou-por-equipe-na-entidade.md) | Escopo global ou por equipe definido na Entidade | Aceito |
 | [0018](0018-historico-explicito-no-caso-de-uso.md) | Histórico explícito no caso de uso, sem interceptor | Aceito |
 | [0019](0019-404-para-registro-de-outra-equipe.md) | 404, e não 403, para registros de outra equipe | Aceito |
@@ -62,7 +62,8 @@ repositórios e use o próximo. Decisão que mexe nos dois lados fica aqui.
 | [0050](0050-instalacao-inicial-so-estrutura-e-administrador.md) | Instalação inicial só com a estrutura e o administrador inicial, criado por script com o hash da senha | Aceito |
 | [0051](0051-repositorios-separados-back-e-front.md) | Repositórios separados para o back-end e o front-end, com cópia do contrato no front | Aceito |
 | [0052](0052-padrao-de-nomes-caixa-e-sql-server-2014.md) | Padrão de nomes da CAIXA no banco (schema `cat`, tabelas `CATTB0xx`) e SQL Server 2014 | Aceito |
-| [0053](0053-configuracao-do-deploy-caixa-e-chave-jwt-no-banco.md) | Configuração do deploy da CAIXA por seis chaves no `appsettings.json` e chave do JWT no banco | Aceito |
+| [0053](0053-configuracao-do-deploy-caixa-e-chave-jwt-no-banco.md) | Configuração do deploy da CAIXA por seis chaves no `appsettings.json` e chave do JWT no banco | Aceito (o `*` do `CORS_ALLOW` substituído pelo 0054) |
+| [0054](0054-login-pela-autenticacao-integrada-do-windows.md) | Login pela autenticação integrada do Windows (AD), sem senha no Catálogo | Aceito |
 
 Modelo para um ADR novo (`NNNN-titulo-curto.md`):
 

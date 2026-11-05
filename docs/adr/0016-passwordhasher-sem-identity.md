@@ -1,6 +1,6 @@
 # 0016. PasswordHasher sem o ASP.NET Core Identity completo
 
-- Status: Aceito
+- Status: Substituído por [0054](0054-login-pela-autenticacao-integrada-do-windows.md)
 - Data: 2026-10-21
 
 ## Contexto

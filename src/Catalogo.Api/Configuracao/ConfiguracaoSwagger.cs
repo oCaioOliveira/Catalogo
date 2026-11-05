@@ -21,7 +21,7 @@ public static class ConfiguracaoSwagger
 
     /// <summary>
     /// Respostas que TODO endpoint pode dar e que não dependem da ação: 401 (sem token ou sessão inválida),
-    /// 403 (troca de senha obrigatória, perfil sem permissão) e 500. Cada ação declara as demais.
+    /// 403 (perfil sem permissão) e 500. Cada ação declara as demais.
     /// </summary>
     public static void DeclararRespostasComuns(MvcOptions opcoes)
     {

@@ -9,7 +9,7 @@ using Catalogo.Domain.Validacao;
 
 namespace Catalogo.Application.CasosDeUso.Acesso;
 
-/// <summary>Caso de uso: dados do usuário logado (GET /api/auth/eu). Funciona mesmo com troca de senha pendente.</summary>
+/// <summary>Caso de uso: dados do usuário logado (GET /api/auth/eu).</summary>
 public sealed class ObterUsuarioLogado(IUsuarioAtual usuarioAtual, IUsuarioRepository usuarios, IEquipeRepository equipes)
 {
     public async Task<UsuarioLogadoDto> ExecutarAsync(CancellationToken cancellationToken)
@@ -30,7 +30,6 @@ public sealed class ObterUsuarioLogado(IUsuarioAtual usuarioAtual, IUsuarioRepos
             usuario.Matricula,
             usuario.Nome,
             PerfilConversor.ParaTexto(usuario.Perfil),
-            usuario.DeveTrocarSenha,
             vinculadas.Where(e => e.Ativa).OrderBy(e => e.Nome, StringComparer.CurrentCulture).Select(e => e.ParaResumoDto()).ToList());
     }
 }

@@ -9,13 +9,12 @@ using Catalogo.Domain.Historico;
 
 namespace Catalogo.Application.Tests.CasosDeUso;
 
-// RN23 a RN25 (login e senha), RN30 (último administrador), RN31 (equipe obrigatória) e RN32 (histórico sem senha).
+// RN23 (login pelo Windows), RN105 (primeiro acesso), RN30 (último administrador), RN31 (equipe obrigatória) e RN32 (histórico).
 public class AcessoTests
 {
     private readonly UsuarioRepositoryFalso _usuarios = new();
     private readonly EquipeRepositoryFalso _equipes = new();
     private readonly HistoricoRepositoryFalso _historico = new();
-    private readonly HasherSenhaFalso _hasher = new();
     private readonly RelogioFalso _relogio = new();
     private readonly SituacaoUsuariosFalsa _situacao = new();
     private readonly UsuarioAtualFalso _atual = new();
@@ -27,119 +26,105 @@ public class AcessoTests
         _equipes.Equipes.Add(_equipe);
     }
 
-    private ProvedorIdentidadeLocal Provedor => new(_usuarios, _hasher, _unidadeDeTrabalho, _relogio);
+    private Login Login => new(_usuarios, _equipes, new GeradorTokenFalso(), _unidadeDeTrabalho, Historico, _relogio);
     private ServicoHistorico Historico => new(_historico, _relogio);
 
     [Fact]
-    public async Task Autenticar_SenhaCerta_DevolveOUsuarioERegistraOAcesso()
+    public async Task Login_UsuarioCadastrado_DevolveTokenERegistraOAcesso()
     {
-        var usuario = Cadastrar("joao", "Senha12345");
+        var usuario = Cadastrar("C161587");
 
-        var autenticado = await Provedor.AutenticarAsync("JOAO", "Senha12345", CancellationToken.None);
+        var resultado = await Login.ExecutarAsync(@"CORPCAIXA\c161587", CancellationToken.None);
 
-        Assert.Same(usuario, autenticado);
+        Assert.Equal("token", resultado.Token);
+        Assert.Equal(usuario.Id, resultado.Usuario.Id);
+        Assert.Equal("INTERNO", resultado.Usuario.Perfil);
         Assert.Equal(_relogio.Agora.UtcDateTime, usuario.UltimoAcessoEm);
+        Assert.Empty(_historico.Linhas);
     }
 
     [Fact]
-    public async Task Autenticar_CincoSenhasErradas_BloqueiaInclusiveASenhaCerta()
+    public async Task Login_MatriculaNova_CriaExternoAtivoSemEquipeComHistorico()
     {
-        // RN24
-        Cadastrar("joao", "Senha12345");
-        for (var i = 0; i < 5; i++)
-            Assert.Null(await Provedor.AutenticarAsync("joao", "errada", CancellationToken.None));
+        // RN105
+        var resultado = await Login.ExecutarAsync(@"CORPCAIXA\c999001", CancellationToken.None);
 
-        Assert.Null(await Provedor.AutenticarAsync("joao", "Senha12345", CancellationToken.None));
-
-        _relogio.Agora = _relogio.Agora.AddMinutes(15);
-        Assert.NotNull(await Provedor.AutenticarAsync("joao", "Senha12345", CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task Autenticar_UsuarioInativoOuInexistente_Recusa()
-    {
-        // RN23
-        Cadastrar("inativo", "Senha12345").Ativo = false;
-
-        Assert.Null(await Provedor.AutenticarAsync("inativo", "Senha12345", CancellationToken.None));
-        Assert.Null(await Provedor.AutenticarAsync("nao_existe", "Senha12345", CancellationToken.None));
-    }
-
-    [Fact]
-    public async Task Login_QualquerFalha_TemAMesmaMensagem()
-    {
-        // RN23: não revela se a matrícula existe.
-        Cadastrar("joao", "Senha12345");
-        var login = new Login(Provedor, new GeradorTokenFalso(), _equipes);
-
-        var semMatricula = await Assert.ThrowsAsync<NaoAutenticadoException>(() =>
-            login.ExecutarAsync(new LoginEntrada("nao_existe", "Senha12345"), CancellationToken.None));
-        var senhaErrada = await Assert.ThrowsAsync<NaoAutenticadoException>(() =>
-            login.ExecutarAsync(new LoginEntrada("joao", "errada"), CancellationToken.None));
-
-        Assert.Equal(semMatricula.Message, senhaErrada.Message);
-    }
-
-    [Fact]
-    public async Task TrocarSenha_SenhaAtualErradaENovaFraca_DevolveOsDoisErros()
-    {
-        // RN25
-        var usuario = Cadastrar("joao", "Senha12345");
-        _atual.Usuario = Atual(usuario);
-
-        var erro = await Assert.ThrowsAsync<ValidacaoRegistroException>(() =>
-            TrocarSenha().ExecutarAsync(new TrocaSenhaEntrada("errada", "curta"), CancellationToken.None));
-
-        Assert.Equal(["novaSenha", "senhaAtual"], erro.Erros.Keys.Order());
-    }
-
-    [Fact]
-    public async Task TrocarSenha_Valida_TiraAObrigacaoEGravaHistoricoSemASenha()
-    {
-        // RN25 e RN32
-        var usuario = Cadastrar("joao", "Provisoria1", provisoria: true);
-        _atual.Usuario = Atual(usuario);
-
-        await TrocarSenha().ExecutarAsync(new TrocaSenhaEntrada("Provisoria1", "NovaSenha123"), CancellationToken.None);
-
-        Assert.False(usuario.DeveTrocarSenha);
-        Assert.Equal("hash:NovaSenha123", usuario.SenhaHash);
+        var novo = Assert.Single(_usuarios.Usuarios);
+        Assert.Equal("C999001", novo.Matricula);
+        Assert.Equal(Perfil.Externo, novo.Perfil);
+        Assert.True(novo.Ativo);
+        Assert.Empty(novo.Equipes);
+        Assert.Empty(resultado.Usuario.Equipes);
         var linha = Assert.Single(_historico.Linhas);
-        Assert.Contains("\"senha\":\"alterada\"", linha.DadosDepois);
-        Assert.DoesNotContain("NovaSenha123", linha.DadosDepois);
-        Assert.DoesNotContain("hash:", linha.DadosDepois);
-        Assert.Contains(usuario.Id, _situacao.Invalidados);
+        Assert.Equal(OperacaoHistorico.Criacao, linha.Operacao);
+        Assert.Equal(novo.Id, linha.UsuarioId);   // autor = o próprio
     }
 
     [Fact]
-    public async Task CriarPrimeiroAdministrador_SemAdministrador_CriaComTrocaObrigatoria()
+    public async Task Login_UsuarioDesativado_LancaAcessoNegadoSemToken()
     {
-        var caso = new CriarPrimeiroAdministrador(_usuarios, _hasher, _unidadeDeTrabalho, Historico);
+        Cadastrar("C161587").Ativo = false;
 
-        await caso.ExecutarAsync("admin", "Administrador", "SenhaForte123", CancellationToken.None);
+        var erro = await Assert.ThrowsAsync<AcessoNegadoException>(() => Login.ExecutarAsync(@"CORPCAIXA\C161587", CancellationToken.None));
+
+        Assert.Equal(CodigosErro.SemPermissao, erro.Codigo);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData(@"CORPCAIXA\")]
+    public async Task Login_SemNomeDoWindows_LancaNaoAutenticado(string? nome)
+    {
+        await Assert.ThrowsAsync<NaoAutenticadoException>(() => Login.ExecutarAsync(nome, CancellationToken.None));
+        Assert.Empty(_usuarios.Usuarios);
+    }
+
+    [Fact]
+    public async Task CriarPrimeiroAdministrador_SemAdministrador_CriaSemSenha()
+    {
+        var caso = new CriarPrimeiroAdministrador(_usuarios, _unidadeDeTrabalho, Historico);
+
+        await caso.ExecutarAsync("C161587", "Administrador", CancellationToken.None);
 
         var admin = Assert.Single(_usuarios.Usuarios);
         Assert.True(admin.EhAdministrador);
-        Assert.True(admin.DeveTrocarSenha);
         Assert.Equal(admin.Id, Assert.Single(_historico.Linhas).UsuarioId);   // autor = o próprio
+    }
+
+    [Fact]
+    public async Task CriarPrimeiroAdministrador_MatriculaJaExiste_PromoveAAdministrador()
+    {
+        // RN105: a pessoa entrou pelo Windows antes do comando e virou EXTERNO.
+        var existente = Cadastrar("C161587");
+        existente.Perfil = Perfil.Externo;
+        var caso = new CriarPrimeiroAdministrador(_usuarios, _unidadeDeTrabalho, Historico);
+
+        var resultado = await caso.ExecutarAsync("c161587", "Fulana", CancellationToken.None);
+
+        Assert.Equal(existente.Id, resultado.Id);
+        Assert.Single(_usuarios.Usuarios);
+        Assert.True(existente.EhAdministrador);
+        Assert.Equal("Fulana", existente.Nome);
+        Assert.Equal(OperacaoHistorico.Alteracao, Assert.Single(_historico.Linhas).Operacao);
     }
 
     [Fact]
     public async Task CriarPrimeiroAdministrador_JaExisteAdministradorAtivo_Recusa()
     {
         // RN30
-        Cadastrar("admin", "Senha12345").Perfil = Perfil.Administrador;
-        var caso = new CriarPrimeiroAdministrador(_usuarios, _hasher, _unidadeDeTrabalho, Historico);
+        Cadastrar("admin").Perfil = Perfil.Administrador;
+        var caso = new CriarPrimeiroAdministrador(_usuarios, _unidadeDeTrabalho, Historico);
 
         await Assert.ThrowsAsync<RegraDeNegocioException>(() =>
-            caso.ExecutarAsync("outro", "Outro", "SenhaForte123", CancellationToken.None));
+            caso.ExecutarAsync("outro", "Outro", CancellationToken.None));
     }
 
     [Fact]
     public async Task DesativarOuRebaixar_UltimoAdministrador_Recusa()
     {
         // RN30
-        var admin = Cadastrar("admin", "Senha12345");
+        var admin = Cadastrar("admin");
         admin.Perfil = Perfil.Administrador;
         _atual.Usuario = Atual(admin);
 
@@ -161,7 +146,7 @@ public class AcessoTests
     {
         // RN31
         _atual.Usuario = UsuarioAtualFalso.Criar(Perfil.Administrador);
-        var caso = new CriarUsuario(_atual, _usuarios, _equipes, _hasher, _unidadeDeTrabalho, Historico);
+        var caso = new CriarUsuario(_atual, _usuarios, _equipes, _unidadeDeTrabalho, Historico);
 
         var erro = await Assert.ThrowsAsync<ValidacaoRegistroException>(() =>
             caso.ExecutarAsync(new UsuarioEntrada("m1", "Maria", "INTERNO", []), CancellationToken.None));
@@ -170,53 +155,31 @@ public class AcessoTests
     }
 
     [Fact]
-    public async Task CriarUsuario_SenhaProvisoriaGeradaFuncionaUmaVezEObrigaATroca()
+    public async Task CriarUsuario_PelaMatricula_CriaSemSenhaEOLoginDoWindowsOAcha()
     {
         _atual.Usuario = UsuarioAtualFalso.Criar(Perfil.Administrador);
-        var caso = new CriarUsuario(_atual, _usuarios, _equipes, _hasher, _unidadeDeTrabalho, Historico);
+        var caso = new CriarUsuario(_atual, _usuarios, _equipes, _unidadeDeTrabalho, Historico);
 
-        var criado = await caso.ExecutarAsync(new UsuarioEntrada("m1", "Maria", "interno", [_equipe.Id]), CancellationToken.None);
+        var criado = await caso.ExecutarAsync(new UsuarioEntrada("C123456", "Maria", "interno", [_equipe.Id]), CancellationToken.None);
 
-        Assert.Empty(PoliticaSenha.Validar(criado.SenhaProvisoria));
-        Assert.True(criado.Usuario.DeveTrocarSenha);
-        Assert.Equal("INTERNO", criado.Usuario.Perfil);
-        Assert.NotNull(await Provedor.AutenticarAsync("m1", criado.SenhaProvisoria, CancellationToken.None));
-        Assert.DoesNotContain(criado.SenhaProvisoria, _historico.Linhas.Single().DadosDepois);
+        Assert.Equal("INTERNO", criado.Perfil);
+        var login = await Login.ExecutarAsync(@"CORPCAIXA\c123456", CancellationToken.None);
+        Assert.Equal(criado.Id, login.Usuario.Id);
     }
 
     [Fact]
     public async Task CriarUsuario_PorNaoAdministrador_LancaAcessoNegado()
     {
         _atual.Usuario = UsuarioAtualFalso.Criar(Perfil.Gestor, _equipe.Id);
-        var caso = new CriarUsuario(_atual, _usuarios, _equipes, _hasher, _unidadeDeTrabalho, Historico);
+        var caso = new CriarUsuario(_atual, _usuarios, _equipes, _unidadeDeTrabalho, Historico);
 
         await Assert.ThrowsAsync<AcessoNegadoException>(() =>
             caso.ExecutarAsync(new UsuarioEntrada("m1", "Maria", "INTERNO", [_equipe.Id]), CancellationToken.None));
     }
 
-    [Fact]
-    public async Task RedefinirSenha_MarcaComoRedefinidaNoHistoricoSemValor()
-    {
-        // RN32
-        var usuario = Cadastrar("joao", "Senha12345");
-        _atual.Usuario = UsuarioAtualFalso.Criar(Perfil.Administrador);
-        var caso = new RedefinirSenhaUsuario(_atual, _usuarios, _hasher, _unidadeDeTrabalho, Historico, _situacao);
-
-        var nova = await caso.ExecutarAsync(usuario.Id, CancellationToken.None);
-
-        var linha = Assert.Single(_historico.Linhas);
-        Assert.Equal(OperacaoHistorico.Alteracao, linha.Operacao);
-        Assert.Contains("\"senha\":\"redefinida\"", linha.DadosDepois);
-        Assert.DoesNotContain(nova.SenhaProvisoria, linha.DadosDepois);
-        Assert.True(usuario.DeveTrocarSenha);
-    }
-
-    private TrocarSenha TrocarSenha() => new(_atual, _usuarios, _hasher, _unidadeDeTrabalho, Historico, _situacao);
-
-    private Usuario Cadastrar(string matricula, string senha, bool provisoria = false)
+    private Usuario Cadastrar(string matricula)
     {
         var usuario = new Usuario { Matricula = matricula, Nome = matricula, Perfil = Perfil.Interno };
-        usuario.DefinirSenha(_hasher.GerarHash(senha), provisoria);
         usuario.Equipes.Add(new UsuarioEquipe { EquipeId = _equipe.Id });
         _usuarios.Adicionar(usuario);
         return usuario;

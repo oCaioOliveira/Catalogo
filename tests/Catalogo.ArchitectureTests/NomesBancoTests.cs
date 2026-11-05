@@ -25,10 +25,27 @@ public class NomesBancoTests
         foreach (var (logica, fisica) in tabelas)
             Assert.Equal(fisica, NomesBanco.Tabela(logica));
 
-        Assert.Equal(colunas.Count, tabelas.Keys.Sum(t => NomesBanco.Colunas(t).Count));
-        foreach (var (tabela, antiga, nova) in colunas)
+        // As colunas que um script posterior removeu (ex.: as de senha, V019) saem do NomesBanco, e o script precisa removê-las.
+        var vigentes = colunas.Where(c => !ColunasRemovidas.ContainsKey((c.Tabela, c.Antiga))).ToList();
+        Assert.Equal(vigentes.Count, tabelas.Keys.Sum(t => NomesBanco.Colunas(t).Count));
+        foreach (var (tabela, antiga, nova) in vigentes)
             Assert.Equal(nova, NomesBanco.Coluna(tabela, antiga));
+        foreach (var ((tabela, antiga), script) in ColunasRemovidas)
+        {
+            var fisica = colunas.Single(c => c.Tabela == tabela && c.Antiga == antiga).Nova;
+            Assert.Contains($"N'{fisica}'", File.ReadAllText(Path.Combine(Repositorio.Raiz, "database", "scripts", script)));
+            Assert.DoesNotContain(antiga, NomesBanco.Colunas(tabela).Keys);
+        }
     }
+
+    /// <summary>Colunas do de-para do V013 removidas depois, e o script que as removeu.</summary>
+    private static readonly Dictionary<(string Tabela, string Coluna), string> ColunasRemovidas = new()
+    {
+        [("Usuario", "SenhaHash")] = "V019__remover_senha.sql",
+        [("Usuario", "DeveTrocarSenha")] = "V019__remover_senha.sql",
+        [("Usuario", "TentativasFalhas")] = "V019__remover_senha.sql",
+        [("Usuario", "BloqueadoAte")] = "V019__remover_senha.sql",
+    };
 
     /// <summary>
     /// Tabelas criadas depois do V013 (ex.: CATTB025_CHAVE_JWT, V018) já nascem com o nome físico: cada uma do NomesBanco que não

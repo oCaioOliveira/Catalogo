@@ -5,7 +5,7 @@ using Catalogo.Domain.Acesso;
 
 namespace Catalogo.Application.Mapeamentos;
 
-/// <summary>Mapeamento manual de usuários e equipes. NENHUM método aqui expõe SenhaHash.</summary>
+/// <summary>Mapeamento manual de usuários e equipes.</summary>
 public static class AcessoMapeamentos
 {
     /// <param name="equipes">Equipes do sistema por id (para nome e situação dos vínculos).</param>
@@ -15,8 +15,6 @@ public static class AcessoMapeamentos
         usuario.Nome,
         PerfilConversor.ParaTexto(usuario.Perfil),
         usuario.Ativo,
-        usuario.DeveTrocarSenha,
-        usuario.BloqueadoAte,
         usuario.UltimoAcessoEm,
         usuario.CriadoEm,
         usuario.Equipes
@@ -33,7 +31,7 @@ public static class AcessoMapeamentos
 
     /// <summary>
     /// Objeto plano do usuário para o histórico (RN32): matrícula, nome, perfil, ativo e a lista de
-    /// equipes (ids ordenados). SEM senha e SEM hash.
+    /// equipes (ids ordenados).
     /// </summary>
     public static JsonObject ParaJsonHistorico(this Usuario usuario) => new()
     {

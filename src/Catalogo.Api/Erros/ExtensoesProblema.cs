@@ -32,14 +32,13 @@ public static class ExtensoesProblema
     {
         // [ApiController]: corpo que não é JSON válido ou não tem o formato esperado.
         StatusCodes.Status400BadRequest => CodigosErro.Validacao,
-        // Sem token, token inválido ou expirado (o JwtBearer responde 401 sem corpo).
+        // Sem token, token inválido ou expirado (o JwtBearer responde 401 sem corpo), ou login sem credencial do Windows.
         StatusCodes.Status401Unauthorized => CodigosErro.NaoAutenticado,
         StatusCodes.Status403Forbidden => CodigosErro.SemPermissao,
         // Só chega aqui quando nenhuma rota corresponde à URL: os 404 de recurso têm código próprio.
         StatusCodes.Status404NotFound => CodigosErro.RotaNaoEncontrada,
         StatusCodes.Status405MethodNotAllowed => CodigosErro.MetodoNaoPermitido,
         StatusCodes.Status415UnsupportedMediaType => CodigosErro.TipoDeConteudoNaoSuportado,
-        StatusCodes.Status429TooManyRequests => CodigosErro.MuitasTentativas,
         >= 500 => CodigosErro.ErroInterno,
         _ => CodigosErro.RequisicaoInvalida,
     };

@@ -33,9 +33,9 @@ removida fica marcada como *(removida)*.
 | [RN20](#rn20--rótulo-das-referências) | Rótulo das referências | `MontadorRegistroDto`, `ConversorValorTipado` |
 | [RN21](#rn21--opções-de-campo-dependente) | Opções de campo dependente | `ListarOpcoes` |
 | [RN22](#rn22--limites-do-decimal) | Limites do DECIMAL | `CK_Campo_Decimal` (V002) |
-| [RN23](#rn23--autenticação) | Autenticação por matrícula e senha | `Login`, `ProvedorIdentidadeLocal`, `VerificacaoUsuarioMiddleware` |
-| [RN24](#rn24--bloqueio-por-tentativas) | Bloqueio por tentativas | `Usuario.RegistrarFalhaDeLogin` |
-| [RN25](#rn25--senha-e-troca-obrigatória) | Senha e troca obrigatória | `PoliticaSenha`, `TrocarSenha`, `VerificacaoUsuarioMiddleware` |
+| [RN23](#rn23--autenticação) | Autenticação pelo login do Windows (AD) | `Login`, `MatriculaWindows`, `VerificacaoUsuarioMiddleware` |
+| [RN24](#rn24--bloqueio-por-tentativas-revogada) | Bloqueio por tentativas (revogada: não há senha) | — |
+| [RN25](#rn25--senha-e-troca-obrigatória-revogada) | Senha e troca obrigatória (revogada: não há senha) | — |
 | [RN26](#rn26--matriz-de-permissões) | Matriz de permissões | `PoliticaPermissao` |
 | [RN27](#rn27--registros-globais-e-por-equipe) | Registros globais e por equipe | `Entidade.EscopoEquipe`, `PoliticaPermissao.ResolverEquipe` |
 | [RN28](#rn28--registro-de-outra-equipe-é-404) | Registro de outra equipe é 404 | `PoliticaPermissao.Decidir`, `Permissoes.Exigir` |
@@ -115,6 +115,7 @@ removida fica marcada como *(removida)*.
 | [RN102](#rn102--duplicados-na-importação) | Duplicados na importação (no arquivo e no banco) | `DuplicadosNoArquivo`, `SimuladorImportacao.Classificar` |
 | [RN103](#rn103--desfazer-uma-importação) | Desfazer uma importação | `DesfazerImportacao`, `RegrasDesfazer`, `PlanejadorExclusao` |
 | [RN104](#rn104--histórico-de-importações-e-limpeza) | Histórico de importações e limpeza dos arquivos | `ListarImportacoes`, `LimparImportacoes`, `LimpezaImportacoes` |
+| [RN105](#rn105--primeiro-acesso-pelo-windows) | Primeiro acesso pelo Windows cria um usuário EXTERNO sem equipe | `Login` |
 
 ---
 
@@ -449,35 +450,33 @@ Garantido pelo CHECK `CK_Campo_Decimal`, recriado no script `V002`.
 
 ## RN23 — Autenticação
 
-Todo endpoint exige login, exceto `POST /api/v1/auth/login` e `GET /health`. Detalhes técnicos em
-[seguranca.md](seguranca.md).
+Todo endpoint exige login, exceto `POST /api/v1/auth/login` e `GET /health`. O login é a **autenticação integrada do Windows**
+(Active Directory): não há senha no Catálogo ([ADR 0054](adr/0054-login-pela-autenticacao-integrada-do-windows.md)). Detalhes
+técnicos em [seguranca.md](seguranca.md).
 
-- `POST /api/v1/auth/login` com `{ matricula, senha }` devolve um **JWT** (8 horas por padrão, sem refresh token).
-- A matrícula não diferencia maiúsculas.
-- Qualquer falha (matrícula inexistente, senha errada, usuário inativo ou bloqueado) responde
-  **401** com a **mesma** mensagem: *"Matrícula ou senha inválidas."*. Nunca se revela se a matrícula existe.
-- No máximo 10 tentativas de login por minuto por endereço IP (configurável). Acima disso, **429**.
+- `POST /api/v1/auth/login`, **sem corpo**, chamado com as credenciais do navegador (`withCredentials`): o servidor autentica pelo
+  Windows (Negotiate) e devolve um **JWT** (8 horas por padrão, sem refresh token), usado em `Authorization: Bearer` no resto da API.
+- A matrícula sai do nome do Windows: `DOMINIO\c161587` → `C161587` (também `c161587@dominio`). Não diferencia maiúsculas.
+- Sem credencial do Windows, ou sem uma matrícula válida nela (até 20 caracteres, sem espaços): **401** `NAO_AUTENTICADO`
+  (com `WWW-Authenticate: Negotiate`). Usuário **desativado**: **403** `SEM_PERMISSAO`, sem token.
+- Cada login registra o **último acesso**.
 - O token só identifica a pessoa. Perfil, equipes e situação são lidos do banco a cada requisição,
   com cache de até 1 minuto. Desativar um usuário, trocar o perfil ou as equipes vale **na hora**
   quando feito pela API (o cache é descartado), ou em até 1 minuto se feito direto no banco.
 - Usuário desativado com token ainda válido recebe **401** na próxima requisição.
-- Sem token ou com token inválido/expirado: **401**.
+- Sem token ou com token inválido/expirado: **401**. O token **não** abre o `POST /auth/login` (só o Windows emite token).
+- O administrador cadastra usuários **só pela matrícula** do AD (com nome, perfil e equipes); não há senha provisória nem redefinição.
 
-## RN24 — Bloqueio por tentativas
+## RN24 — Bloqueio por tentativas (revogada)
 
-- **5** senhas erradas seguidas bloqueiam o login por **15 minutos**, mesmo com a senha certa.
-- Login certo zera a contagem. Depois que o bloqueio vence, a contagem recomeça do zero.
-- A redefinição de senha pelo administrador também desbloqueia.
+Revogada em 2026-11-05 ([ADR 0054](adr/0054-login-pela-autenticacao-integrada-do-windows.md)): sem senha, não há tentativas a contar.
+As colunas `NU_TENTATIVA_FALHA` e `DH_BLOQUEADO` saíram no `V019`.
 
-## RN25 — Senha e troca obrigatória
+## RN25 — Senha e troca obrigatória (revogada)
 
-- **Política**: pelo menos 10 caracteres, com letra e número. A nova senha tem que ser diferente da atual.
-- Senha nunca é registrada em log, devolvida pela API ou gravada no histórico. No banco fica só o hash (PBKDF2).
-- Usuário criado pelo administrador, ou com senha redefinida, recebe uma **senha provisória** gerada pelo
-  sistema (16 caracteres), devolvida **uma única vez**, e `DeveTrocarSenha = 1`.
-- Com `DeveTrocarSenha = 1`, o login funciona, mas todos os outros endpoints respondem **403** com
-  `"codigo": "TROCA_DE_SENHA_OBRIGATORIA"`. As exceções são `POST /api/v1/auth/trocar-senha` (`{ senhaAtual, novaSenha }`)
-  e `GET /api/v1/auth/eu`, que o front usa para saber que precisa pedir a troca.
+Revogada em 2026-11-05 ([ADR 0054](adr/0054-login-pela-autenticacao-integrada-do-windows.md)): o Catálogo não guarda nem troca senha.
+Saíram `POST /auth/trocar-senha`, `POST /usuarios/{id}/redefinir-senha`, a senha provisória e as colunas `CO_SENHA_HASH` e
+`IC_TROCAR_SENHA` (`V019`). O histórico antigo pode ter linhas com `"senha": "alterada"` ou `"redefinida"`, que continuam aparecendo.
 
 ## RN26 — Matriz de permissões
 
@@ -1431,3 +1430,11 @@ não conta).
   (o registro da importação fica, com o resumo) e marca como **EXPIRADA** as importações nunca executadas. Sem o arquivo, a prévia e o
   relatório respondem 409 `IMPORTACAO_ARQUIVO_EXPIRADO`.
 
+## RN105 — Primeiro acesso pelo Windows
+
+- Uma matrícula que entra pelo login do Windows (RN23) e ainda não está cadastrada vira um usuário **EXTERNO**, **ativo** e **sem
+  equipe**, com o **nome igual à matrícula** (o administrador corrige depois). A criação fica no histórico do usuário (RN32), com
+  ele mesmo como autor.
+- Perfis e equipes continuam dados **pelo administrador** do Catálogo: sem equipe, o EXTERNO não vê os itens de nenhuma equipe.
+- Dois primeiros acessos ao mesmo tempo (duas abas) não criam dois usuários: vale o que chegou primeiro.
+- O comando `criar-admin` com uma matrícula que já entrou assim promove esse usuário a ADMINISTRADOR (só quando não há administrador ativo, RN30).

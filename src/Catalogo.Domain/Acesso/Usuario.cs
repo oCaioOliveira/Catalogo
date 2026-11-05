@@ -1,37 +1,20 @@
 namespace Catalogo.Domain.Acesso;
 
 /// <summary>
-/// Pessoa que acessa o sistema (tabela catalogo.Usuario). Nunca é excluída, só desativada (RN31).
-/// As regras de login (bloqueio por tentativas, RN24) ficam aqui, como métodos puros.
+/// Pessoa que acessa o sistema (tabela cat.CATTB008_USUARIO). Nunca é excluída, só desativada (RN31).
+/// Não há senha: quem identifica a pessoa é a autenticação integrada do Windows (AD), pela matrícula (RN23, docs/adr/0054).
 /// </summary>
 public sealed class Usuario
 {
-    /// <summary>Tentativas erradas seguidas que bloqueiam o login (RN24).</summary>
-    public const int MaximoTentativasFalhas = 5;
-
-    /// <summary>Quanto tempo o login fica bloqueado depois de <see cref="MaximoTentativasFalhas"/> erros (RN24).</summary>
-    public static readonly TimeSpan TempoDeBloqueio = TimeSpan.FromMinutes(15);
-
     public Guid Id { get; set; }
 
-    /// <summary>Identificador de login (único, até 20 caracteres).</summary>
+    /// <summary>Matrícula do AD (única, até 20 caracteres, ex.: C161587). É o que liga o login do Windows ao usuário.</summary>
     public string Matricula { get; set; } = "";
 
     public string Nome { get; set; } = "";
 
-    /// <summary>Hash PBKDF2 da senha (docs/adr/0016). NUNCA sai da aplicação: nem na API, nem no log, nem no histórico.</summary>
-    public string SenhaHash { get; set; } = "";
-
     public Perfil Perfil { get; set; }
     public bool Ativo { get; set; } = true;
-
-    /// <summary>Senha provisória: só pode trocar a senha até definir uma nova (RN25).</summary>
-    public bool DeveTrocarSenha { get; set; } = true;
-
-    public int TentativasFalhas { get; set; }
-
-    /// <summary>Até quando (UTC) o login está bloqueado. Nulo = não está.</summary>
-    public DateTime? BloqueadoAte { get; set; }
 
     public DateTime? UltimoAcessoEm { get; set; }
 
@@ -43,47 +26,8 @@ public sealed class Usuario
 
     public bool EhAdministrador => Perfil == Perfil.Administrador;
 
-    public bool EstaBloqueado(DateTime agoraUtc) => BloqueadoAte is DateTime ate && ate > agoraUtc;
-
-    /// <summary>
-    /// Senha errada (RN24): conta mais uma tentativa e, na 5ª seguida, bloqueia por 15 minutos.
-    /// Depois que um bloqueio vence, a contagem recomeça do zero.
-    /// </summary>
-    public void RegistrarFalhaDeLogin(DateTime agoraUtc)
-    {
-        if (BloqueadoAte is DateTime ate && ate <= agoraUtc)
-        {
-            BloqueadoAte = null;
-            TentativasFalhas = 0;
-        }
-
-        TentativasFalhas++;
-        if (TentativasFalhas >= MaximoTentativasFalhas)
-        {
-            BloqueadoAte = agoraUtc + TempoDeBloqueio;
-            TentativasFalhas = 0;
-        }
-    }
-
-    /// <summary>Login certo: zera as tentativas e registra o acesso.</summary>
-    public void RegistrarLoginComSucesso(DateTime agoraUtc)
-    {
-        TentativasFalhas = 0;
-        BloqueadoAte = null;
-        UltimoAcessoEm = agoraUtc;
-    }
-
-    /// <summary>
-    /// Troca o hash da senha. <paramref name="provisoria"/> = senha gerada pelo sistema, que obriga a
-    /// troca no próximo acesso (RN25). Também desbloqueia o login.
-    /// </summary>
-    public void DefinirSenha(string senhaHash, bool provisoria)
-    {
-        SenhaHash = senhaHash;
-        DeveTrocarSenha = provisoria;
-        TentativasFalhas = 0;
-        BloqueadoAte = null;
-    }
+    /// <summary>Login pelo Windows aceito: registra o acesso.</summary>
+    public void RegistrarAcesso(DateTime agoraUtc) => UltimoAcessoEm = agoraUtc;
 }
 
 /// <summary>Vínculo usuário ↔ equipe (tabela catalogo.UsuarioEquipe).</summary>

@@ -26,15 +26,9 @@ public abstract class TesteDeApi(BancoDeTestesFixture banco) : IAsyncLifetime
     /// <summary>Fábricas derivadas criadas pelo teste (descartadas no fim dele).</summary>
     private readonly List<WebApplicationFactory<Program>> _fabricasDerivadas = [];
 
-    /// <summary>Senha de todos os usuários criados pelos atalhos (atende a política, RN25).</summary>
-    protected const string SenhaPadrao = "SenhaDeTeste123";
-
     /// <summary>Entidades POR EQUIPE do seed (RN27). As demais (comunidade, sigla, ambiente, status_resultado) são globais.</summary>
     protected static readonly IReadOnlySet<string> EntidadesPorEquipe =
         new HashSet<string> { "projeto", "endpoint_servico", "rtc", "relatorio_teste", "cenario_teste", "link" };
-
-    // O hash PBKDF2 é lento de propósito: calculado uma vez para a senha padrão.
-    private static string? _hashSenhaPadrao;
 
     protected BancoDeTestesFixture Banco { get; } = banco;
 
@@ -134,25 +128,32 @@ public abstract class TesteDeApi(BancoDeTestesFixture banco) : IAsyncLifetime
     }
 
     /// <summary>
-    /// Cria um usuário direto no banco (senha <see cref="SenhaPadrao"/>) e devolve um cliente HTTP já
-    /// autenticado como ele. O token é gerado pelo próprio IGeradorToken da API, sem passar pelo login.
+    /// Cria um usuário direto no banco e devolve um cliente HTTP já autenticado como ele. O token é gerado pelo próprio
+    /// IGeradorToken da API, sem passar pelo login (para o login pelo Windows, use <see cref="LoginWindows"/>).
     /// </summary>
     protected async Task<(Usuario Usuario, HttpClient Cliente)> CriarUsuarioAsync(
-        string matricula, Perfil perfil, IEnumerable<Equipe>? equipes = null, bool deveTrocarSenha = false)
+        string matricula, Perfil perfil, IEnumerable<Equipe>? equipes = null)
     {
         using var escopo = Banco.Fabrica.Services.CreateScope();
-        var servicos = escopo.ServiceProvider;
-        _hashSenhaPadrao ??= servicos.GetRequiredService<IHasherSenha>().GerarHash(SenhaPadrao);
-
         var usuario = new Usuario { Matricula = matricula, Nome = "Usuário " + matricula, Perfil = perfil };
-        usuario.DefinirSenha(_hashSenhaPadrao, deveTrocarSenha);
-        var contexto = servicos.GetRequiredService<CatalogoDbContext>();
+        var contexto = escopo.ServiceProvider.GetRequiredService<CatalogoDbContext>();
         contexto.Usuarios.Add(usuario);
         foreach (var equipe in equipes ?? [])
             usuario.Equipes.Add(new UsuarioEquipe { UsuarioId = usuario.Id, EquipeId = equipe.Id });
         await contexto.SaveChangesAsync();
 
         return (usuario, ClienteDe(usuario));
+    }
+
+    /// <summary>
+    /// POST /auth/login como o usuário do Windows <paramref name="nomeWindows"/> (ex.: <c>DOMINIO\c161587</c>), simulado pelo
+    /// <see cref="AutenticacaoWindowsDeTeste"/>.
+    /// </summary>
+    protected async Task<HttpResponseMessage> LoginWindows(string nomeWindows, HttpClient? cliente = null)
+    {
+        using var requisicao = new HttpRequestMessage(HttpMethod.Post, "/api/v1/auth/login");
+        requisicao.Headers.Add(AutenticacaoWindowsDeTeste.Cabecalho, nomeWindows);
+        return await (cliente ?? ClienteAnonimo).SendAsync(requisicao);
     }
 
     /// <summary>Cliente HTTP com o token de um usuário.</summary>

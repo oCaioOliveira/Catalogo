@@ -28,7 +28,7 @@ internal sealed class SituacaoUsuarios(CatalogoDbContext contexto, IMemoryCache 
 
         var usuario = await contexto.Usuarios.AsNoTracking()
             .Where(u => u.Id == usuarioId)
-            .Select(u => new { u.Id, u.Matricula, u.Nome, u.Perfil, u.Ativo, u.DeveTrocarSenha })
+            .Select(u => new { u.Id, u.Matricula, u.Nome, u.Perfil, u.Ativo })
             .FirstOrDefaultAsync(cancellationToken);
         if (usuario is null)
             return null;
@@ -48,7 +48,6 @@ internal sealed class SituacaoUsuarios(CatalogoDbContext contexto, IMemoryCache 
             Nome = usuario.Nome,
             Perfil = usuario.Perfil,
             Ativo = usuario.Ativo,
-            DeveTrocarSenha = usuario.DeveTrocarSenha,
             Equipes = equipesAtivas.ToHashSet(),
         };
 

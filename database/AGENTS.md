@@ -116,11 +116,12 @@ conectar) está em [`database/README.md`](README.md). A decisão está em
   `entrega/<aaaa-mm-dd>-<descricao>/`, com `README.md` (português formal, para os DBAs; é o nome padrão em todas as entregas) e scripts numerados.
 - A instalação inicial é `entrega/2026-10-26-instalacao-inicial/`: `01` schema e papel, `02` estrutura consolidada (o resultado de
   V001 a V012, direto em `catalogo`, registrando as versões 1 a 12 com a observação de instalação consolidada) e `03` administrador
-  inicial, gerado por `criar-admin --gerar-sql` (só o hash da senha; `DeveTrocarSenha = 1`; para se a matrícula já existir). Não leva
+  inicial, gerado por `criar-admin --gerar-sql` (para se a matrícula já existir; desde o login pelo Windows, sem senha e exigindo a
+  versão 19). Não leva
   área de gestão: as áreas são criadas pela interface ou, no futuro, por uma carga gerada (`ferramentas/gerar_carga_area.sh`).
-- O `03` é **gerado, nunca editado à mão**. A senha provisória entra só pela variável `CATALOGO_ADMIN_SENHA`, nunca em arquivo.
-  `--aceitar-senha-fora-da-politica` é a única exceção à política de senha, só nesse modo e só para o administrador inicial (a troca
-  obrigatória exige uma senha dentro da política).
+- O `03` é **gerado, nunca editado à mão**. O `03` já entregue (2026-10-26) tinha o hash de uma senha provisória; desde o
+  `V019` (pacote `2026-11-05-login-windows`, [ADR 0054](../docs/adr/0054-login-pela-autenticacao-integrada-do-windows.md)) não há
+  colunas de senha, e um `03` novo é gerado sem senha.
 - **Toda mudança futura de estrutura vira um novo pacote de entrega**, além do `V0xx` de sempre:
   1. o `V0xx` em `scripts/` (desenvolvimento e testes), já com `catalogo.`;
   2. a pasta `entrega/<data>-<descricao>/` com o script incremental (o mesmo conteúdo do `V0xx`, mais as proteções do pacote:

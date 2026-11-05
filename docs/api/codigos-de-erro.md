@@ -33,10 +33,8 @@ na v1 (com uma linha nesta tabela); renomear ou remover um código só numa v2 (
 | `VALIDACAO` | 400 | dados do corpo ou parâmetros da URL inválidos (RN05), ou corpo que não é JSON válido | mostrar cada mensagem de `errors` junto do campo (a chave é a do campo ou do parâmetro, ex.: `codigo_sigla`, `criterios[1].tipo`, `tamanho`). Chaves que não são campos do formulário (ex.: `$`, `modelo`) vão numa mensagem geral |
 | `EXPORTACAO_MUITO_GRANDE` | 400 | a exportação passaria do limite de linhas (padrão 10.000) | pedir mais filtros; a mensagem está em `errors.exportacao` |
 | `REQUISICAO_INVALIDA` | 400/4xx | requisição recusada antes da validação (ex.: corpo grande demais) | erro de programação do cliente: registrar e mostrar mensagem genérica |
-| `NAO_AUTENTICADO` | 401 | sem token, token inválido ou expirado, ou usuário desativado depois do login (RN23) | descartar o token e ir para o login |
-| `CREDENCIAIS_INVALIDAS` | 401 | login recusado: matrícula inexistente, senha errada, usuário inativo **ou bloqueado** (RN23, RN24). O motivo nunca é revelado | mostrar "Matrícula ou senha inválidas" (o `detail`). Não há código de "bloqueado" de propósito |
+| `NAO_AUTENTICADO` | 401 | sem token, token inválido ou expirado, ou usuário desativado depois do login; no `POST /auth/login`, sem credencial do Windows ou sem matrícula válida nela (RN23) | descartar o token e entrar de novo pelo Windows; se o próprio login falhar, mostrar acesso negado |
 | `SEM_PERMISSAO` | 403 | o perfil não permite a operação (RN26), equipe de que o usuário não participa, painel para INTERNO ou EXTERNO (RN78) | esconder ou desabilitar a ação; mostrar o `detail` |
-| `TROCA_DE_SENHA_OBRIGATORIA` | 403 | senha provisória: só `POST /api/v1/auth/trocar-senha` e `GET /api/v1/auth/eu` funcionam (RN25) | levar para a tela de troca de senha |
 | `GRUPO_NAO_ENCONTRADO` | 404 | a chave do grupo na URL não existe | voltar ao menu (`GET /api/v1/grupos`) |
 | `ENTIDADE_NAO_ENCONTRADA` | 404 | a chave da entidade não existe no grupo | voltar à lista de entidades do grupo |
 | `CAMPO_NAO_ENCONTRADO` | 404 | o campo de `.../campos/{campo}/opcoes` não existe ou não é REFERENCIA | erro de programação do cliente |
@@ -68,7 +66,6 @@ na v1 (com uma linha nesta tabela); renomear ou remover um código só numa v2 (
 | `IMPORTACAO_DADOS_MUDARAM` | 409 | os dados mudaram entre a prévia e a execução (ex.: um item referenciado foi excluído): nada foi gravado, e a prévia já foi refeita (RN101) | recarregar a prévia (`GET .../importacoes/{id}`) e pedir nova confirmação; `detalhes.totais` traz os totais novos |
 | `IMPORTACAO_NAO_PODE_SER_DESFEITA` | 409 | itens criados pela importação foram alterados depois ou são referenciados por outros itens (RN103) | listar `detalhes.impedimentos` (motivo e itens) |
 | `IMPORTACAO_ARQUIVO_EXPIRADO` | 409 | o arquivo foi apagado pela limpeza automática (7 dias, RN104): sem prévia nem relatório | pedir para enviar o arquivo de novo |
-| `MUITAS_TENTATIVAS` | 429 | mais de 10 tentativas de login por minuto do mesmo endereço (RN23) | pedir para aguardar um minuto |
 | `ERRO_INTERNO` | 500 | erro inesperado. Fora de Development, a resposta só traz o código, o `traceId` e uma mensagem genérica | mostrar mensagem genérica com o `traceId` para o suporte |
 
 ## Formatos de `detalhes`

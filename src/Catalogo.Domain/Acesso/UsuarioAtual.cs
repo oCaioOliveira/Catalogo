@@ -25,7 +25,6 @@ public sealed class UsuarioAtual
     public IReadOnlySet<Guid>? EquipesHabilitadasNaListagem { get; init; }
 
     public bool Ativo { get; init; } = true;
-    public bool DeveTrocarSenha { get; init; }
 
     public bool EhAdministrador => Perfil == Perfil.Administrador;
 }

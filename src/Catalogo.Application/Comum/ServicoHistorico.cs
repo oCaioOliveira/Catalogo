@@ -74,7 +74,7 @@ public sealed class ServicoHistorico(IHistoricoRepository historico, TimeProvide
     public static JsonObject Situacao(SituacaoAprovacao situacao) =>
         new() { ["situacaoAprovacao"] = AprovacaoConversor.ParaTexto(situacao) };
 
-    /// <summary>Uma linha para um usuário. Os objetos NUNCA podem ter senha nem hash (ver UsuarioMapeamentos).</summary>
+    /// <summary>Uma linha para um usuário (objetos de AcessoMapeamentos.ParaJsonHistorico).</summary>
     public void RegistrarUsuario(
         OperacaoHistorico operacao, Guid usuarioAlvoId, Guid autorId, string autorMatricula, JsonObject? antes, JsonObject? depois) =>
         Adicionar(AlvoHistorico.Usuario, usuarioAlvoId, operacao, autorId, autorMatricula, Guid.NewGuid(), antes, depois, null, null);

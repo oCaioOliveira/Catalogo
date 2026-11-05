@@ -68,16 +68,15 @@ public sealed class ConflitoConcorrenciaException(string mensagem, Exception? ex
     : ExcecaoDominio(mensagem, CodigosErro.ConflitoConcorrencia, excecaoOriginal);
 
 /// <summary>
-/// Sem identificação válida: credenciais erradas no login (<see cref="CodigosErro.CredenciaisInvalidas"/>), token
-/// ausente/inválido, ou usuário desativado depois de logar. Vira HTTP 401. A mensagem do login é sempre genérica (RN23).
+/// Sem identificação válida: login do Windows ausente ou sem matrícula, token ausente/inválido, ou usuário desativado
+/// depois de logar. Vira HTTP 401 (RN23).
 /// </summary>
 public sealed class NaoAutenticadoException(string mensagem, string codigo = CodigosErro.NaoAutenticado)
     : ExcecaoDominio(mensagem, codigo);
 
 /// <summary>
 /// O usuário está identificado mas não pode fazer a operação (RN26). Vira HTTP 403, com
-/// <see cref="CodigosErro.SemPermissao"/> ou um código para casos que o front trata de forma especial
-/// (ex.: <see cref="CodigosErro.TrocaDeSenhaObrigatoria"/>).
+/// <see cref="CodigosErro.SemPermissao"/> ou um código para casos que o front trata de forma especial.
 /// </summary>
 public sealed class AcessoNegadoException(string mensagem, string codigo = CodigosErro.SemPermissao)
     : ExcecaoDominio(mensagem, codigo);

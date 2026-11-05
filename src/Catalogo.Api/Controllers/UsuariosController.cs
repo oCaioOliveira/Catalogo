@@ -8,7 +8,7 @@ namespace Catalogo.Api.Controllers;
 
 /// <summary>
 /// Administração de usuários: só ADMINISTRADOR (403 para os demais). Usuário não é excluído, só
-/// desativado. Nenhuma resposta traz senha ou hash, exceto a senha PROVISÓRIA, devolvida uma vez.
+/// desativado. Não há senha: o cadastro é pela matrícula do AD, e a pessoa entra pelo login do Windows (RN23).
 /// </summary>
 [ApiController]
 [Route(RotasApi.V1 + "/usuarios")]
@@ -21,7 +21,6 @@ public sealed class UsuariosController(
     CriarUsuario criarUsuario,
     AtualizarUsuario atualizarUsuario,
     AlterarAtivacaoUsuario alterarAtivacao,
-    RedefinirSenhaUsuario redefinirSenha,
     ListarHistoricoAcesso listarHistorico,
     ILogger<UsuariosController> logger) : ControllerBase
 {
@@ -49,17 +48,17 @@ public sealed class UsuariosController(
     public async Task<ActionResult<UsuarioDto>> Obter(Guid id, CancellationToken cancellationToken) =>
         Ok(await obterUsuario.ExecutarAsync(id, cancellationToken));
 
-    /// <summary>Cria o usuário com uma senha provisória gerada pelo sistema, devolvida só nesta resposta.</summary>
+    /// <summary>Cria o usuário pela matrícula do AD (sem senha: ele entra pelo login do Windows).</summary>
     [HttpPost]
     [Consumes("application/json")]
-    [ProducesResponseType<UsuarioCriadoDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType<UsuarioDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict)]
-    public async Task<ActionResult<UsuarioCriadoDto>> Criar([FromBody] UsuarioEntrada entrada, CancellationToken cancellationToken)
+    public async Task<ActionResult<UsuarioDto>> Criar([FromBody] UsuarioEntrada entrada, CancellationToken cancellationToken)
     {
         var criado = await criarUsuario.ExecutarAsync(entrada, cancellationToken);
-        logger.LogInformation("Usuário {Matricula} criado com perfil {Perfil}", criado.Usuario.Matricula, criado.Usuario.Perfil);
-        return CreatedAtAction(nameof(Obter), new { id = criado.Usuario.Id }, criado);
+        logger.LogInformation("Usuário {Matricula} criado com perfil {Perfil}", criado.Matricula, criado.Perfil);
+        return CreatedAtAction(nameof(Obter), new { id = criado.Id }, criado);
     }
 
     /// <summary>Altera nome, perfil e equipes. A matrícula não muda.</summary>
@@ -83,18 +82,7 @@ public sealed class UsuariosController(
         Guid id, [FromBody] AtivacaoUsuarioEntrada entrada, CancellationToken cancellationToken) =>
         Ok(await alterarAtivacao.ExecutarAsync(id, entrada, cancellationToken));
 
-    /// <summary>Gera uma nova senha provisória (devolvida só nesta resposta) e obriga a troca.</summary>
-    [HttpPost("{id:guid}/redefinir-senha")]
-    [ProducesResponseType<SenhaProvisoriaDto>(StatusCodes.Status200OK)]
-    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<SenhaProvisoriaDto>> RedefinirSenha(Guid id, CancellationToken cancellationToken)
-    {
-        var resultado = await redefinirSenha.ExecutarAsync(id, cancellationToken);
-        logger.LogInformation("Senha do usuário {UsuarioId} redefinida", id);
-        return Ok(resultado);
-    }
-
-    /// <summary>Histórico do usuário (sem senhas), do mais recente para o mais antigo (RN32).</summary>
+    /// <summary>Histórico do usuário, do mais recente para o mais antigo (RN32).</summary>
     [HttpGet("{id:guid}/historico")]
     [ProducesResponseType<PaginaDto<HistoricoDto>>(StatusCodes.Status200OK)]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound)]

@@ -13,7 +13,7 @@ public interface IUsuarioAtual
 }
 
 /// <summary>
-/// Perfil, equipes ativas e situação (ativo, troca de senha) de cada usuário, com cache curto.
+/// Perfil, equipes ativas e situação (ativo) de cada usuário, com cache curto.
 /// Quem altera usuários ou equipes chama <see cref="Invalidar"/>/<see cref="InvalidarTodos"/> para
 /// a mudança valer na hora; sem isso, vale em até o tempo do cache.
 /// </summary>
@@ -28,28 +28,7 @@ public interface ISituacaoUsuarios
     void InvalidarTodos();
 }
 
-/// <summary>
-/// Fornecedor de identidade: confere as credenciais (docs/adr/0015). Hoje é matrícula e senha
-/// local (<c>ProvedorIdentidadeLocal</c>); no futuro pode ser um SSO corporativo, sem mexer nos casos de uso.
-/// </summary>
-public interface IProvedorIdentidade
-{
-    /// <summary>
-    /// O usuário autenticado, ou nulo se as credenciais forem inválidas, o usuário estiver inativo
-    /// ou bloqueado. O motivo NÃO é informado, para a mensagem ser sempre genérica (RN23).
-    /// </summary>
-    Task<Usuario?> AutenticarAsync(string matricula, string senha, CancellationToken cancellationToken);
-}
-
-/// <summary>Hash de senha (docs/adr/0016). Implementado na Infrastructure com PasswordHasher (PBKDF2).</summary>
-public interface IHasherSenha
-{
-    string GerarHash(string senha);
-
-    bool Verificar(string senhaHash, string senha);
-}
-
-/// <summary>Emite o token de acesso (JWT) de um usuário autenticado. Implementado na Api.</summary>
+/// <summary>Emite o token de acesso (JWT) de um usuário autenticado pelo Windows. Implementado na Api.</summary>
 public interface IGeradorToken
 {
     TokenAcesso Gerar(Usuario usuario);

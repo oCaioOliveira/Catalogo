@@ -2471,85 +2471,7 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Login com matrícula e senha. Devolve o JWT (Authorization: Bearer ...). A mensagem de erro é\nsempre a mesma, sem dizer se a matrícula existe (RN23).",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginEntrada"
-              }
-            }
-          }
-        },
-        "responses": {
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LoginDto"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "Too Many Requests",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidationProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/trocar-senha": {
-      "post": {
-        "tags": [
-          "Auth"
-        ],
-        "summary": "Troca a própria senha (obrigatório depois de uma senha provisória, RN25).",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TrocaSenhaEntrada"
-              }
-            }
-          }
-        },
+        "summary": "Login pela autenticação integrada do Windows (AD, Negotiate): sem corpo, o navegador manda as credenciais do Windows\n(chame com credenciais, ex.: withCredentials). Devolve o JWT (Authorization: Bearer ...) usado no resto da API. A matrícula\nsai do login do Windows (DOMINIO\\c161587 → C161587); matrícula nova vira um usuário EXTERNO sem equipe (RN105).",
         "responses": {
           "401": {
             "description": "Unauthorized",
@@ -2581,15 +2503,12 @@
               }
             }
           },
-          "204": {
-            "description": "No Content"
-          },
-          "400": {
-            "description": "Bad Request",
+          "200": {
+            "description": "OK",
             "content": {
-              "application/problem+json": {
+              "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ValidationProblemDetails"
+                  "$ref": "#/components/schemas/LoginDto"
                 }
               }
             }
@@ -2602,7 +2521,7 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Dados do usuário logado, com as equipes ativas. Funciona com a troca de senha pendente.",
+        "summary": "Dados do usuário logado, com as equipes ativas.",
         "responses": {
           "401": {
             "description": "Unauthorized",
@@ -7271,7 +7190,7 @@
         "tags": [
           "Usuarios"
         ],
-        "summary": "Cria o usuário com uma senha provisória gerada pelo sistema, devolvida só nesta resposta.",
+        "summary": "Cria o usuário pela matrícula do AD (sem senha: ele entra pelo login do Windows).",
         "requestBody": {
           "content": {
             "application/json": {
@@ -7317,7 +7236,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UsuarioCriadoDto"
+                  "$ref": "#/components/schemas/UsuarioDto"
                 }
               }
             }
@@ -7613,83 +7532,12 @@
         }
       }
     },
-    "/api/v1/usuarios/{id}/redefinir-senha": {
-      "post": {
-        "tags": [
-          "Usuarios"
-        ],
-        "summary": "Gera uma nova senha provisória (devolvida só nesta resposta) e obriga a troca.",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "401": {
-            "description": "Unauthorized",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SenhaProvisoriaDto"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/usuarios/{id}/historico": {
       "get": {
         "tags": [
           "Usuarios"
         ],
-        "summary": "Histórico do usuário (sem senhas), do mais recente para o mais antigo (RN32).",
+        "summary": "Histórico do usuário, do mais recente para o mais antigo (RN32).",
         "parameters": [
           {
             "name": "id",
@@ -9564,25 +9412,8 @@
             "type": "string",
             "format": "date-time"
           },
-          "deveTrocarSenha": {
-            "type": "boolean"
-          },
           "usuario": {
             "$ref": "#/components/schemas/UsuarioLogadoDto"
-          }
-        },
-        "additionalProperties": false
-      },
-      "LoginEntrada": {
-        "type": "object",
-        "properties": {
-          "matricula": {
-            "type": "string",
-            "nullable": true
-          },
-          "senha": {
-            "type": "string",
-            "nullable": true
           }
         },
         "additionalProperties": false
@@ -9998,9 +9829,7 @@
               "EXPORTACAO_MUITO_GRANDE",
               "REQUISICAO_INVALIDA",
               "NAO_AUTENTICADO",
-              "CREDENCIAIS_INVALIDAS",
               "SEM_PERMISSAO",
-              "TROCA_DE_SENHA_OBRIGATORIA",
               "GRUPO_NAO_ENCONTRADO",
               "ENTIDADE_NAO_ENCONTRADA",
               "CAMPO_NAO_ENCONTRADO",
@@ -10032,7 +9861,6 @@
               "IMPORTACAO_NAO_PODE_SER_DESFEITA",
               "IMPORTACAO_ARQUIVO_EXPIRADO",
               "ENTIDADE_INATIVA",
-              "MUITAS_TENTATIVAS",
               "ERRO_INTERNO"
             ],
             "type": "string",
@@ -10383,16 +10211,6 @@
         },
         "additionalProperties": false
       },
-      "SenhaProvisoriaDto": {
-        "type": "object",
-        "properties": {
-          "senhaProvisoria": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "TotaisImportacaoDto": {
         "type": "object",
         "properties": {
@@ -10419,20 +10237,6 @@
         },
         "additionalProperties": false
       },
-      "TrocaSenhaEntrada": {
-        "type": "object",
-        "properties": {
-          "senhaAtual": {
-            "type": "string",
-            "nullable": true
-          },
-          "novaSenha": {
-            "type": "string",
-            "nullable": true
-          }
-        },
-        "additionalProperties": false
-      },
       "UltimaDecisaoDto": {
         "type": "object",
         "properties": {
@@ -10450,19 +10254,6 @@
           "decididoEm": {
             "type": "string",
             "format": "date-time"
-          }
-        },
-        "additionalProperties": false
-      },
-      "UsuarioCriadoDto": {
-        "type": "object",
-        "properties": {
-          "usuario": {
-            "$ref": "#/components/schemas/UsuarioDto"
-          },
-          "senhaProvisoria": {
-            "type": "string",
-            "nullable": true
           }
         },
         "additionalProperties": false
@@ -10488,14 +10279,6 @@
           },
           "ativo": {
             "type": "boolean"
-          },
-          "deveTrocarSenha": {
-            "type": "boolean"
-          },
-          "bloqueadoAte": {
-            "type": "string",
-            "format": "date-time",
-            "nullable": true
           },
           "ultimoAcessoEm": {
             "type": "string",
@@ -10590,9 +10373,6 @@
             "type": "string",
             "nullable": true
           },
-          "deveTrocarSenha": {
-            "type": "boolean"
-          },
           "equipes": {
             "type": "array",
             "items": {
@@ -10681,9 +10461,7 @@
               "EXPORTACAO_MUITO_GRANDE",
               "REQUISICAO_INVALIDA",
               "NAO_AUTENTICADO",
-              "CREDENCIAIS_INVALIDAS",
               "SEM_PERMISSAO",
-              "TROCA_DE_SENHA_OBRIGATORIA",
               "GRUPO_NAO_ENCONTRADO",
               "ENTIDADE_NAO_ENCONTRADA",
               "CAMPO_NAO_ENCONTRADO",
@@ -10715,7 +10493,6 @@
               "IMPORTACAO_NAO_PODE_SER_DESFEITA",
               "IMPORTACAO_ARQUIVO_EXPIRADO",
               "ENTIDADE_INATIVA",
-              "MUITAS_TENTATIVAS",
               "ERRO_INTERNO"
             ],
             "type": "string",

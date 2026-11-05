@@ -19,15 +19,16 @@ status HTTP ou código de erro só acontece numa v2, que vai conviver com a v1 p
 
 ## Autenticação
 
-1. `POST /api/v1/auth/login` com `{ "matricula": "c123456", "senha": "..." }` devolve
-   `{ "token": "...", "expiraEm": "2026-10-22T01:30:00Z", "deveTrocarSenha": false, "usuario": { id, matricula, nome, perfil, deveTrocarSenha, equipes } }`.
-   Falha sempre com **401** `CREDENCIAIS_INVALIDAS` e a mesma mensagem (RN23); mais de 10 tentativas por minuto, **429**.
-2. Envie o token em **todas** as requisições: `Authorization: Bearer <token>`. Ele vale 8 horas e não há refresh:
-   com **401** (`NAO_AUTENTICADO`), volte ao login.
-3. Se `deveTrocarSenha` for `true`, todos os endpoints respondem **403** `TROCA_DE_SENHA_OBRIGATORIA`, exceto
-   `POST /api/v1/auth/trocar-senha` (`{ "senhaAtual": "...", "novaSenha": "..." }`, **204**) e `GET /api/v1/auth/eu` (RN25).
-   Depois da troca, o mesmo token passa a funcionar.
-4. `GET /api/v1/auth/eu` devolve o usuário logado, com o **perfil** e as **equipes ativas**: use-os para montar o menu e
+O login é a **autenticação integrada do Windows** (AD); não há senha ([ADR 0054](../adr/0054-login-pela-autenticacao-integrada-do-windows.md)).
+
+1. `POST /api/v1/auth/login`, **sem corpo e com as credenciais do navegador** (`fetch(..., { credentials: 'include' })` ou, no
+   Angular, `withCredentials: true`). O navegador responde ao desafio `WWW-Authenticate: Negotiate` com o usuário do Windows, e a
+   API devolve `{ "token": "...", "expiraEm": "2026-10-22T01:30:00Z", "usuario": { id, matricula, nome, perfil, equipes } }`.
+   A matrícula vem do Windows (`DOMINIO\c161587` → `C161587`); matrícula nova vira um usuário EXTERNO sem equipe (RN105).
+   Sem credencial do Windows: **401** `NAO_AUTENTICADO`; usuário desativado: **403** `SEM_PERMISSAO` (RN23).
+2. Envie o token em **todas** as outras requisições: `Authorization: Bearer <token>` (sem credenciais). Ele vale 8 horas e não
+   há refresh: com **401** (`NAO_AUTENTICADO`), chame o login de novo.
+3. `GET /api/v1/auth/eu` devolve o usuário logado, com o **perfil** e as **equipes ativas**: use-os para montar o menu e
    escolher a equipe. Perfil e equipes valem na hora em que mudam (RN23).
 
 A API aceita chamadas de outra origem (CORS) só das origens configuradas no servidor, sem cookies
@@ -44,7 +45,7 @@ A API aceita chamadas de outra origem (CORS) só das origens configuradas no ser
 | Nulos | **sempre presentes** como `null` (nunca omitidos), em toda a API |
 | Ids | GUID em texto (`"6f1c0d5e-2b7a-4c11-9a3e-1d2c3b4a5f60"`) |
 
-Status: **201** com o cabeçalho `Location` na criação, **204** quando não há corpo (exclusão, troca de senha), **200** nos demais.
+Status: **201** com o cabeçalho `Location` na criação, **204** quando não há corpo (exclusão), **200** nos demais.
 
 ## Montando as telas
 
@@ -214,10 +215,9 @@ Só o **ADMINISTRADOR** (403 para os demais, RN26). Usuários e equipes nunca s�
 | Para | Chame |
 |---|---|
 | Listar usuários | `GET /api/v1/usuarios?busca=&perfil=&equipeId=&ativo=&ordenacao=&pagina=&tamanho=` |
-| Criar usuário | `POST /api/v1/usuarios` com `{ matricula, nome, perfil, equipes: [ids] }` → **201** com `{ usuario, senhaProvisoria }` |
+| Criar usuário (pela matrícula do AD, sem senha) | `POST /api/v1/usuarios` com `{ matricula, nome, perfil, equipes: [ids] }` → **201** com o usuário |
 | Alterar (nome, perfil, equipes; a matrícula não muda) | `PUT /api/v1/usuarios/{id}` |
 | Ativar ou desativar | `PATCH /api/v1/usuarios/{id}/ativacao` com `{ "ativo": false }` |
-| Nova senha provisória | `POST /api/v1/usuarios/{id}/redefinir-senha` → `{ senhaProvisoria }` |
 | Equipes | `GET /api/v1/equipes?busca=&ativa=`, `GET {id}`, `POST`, `PUT {id}`, `PATCH {id}/ativacao` com `{ "ativa": false }` |
 | Histórico | `GET /api/v1/usuarios/{id}/historico`, `GET /api/v1/equipes/{id}/historico` |
 
@@ -227,8 +227,7 @@ Só o **ADMINISTRADOR** (403 para os demais, RN26). Usuários e equipes nunca s�
 - Cada equipe traz também `listagens`: `[{ chave, nome, ativo }]`, as listagens em que ela está habilitada (RN90). Equipe nova não é
   habilitada em nenhuma (RN93): habilite-a em `PUT /api/v1/admin/metadados/grupos/{grupo}/equipes`
   ([administração de metadados](administracao-de-metadados.md#equipes-habilitadas)).
-- A **senha provisória** vem uma única vez, na resposta da criação ou da redefinição (RN25). Mostre-a ao administrador e
-  descarte-a: ela não pode ser recuperada depois (ADR 0041, no front).
+- Não há senha: o usuário criado entra pelo login do Windows com a matrícula cadastrada (RN23).
 - Recusas: 409 `ULTIMO_ADMINISTRADOR` (desativar ou rebaixar o último administrador ativo, RN30), 409 `USUARIOS_SEM_EQUIPE`
   (desativar a única equipe ativa de algum usuário ativo, com `detalhes.quantidade`, RN31), 409 `CONFLITO_UNICIDADE` com
   `detalhes.campos` (`["matricula"]` ou `["nome"]`).

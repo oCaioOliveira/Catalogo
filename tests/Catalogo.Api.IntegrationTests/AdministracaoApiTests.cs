@@ -45,29 +45,27 @@ public class AdministracaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banc
             new { matricula = "sem", nome = "Sem equipe", perfil = "INTERNO", equipes = Array.Empty<string>() });
 
         Assert.Equal(HttpStatusCode.Created, duasEquipes.StatusCode);
-        Assert.Equal(2, (await LerJson(duasEquipes))["usuario"]!["equipes"]!.AsArray().Count);
+        Assert.Equal(2, (await LerJson(duasEquipes))["equipes"]!.AsArray().Count);
         Assert.Equal(HttpStatusCode.BadRequest, semEquipe.StatusCode);   // RN31
         var lista = await LerJson(await Cliente.GetAsync($"/api/v1/usuarios?equipeId={idB}"));
         Assert.Equal(1, lista["total"]!.GetValue<int>());
     }
 
     [Fact]
-    public async Task SenhaProvisoria_FuncionaUmaVezEForcaATroca()
+    public async Task UsuarioCadastradoPelaMatricula_EntraPeloWindowsComOPerfilEAsEquipesDados()
     {
-        // RN25
-        var criado = await LerJson(await Cliente.PostAsJsonAsync("/api/v1/usuarios",
-            new { matricula = "novo", nome = "Novo", perfil = "INTERNO", equipes = new[] { EquipePadrao.Id } }));
-        var provisoria = criado["senhaProvisoria"]!.GetValue<string>();
+        // RN23: o cadastro é só pela matrícula do AD; não há senha. O login do Windows acha o usuário pela matrícula.
+        var criado = await Cliente.PostAsJsonAsync("/api/v1/usuarios",
+            new { matricula = "C123456", nome = "Novo", perfil = "INTERNO", equipes = new[] { EquipePadrao.Id } });
+        Assert.Equal(HttpStatusCode.Created, criado.StatusCode);
+        var usuario = await LerJson(criado);
+        Assert.Null(usuario["senhaProvisoria"]);
 
-        var login = await LerJson(await ClienteAnonimo.PostAsJsonAsync("/api/v1/auth/login", new { matricula = "novo", senha = provisoria }));
-        Assert.True(login["deveTrocarSenha"]!.GetValue<bool>());
+        var login = await LerJson(await LoginWindows(@"CORPCAIXA\c123456"));
+
+        Assert.Equal(usuario["id"]!.GetValue<string>(), login["usuario"]!["id"]!.GetValue<string>());
+        Assert.Equal("INTERNO", login["usuario"]!["perfil"]!.GetValue<string>());
         using var cliente = ClienteComToken(login["token"]!.GetValue<string>());
-        Assert.Equal(HttpStatusCode.Forbidden, (await cliente.GetAsync(UrlRegistros("comunidade"))).StatusCode);
-
-        await cliente.PostAsJsonAsync("/api/v1/auth/trocar-senha", new { senhaAtual = provisoria, novaSenha = "MinhaSenha2026" });
-
-        var deNovoComAProvisoria = await ClienteAnonimo.PostAsJsonAsync("/api/v1/auth/login", new { matricula = "novo", senha = provisoria });
-        Assert.Equal(HttpStatusCode.Unauthorized, deNovoComAProvisoria.StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await cliente.GetAsync(UrlRegistros("comunidade"))).StatusCode);
     }
 
@@ -96,19 +94,13 @@ public class AdministracaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banc
     }
 
     [Fact]
-    public async Task RespostasEHistoricoDeUsuarios_NuncaTrazemSenhaNemHash()
+    public async Task RespostasEHistoricoDeUsuarios_NaoTemMaisNadaDeSenha()
     {
-        // RN32: confere no JSON BRUTO.
+        // Login pelo Windows (docs/adr/0054): sem senha, troca obrigatória nem bloqueio. Confere no JSON BRUTO.
         var criado = await Cliente.PostAsJsonAsync("/api/v1/usuarios",
             new { matricula = "novo", nome = "Novo", perfil = "INTERNO", equipes = new[] { EquipePadrao.Id } });
         var corpoCriacao = await criado.Content.ReadAsStringAsync();
-        var id = (await LerJson(criado))["usuario"]!["id"]!.GetValue<string>();
-        var redefinicao = await (await Cliente.PostAsync($"/api/v1/usuarios/{id}/redefinir-senha", null)).Content.ReadAsStringAsync();
-
-        string hash;
-        using (var escopo = Banco.Fabrica.Services.CreateScope())
-            hash = await escopo.ServiceProvider.GetRequiredService<CatalogoDbContext>().Usuarios
-                .Where(u => u.Id == Guid.Parse(id)).Select(u => u.SenhaHash).SingleAsync();
+        var id = (await LerJson(criado))["id"]!.GetValue<string>();
 
         var respostas = new[]
         {
@@ -116,18 +108,15 @@ public class AdministracaoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banc
             await Cliente.GetStringAsync($"/api/v1/usuarios/{id}"),
             await Cliente.GetStringAsync("/api/v1/usuarios"),
             await Cliente.GetStringAsync($"/api/v1/usuarios/{id}/historico"),
+            await Cliente.GetStringAsync("/api/v1/auth/eu"),
         };
 
         foreach (var corpo in respostas)
         {
-            Assert.DoesNotContain(hash, corpo);
-            Assert.DoesNotContain("senhaHash", corpo, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("senha", corpo, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("bloqueadoAte", corpo, StringComparison.OrdinalIgnoreCase);
         }
-
-        // A senha provisória aparece SÓ na resposta que a gerou.
-        var provisoriaRedefinida = System.Text.Json.Nodes.JsonNode.Parse(redefinicao)!["senhaProvisoria"]!.GetValue<string>();
-        Assert.All(respostas, corpo => Assert.DoesNotContain(provisoriaRedefinida, corpo));
-        Assert.Contains("\"para\":\"redefinida\"", respostas[3]);
+        Assert.Equal(HttpStatusCode.NotFound, (await Cliente.PostAsync($"/api/v1/usuarios/{id}/redefinir-senha", null)).StatusCode);
     }
 
     [Fact]

@@ -63,8 +63,9 @@ dotnet run --project src/Catalogo.Api --launch-profile Local
 6. **Permissão e histórico**: toda regra de "quem pode" está na `PoliticaPermissao` (Domain), inclusive as de
    aprovação (RN33 a RN38), de avaliação (RN40, RN44, RN47) e de áreas de gestão por equipe (quem vê a área e "as equipes do usuário
    nesta área", RN90 a RN93), e todo caso de uso que altera dados grava histórico (RN26, RN32). Detalhes no AGENTS.md da Application.
-7. **Senha nunca** em log, resposta, histórico ou exceção. `SenhaHash` não sai da Infrastructure/Domain:
-   nenhum DTO o expõe (o teste `RespostasEHistoricoDeUsuarios_NuncaTrazemSenhaNemHash` confere no JSON bruto).
+7. **Login só pelo Windows** ([ADR 0054](../docs/adr/0054-login-pela-autenticacao-integrada-do-windows.md)): o `POST /auth/login`
+   (Negotiate) é o único que emite o JWT; não há senha no Catálogo (o teste `RespostasEHistoricoDeUsuarios_NaoTemMaisNadaDeSenha`
+   confere no JSON bruto). Nunca registre o token no log; identifique quem fez pela matrícula.
 8. **Nomes**: domínio em português (`CriarRegistro`, `Campo.Obrigatorio`); termos do framework em
    inglês (`Controller`, `DbContext`, `IExceptionHandler`).
 9. Ao implementar ou testar uma regra, cite o `RNxx` de [`docs/regras-de-negocio.md`](../docs/regras-de-negocio.md).

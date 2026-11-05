@@ -43,7 +43,7 @@ public class ContratoJsonApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco
     {
         var comunidade = await Criar("comunidade", new JsonObject { ["nome"] = "Ágil" });
         await Atualizar("comunidade", comunidade, ComVersao(await Ler("comunidade", comunidade), new JsonObject { ["nome"] = "Ágil 2" }));
-        var login = await LerJson(await ClienteAnonimo.PostAsJsonAsync("/api/v1/auth/login", new { matricula = "admin.testes", senha = SenhaPadrao }));
+        var login = await LerJson(await LoginWindows(@"CORPCAIXA\admin.testes"));
         var registro = await Ler("comunidade", comunidade);
         var equipes = await LerJson(await Cliente.GetAsync("/api/v1/equipes"));
         var usuario = await LerJson(await Cliente.GetAsync($"/api/v1/usuarios/{Administrador.Id}"));

@@ -26,9 +26,9 @@ builder.Services.AddProblemDetails(opcoes => opcoes.CustomizeProblemDetails = Ex
 builder.Services.AddExceptionHandler<TratadorExcecoesGlobal>();
 builder.Services.AdicionarSwagger();
 
-// Autenticação (JWT), autorização padrão (tudo exige login) e rate limiting do login. Ver docs/seguranca.md.
+// Autenticação: login pelo Windows (Negotiate) que devolve o JWT; o resto da API com o JWT. Ver docs/seguranca.md.
 builder.Services.AdicionarSeguranca();
-// CORS para o front: origens de CORS_ALLOW, separadas por vírgula; "*" libera todas (docs/seguranca.md#cors).
+// CORS para o front, com credenciais: origens exatas de CORS_ALLOW, separadas por vírgula (docs/seguranca.md#cors).
 builder.Services.AdicionarCors();
 
 // Domain + Application
@@ -43,12 +43,11 @@ var app = builder.Build();
 // Comando de linha "criar-admin": cria o primeiro administrador e termina, sem subir a API.
 if (ComandoCriarAdmin.EhEsteComando(args))
 {
-    return await ComandoCriarAdmin.ExecutarAsync(
-        app.Services, args, Environment.GetEnvironmentVariable(ComandoCriarAdmin.VariavelSenha), Console.Out);
+    return await ComandoCriarAdmin.ExecutarAsync(app.Services, args, Console.Out);
 }
 
 // Falha na inicialização, com mensagem clara, se alguma chave do deploy está vazia ou com o marcador __...__ (lista todas),
-// se ENVIRONMENT não é um dos cinco ambientes ou se CORS_ALLOW tem uma origem inválida.
+// se ENVIRONMENT não é um dos cinco ambientes ou se CORS_ALLOW tem uma origem inválida (ou "*").
 ConfiguracaoDeploy.Validar(app.Configuration, ConfiguracaoInfraestrutura.ChavesBanco);
 var ambiente = app.Services.GetRequiredService<AmbienteCatalogo>();
 ConfiguracaoCors.LerOrigens(app.Configuration);
@@ -70,10 +69,9 @@ if (ambiente.PublicaSwagger)
 
 // Antes da autenticação: o preflight (OPTIONS) não tem token, e as respostas de erro também levam os cabeçalhos de CORS.
 app.UseCors();
-app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
-// Situação atual do usuário: desativado → 401; senha provisória pendente → 403 (RN23, RN25).
+// Situação atual do usuário: desativado → 401 (RN23).
 app.UseMiddleware<VerificacaoUsuarioMiddleware>();
 
 app.MapControllers();

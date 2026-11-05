@@ -105,11 +105,11 @@ public class HistoricoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         // Antes de cada teste já existe o "admin.testes": o comando se recusa.
         var saida = new StringWriter();
         var recusado = await ComandoCriarAdmin.ExecutarAsync(
-            Banco.Fabrica.Services, ["criar-admin", "--matricula", "chefe", "--nome", "Chefe"], "SenhaForte123", saida);
+            Banco.Fabrica.Services, ["criar-admin", "--matricula", "chefe", "--nome", "Chefe"], saida);
         Assert.Equal(1, recusado);
         Assert.Contains("Já existe um administrador ativo", saida.ToString());
 
-        // Sem administrador ativo, cria (com troca de senha obrigatória).
+        // Sem administrador ativo, cria (sem senha: ele entra pelo login do Windows).
         using (var escopo = Banco.Fabrica.Services.CreateScope())
         {
             var contexto = escopo.ServiceProvider.GetRequiredService<CatalogoDbContext>();
@@ -118,13 +118,37 @@ public class HistoricoApiTests(BancoDeTestesFixture banco) : TesteDeApi(banco)
         }
 
         var criado = await ComandoCriarAdmin.ExecutarAsync(
-            Banco.Fabrica.Services, ["criar-admin", "--matricula", "chefe", "--nome", "Chefe"], "SenhaForte123", new StringWriter());
+            Banco.Fabrica.Services, ["criar-admin", "--matricula", "chefe", "--nome", "Chefe"], new StringWriter());
 
         Assert.Equal(0, criado);
         using var verificacao = Banco.Fabrica.Services.CreateScope();
         var chefe = await verificacao.ServiceProvider.GetRequiredService<CatalogoDbContext>().Usuarios.SingleAsync(u => u.Matricula == "chefe");
         Assert.Equal(Perfil.Administrador, chefe.Perfil);
-        Assert.True(chefe.DeveTrocarSenha);
+        Assert.True(chefe.Ativo);
+    }
+
+    [Fact]
+    public async Task ComandoCriarAdmin_MatriculaQueJaEntrouPeloWindows_ViraAdministrador()
+    {
+        // RN105: a pessoa abriu o Catálogo antes do comando e virou EXTERNO sem equipe; o comando a promove, com histórico.
+        Assert.Equal(System.Net.HttpStatusCode.OK, (await LoginWindows(@"CORPCAIXA\c161587")).StatusCode);
+        using (var escopo = Banco.Fabrica.Services.CreateScope())
+        {
+            var contexto = escopo.ServiceProvider.GetRequiredService<CatalogoDbContext>();
+            (await contexto.Usuarios.SingleAsync(u => u.Id == Administrador.Id)).Ativo = false;
+            await contexto.SaveChangesAsync();
+        }
+
+        var resultado = await ComandoCriarAdmin.ExecutarAsync(
+            Banco.Fabrica.Services, ["criar-admin", "--matricula", "C161587", "--nome", "Fulana"], new StringWriter());
+
+        Assert.Equal(0, resultado);
+        using var verificacao = Banco.Fabrica.Services.CreateScope();
+        var contextoVerificacao = verificacao.ServiceProvider.GetRequiredService<CatalogoDbContext>();
+        var fulana = await contextoVerificacao.Usuarios.SingleAsync(u => u.Matricula == "C161587");
+        Assert.Equal(Perfil.Administrador, fulana.Perfil);
+        Assert.Equal("Fulana", fulana.Nome);
+        Assert.Equal(2, await contextoVerificacao.HistoricosAlteracao.CountAsync(h => h.AlvoId == fulana.Id));
     }
 
     private static string Unica(JsonNode item)

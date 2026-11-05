@@ -5,22 +5,19 @@ namespace Catalogo.Application.Dtos;
 // DTOs de autenticação, usuários, equipes e histórico.
 // Os de ENTRADA têm propriedades anuláveis de propósito: a validação (com mensagens em português,
 // todas juntas) é feita pelo caso de uso, e não pela validação automática do ASP.NET.
-// Nenhum DTO tem senha nem hash de senha, exceto a senha provisória devolvida UMA vez.
+// Não há senha: o login é a autenticação integrada do Windows (docs/adr/0054).
 
 /// <summary>Quem fez algo: { id, matricula, nome }.</summary>
 public sealed record UsuarioResumoDto(Guid Id, string Matricula, string Nome);
 
 public sealed record EquipeResumoDto(Guid Id, string Nome, bool Ativa);
 
-public sealed record LoginEntrada(string? Matricula, string? Senha);
-
-public sealed record LoginDto(string Token, DateTime ExpiraEm, bool DeveTrocarSenha, UsuarioLogadoDto Usuario);
+/// <summary>Resposta do login pelo Windows: o JWT (Authorization: Bearer ...) e os dados do usuário.</summary>
+public sealed record LoginDto(string Token, DateTime ExpiraEm, UsuarioLogadoDto Usuario);
 
 /// <summary>Dados do usuário logado (GET /api/auth/eu). <see cref="Equipes"/> só traz as ativas.</summary>
 public sealed record UsuarioLogadoDto(
-    Guid Id, string Matricula, string Nome, string Perfil, bool DeveTrocarSenha, IReadOnlyList<EquipeResumoDto> Equipes);
-
-public sealed record TrocaSenhaEntrada(string? SenhaAtual, string? NovaSenha);
+    Guid Id, string Matricula, string Nome, string Perfil, IReadOnlyList<EquipeResumoDto> Equipes);
 
 public sealed record EquipeEntrada(string? Nome);
 
@@ -41,24 +38,16 @@ public sealed record AtivacaoUsuarioEntrada(bool? Ativo);
 /// <summary>Criação e alteração de usuário. Na alteração, a matrícula é ignorada (não muda).</summary>
 public sealed record UsuarioEntrada(string? Matricula, string? Nome, string? Perfil, IReadOnlyList<Guid>? Equipes);
 
-/// <summary>Usuário para a administração. Nunca traz senha nem hash.</summary>
+/// <summary>Usuário para a administração.</summary>
 public sealed record UsuarioDto(
     Guid Id,
     string Matricula,
     string Nome,
     string Perfil,
     bool Ativo,
-    bool DeveTrocarSenha,
-    DateTime? BloqueadoAte,
     DateTime? UltimoAcessoEm,
     DateTime CriadoEm,
     IReadOnlyList<EquipeResumoDto> Equipes);
-
-/// <summary>Resposta da criação: a senha provisória aparece só aqui, uma única vez.</summary>
-public sealed record UsuarioCriadoDto(UsuarioDto Usuario, string SenhaProvisoria);
-
-/// <summary>Resposta da redefinição de senha: a nova senha provisória, uma única vez.</summary>
-public sealed record SenhaProvisoriaDto(string SenhaProvisoria);
 
 /// <summary>Uma linha do histórico (RN32), com as mudanças por campo.</summary>
 public sealed record HistoricoDto(

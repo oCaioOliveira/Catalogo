@@ -208,7 +208,6 @@ public static class PoliticaPermissao
         Nome = usuario.Nome,
         Perfil = usuario.Perfil,
         Ativo = usuario.Ativo,
-        DeveTrocarSenha = usuario.DeveTrocarSenha,
         Equipes = EquipesNaListagem(usuario, grupo.EquipesHabilitadas),
         EquipesHabilitadasNaListagem = grupo.EquipesHabilitadas,
     };

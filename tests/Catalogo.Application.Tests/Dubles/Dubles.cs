@@ -378,14 +378,6 @@ internal sealed class HistoricoRepositoryFalso : IHistoricoRepository
         Task.FromResult(Linhas.LastOrDefault(h => h.AlvoTipo == alvoTipo && h.AlvoId == alvoId));
 }
 
-/// <summary>Hasher de mentira, legível nos testes: "hash:" + senha.</summary>
-internal sealed class HasherSenhaFalso : IHasherSenha
-{
-    public string GerarHash(string senha) => "hash:" + senha;
-
-    public bool Verificar(string senhaHash, string senha) => senhaHash == "hash:" + senha;
-}
-
 internal sealed class SituacaoUsuariosFalsa : ISituacaoUsuarios
 {
     public List<Guid> Invalidados { get; } = [];

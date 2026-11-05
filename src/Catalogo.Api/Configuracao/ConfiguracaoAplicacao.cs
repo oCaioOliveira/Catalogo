@@ -44,9 +44,6 @@ public static class ConfiguracaoAplicacao
         services.AddScoped<SimuladorImportacao>();
         services.AddScoped<AcessoImportacao>();
 
-        // Fornecedor de identidade: matrícula e senha locais. Para um SSO, troque só esta linha (docs/adr/0015).
-        services.AddScoped<IProvedorIdentidade, ProvedorIdentidadeLocal>();
-
         // Casos de uso: injetados direto nos controllers (sem mediator, ver docs/adr/0004).
         services.AddScoped<ListarGrupos>();
         services.AddScoped<ListarEntidades>();
@@ -61,7 +58,6 @@ public static class ConfiguracaoAplicacao
         services.AddScoped<ListarOpcoes>();
 
         services.AddScoped<Login>();
-        services.AddScoped<TrocarSenha>();
         services.AddScoped<ObterUsuarioLogado>();
         services.AddScoped<CriarPrimeiroAdministrador>();
         services.AddScoped<GerarSqlAdministradorInicial>();
@@ -76,7 +72,6 @@ public static class ConfiguracaoAplicacao
         services.AddScoped<CriarUsuario>();
         services.AddScoped<AtualizarUsuario>();
         services.AddScoped<AlterarAtivacaoUsuario>();
-        services.AddScoped<RedefinirSenhaUsuario>();
 
         services.AddScoped<ListarHistoricoRegistro>();
         services.AddScoped<ListarHistoricoAcesso>();

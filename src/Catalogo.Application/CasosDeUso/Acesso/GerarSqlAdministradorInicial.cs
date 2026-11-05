@@ -9,29 +9,20 @@ namespace Catalogo.Application.CasosDeUso.Acesso;
 /// <summary>
 /// Caso de uso: escrever o script SQL que cadastra o PRIMEIRO administrador num banco em que a aplicação ainda não rodou
 /// (pacote de entrega dos DBAs, comando "criar-admin --gerar-sql"). Não acessa o banco. Faz o mesmo que
-/// <see cref="CriarPrimeiroAdministrador"/>: valida a identificação, gera o hash com o mesmo <see cref="IHasherSenha"/>,
-/// cria o usuário ADMINISTRADOR ativo, sem equipe e com troca de senha obrigatória (RN25), e a linha de histórico de criação
-/// (RN32). No script vai SOMENTE o hash: a senha não aparece em lugar nenhum.
-/// <para>
-/// A política de senha (<see cref="PoliticaSenha"/>) vale aqui como em toda a aplicação. A única exceção é explícita
-/// (<paramref name="aceitarSenhaForaDaPolitica"/> em <see cref="Executar"/>): só para esse usuário inicial, porque a senha é
-/// provisória e a troca no primeiro acesso exige uma senha dentro da política. Nada muda para os demais casos.
-/// </para>
+/// <see cref="CriarPrimeiroAdministrador"/>: valida a identificação, cria o usuário ADMINISTRADOR ativo e sem equipe, e a linha de
+/// histórico de criação (RN32). Não há senha: o administrador entra pelo login do Windows, pela matrícula (RN23).
+/// Exige a estrutura sem as colunas de senha (versão 19, docs/adr/0054).
 /// </summary>
-public sealed class GerarSqlAdministradorInicial(IHasherSenha hasher)
+public sealed class GerarSqlAdministradorInicial
 {
+    /// <summary>A versão da estrutura que o script exige (V019: sem as colunas de senha).</summary>
+    public const int VersaoMinimaEstrutura = 19;
+
     /// <returns>O script, pronto para o SSMS: lotes com GO, sem variáveis de SQLCMD, e para se a matrícula já existir.</returns>
-    public string Executar(string? matricula, string? nome, string? senha, bool aceitarSenhaForaDaPolitica)
+    public string Executar(string? matricula, string? nome)
     {
         var erros = new ErrosPorCampo();
         CriarPrimeiroAdministrador.ValidarIdentificacao(matricula, nome, erros);
-        if (string.IsNullOrEmpty(senha))
-            erros.Adicionar("senha", "Campo obrigatório.");
-        else if (!aceitarSenhaForaDaPolitica)
-        {
-            foreach (var erro in PoliticaSenha.Validar(senha))
-                erros.Adicionar("senha", erro);
-        }
         erros.LancarSeHouverErros();
 
         var usuario = new Usuario
@@ -41,7 +32,6 @@ public sealed class GerarSqlAdministradorInicial(IHasherSenha hasher)
             Nome = nome!.Trim(),
             Perfil = Perfil.Administrador,
         };
-        usuario.DefinirSenha(hasher.GerarHash(senha!), provisoria: true);
 
         return Script(usuario, usuario.ParaJsonHistorico().ToJsonString(), Guid.NewGuid());
     }
@@ -55,12 +45,11 @@ public sealed class GerarSqlAdministradorInicial(IHasherSenha hasher)
                ---------------------------------------------------------------------
                Cadastra o primeiro administrador do Catálogo:
                  - matrícula {usuario.Matricula}, nome "{usuario.Nome}", perfil ADMINISTRADOR, ativo, sem equipe;
-                 - senha PROVISÓRIA, gravada SOMENTE como hash (PBKDF2, o mesmo da aplicação): a senha não está neste script;
-                 - DeveTrocarSenha = 1: no primeiro acesso a aplicação exige a troca da senha, antes de qualquer outra ação.
+                 - sem senha: o administrador entra pelo login do Windows (AD), identificado pela matrícula.
                Também grava a linha de criação no histórico de alterações, como a aplicação faz.
 
                GERADO pelo comando "criar-admin --gerar-sql" da aplicação. Não edite à mão: gere de novo.
-               Pré-requisito: os scripts 01 e 02 já executados.
+               Pré-requisito: a estrutura do Catálogo na versão {VersaoMinimaEstrutura} ou maior (sem as colunas de senha).
                Execução: SSMS (ou sqlcmd), conectado ao banco do Catálogo. Não usa variáveis de SQLCMD. Tempo: menos de 1 segundo.
                Proteção: se já existir um usuário com a matrícula {usuario.Matricula}, o script para, sem alterar nada.
                ===================================================================== */
@@ -75,6 +64,11 @@ public sealed class GerarSqlAdministradorInicial(IHasherSenha hasher)
                 RAISERROR (N'03_administrador_inicial: a estrutura do Catálogo não está instalada (schema cat). Execute antes a instalação da estrutura. Nada foi alterado.', 16, 1);
                 SET NOEXEC ON;
             END
+            ELSE IF NOT EXISTS (SELECT 1 FROM cat.CATTB023_VERSAO_SCHEMA WHERE NU_NSU_VERSAO >= {VersaoMinimaEstrutura})
+            BEGIN
+                RAISERROR (N'03_administrador_inicial: este script exige a estrutura na versão {VersaoMinimaEstrutura} ou maior (sem as colunas de senha). Nada foi alterado.', 16, 1);
+                SET NOEXEC ON;
+            END
             ELSE IF EXISTS (SELECT 1 FROM cat.CATTB008_USUARIO WHERE CO_MATRICULA = {matricula})
             BEGIN
                 RAISERROR (N'03_administrador_inicial: já existe um usuário com a matrícula {usuario.Matricula}. Nada foi alterado.', 16, 1);
@@ -84,9 +78,8 @@ public sealed class GerarSqlAdministradorInicial(IHasherSenha hasher)
 
             BEGIN TRANSACTION;
 
-            INSERT cat.CATTB008_USUARIO (NU_NSU_USUARIO, CO_MATRICULA, NO_USUARIO, CO_SENHA_HASH, NO_PERFIL, IC_ATIVO_USR, IC_TROCAR_SENHA)
-            VALUES ('{usuario.Id:D}', {matricula}, {Literal(usuario.Nome)}, {Literal(usuario.SenhaHash)},
-                    {Literal(PerfilConversor.ParaTexto(usuario.Perfil))}, {(usuario.Ativo ? 1 : 0)}, {(usuario.DeveTrocarSenha ? 1 : 0)});
+            INSERT cat.CATTB008_USUARIO (NU_NSU_USUARIO, CO_MATRICULA, NO_USUARIO, NO_PERFIL, IC_ATIVO_USR)
+            VALUES ('{usuario.Id:D}', {matricula}, {Literal(usuario.Nome)}, {Literal(PerfilConversor.ParaTexto(usuario.Perfil))}, {(usuario.Ativo ? 1 : 0)});
             PRINT '03_administrador_inicial: 1/2 usuário administrador cadastrado.';
 
             -- Histórico (RN32): a criação, com o próprio administrador como autor, como no comando criar-admin.
@@ -96,7 +89,7 @@ public sealed class GerarSqlAdministradorInicial(IHasherSenha hasher)
             PRINT '03_administrador_inicial: 2/2 histórico de criação gravado.';
 
             COMMIT TRANSACTION;
-            PRINT '03_administrador_inicial: concluído. No primeiro acesso, o administrador {usuario.Matricula} precisa trocar a senha provisória.';
+            PRINT '03_administrador_inicial: concluído. O administrador {usuario.Matricula} entra pelo login do Windows.';
             GO
 
             SET NOEXEC OFF;
